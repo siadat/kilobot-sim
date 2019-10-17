@@ -4,20 +4,19 @@ let OFFSET = {
 }
 
 let SIZE = {
-  w: 10,
-  h: 10,
+  w: 2.5,
+  h: 2.5,
 }
 
 let SCALE = 1.0;
 
 {
   let dimensions = {
-    w: $(window).width() - 20,
-    h: $(window).height() - 20,
+    w: $(window).width(),
+    h: $(window).height(),
     // w: Math.min($(window).width(), 10),
     // h: $(window).height(),
   }
-  console.log(dimensions);
   let scale1 = 1.0 * dimensions.w / SIZE.w;
   let scale2 = 1.0 * dimensions.h / SIZE.h;
   SCALE = Math.min(scale1, scale2);
@@ -28,15 +27,20 @@ let gSIZE = {
   h: SIZE.h * SCALE,
 }
 
-let RADIUS = 0.1;
+let RADIUS = 0.03;
 
-const COUNT = 1000;
+const PERFECT = false;
+const COUNT = 100;
 const FRAME_LIMIT = null;
 const MAX_DEPTH = 3;
 const FRAMES_PER_BODY = 50;
 let RAND_SEED = 0;
 const NO_COLLISION = 0;
 const randomPos = {x: SIZE.w*Math.random(), y: SIZE.h*Math.random()};
+
+const noise = function(magnitude) {
+  return magnitude * (Math.random()-0.5);
+}
 
 const clampVector = function(v) {
   const MAX = 0.01;

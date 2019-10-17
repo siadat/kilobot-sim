@@ -1,4 +1,9 @@
-Box2D().then(function(Box2D) {
+Box2D({
+  // I initially wanted to change it to delay the out of memory
+  // error. However, I fixed the problem completely by doing
+  // Box2D.destory(b2Vec2Instance).
+  // TOTAL_MEMORY: 1024 * 1024 * 16, // default value is 1024 * 1024 * 16.
+}).then(function(Box2D) {
   window.box2D = Box2D;
 // create two boxes and a ground
 class Pitch {
@@ -11,7 +16,7 @@ class Pitch {
     if(this.graphical) {
       PIXI.utils.skipHello();
       this.pixiApp = new PIXI.Application({
-        backgroundColor: 0xeeeeee,
+        backgroundColor: 0xdddddd,
         autoStart: true,
         width: OFFSET.x + gSIZE.w,
         height: OFFSET.y + gSIZE.h,
@@ -38,42 +43,55 @@ class Pitch {
   }
 
   run(botProg) {
+		this.bodies = [];
 
     for(let i = 0; i < COUNT; i++) {
-      /*
-      let pos = {
-        // x: RADIUS + Math.random() * (SIZE.w-2*RADIUS),
-        // y: RADIUS + Math.random() * (SIZE.h-2*RADIUS),
-        x: SIZE.w/2,
-        y: RADIUS + i*RADIUS*2,
-      }
-        */
       let pos = {x: 0, y: 0};
       const PER_ROW = Math.floor(Math.sqrt(COUNT));
-      pos.x = (i % PER_ROW) * (RADIUS*2) + SIZE.w/2 - PER_ROW*(RADIUS*2)/2;
-      pos.y = SIZE.h-RADIUS;
-      pos.y -= Math.floor(i/PER_ROW)*(RADIUS*2);
+      let rowi = Math.floor(i/PER_ROW);
+      pos.x = (i % PER_ROW) * (RADIUS*2) + SIZE.w/2 - PER_ROW*(RADIUS*2)/2 + RADIUS*(rowi%2);
+      pos.y = SIZE.h/2 - (COUNT/PER_ROW) * 0.5 * (RADIUS*2);
+      pos.y += rowi*(RADIUS*2);
       let b = this.physics.circle(pos, RADIUS, botProg);
+      this.bodies.push(b);
       this.createGraphics(b);
     }
+
+    if(PERFECT) {
+      this.bodies.forEach(b => {
+        b.robot.setup();
+        b.robot._started = true;
+      });
+    }
+
+    window.bodies = this.bodies;
 
     return new Promise((resolve, reject) => {
       const tickFunc = (frameCount) => {
         if(frameCount == FRAME_LIMIT) {
           resolve();
-          // this.movingBodies.forEach(b => {
-          //   b.agentActive = false;
-          // });
           return;
         }
 
-        // this.movingBodies.forEach(b => {
-        //   if(b.agentActive) {
-        //     b.agentAge += 1;
-        //   }
-        // });
-
         this.physics.update();
+
+        let runningCount = 0;
+        for(let i = 0; i < this.bodies.length; i++) {
+          let b = this.bodies[i];
+          if(b.robot._started) {
+            runningCount++;
+            b.robot.loop();
+            continue;
+          } 
+
+          // like a wave: if(i < runningCount + this.bodies.length/10) {
+          if(Math.random() < 0.05) {
+            runningCount++;
+            b.robot.setup();
+            b.robot._started = true;
+          }
+        }
+
         if(this.fastforward) {
           // setTimeout(() => tickFunc(frameCount+1), 1);
           tickFunc(frameCount+1);
@@ -98,47 +116,45 @@ class Pitch {
     switch(b.label) {
       case "Circle Body":
         const g = new PIXI.Graphics();
-        const color = getRandomColor();
+        const color = '0xffffff';
 
         const agentGraphicsTick = (b) => {
           let pos = b.position;
-          if(!b.position && b.getPosition) {
-            pos = b.getPosition();
+          let angle = 0;
+          if(!b.position && b.getData) {
+            let data = b.getData();
+            pos = data.pos;
+            angle = data.angle;
           }
           g.x = pos.x * SCALE;
           g.y = pos.y * SCALE;
-          if(g.zIndex) {
+          g.angle = angle;
+
+          if(!b.robot._graphics_must_update) {
             return;
+          } else {
+            b.robot._updated_graphics();
           }
 
           g.clear();
           g.removeChildren();
-          if(b.collisionFilter.category == 0x0002) {
-            g.beginFill(0xffffff);
-          } else {
-            g.beginFill(color);
-          }
+          g.beginFill(color);
 
-          let thickness = 1;
-          // g.drawCircle(0, 0, b.circleRadius-0.5*thickness);
+          let thickness = 0;
           g.lineStyle(thickness, 0x000000);
 
-          if(b.agentPheromone) {
-            g.zIndex = 1;
-            g.beginFill(0xffff00, 1.0);
-            g.lineStyle(0, 0x000000);
-          } else {
-            g.zIndex = 2;
-          }
+          g.zIndex = 1;
 
-          g.alpha = 0.5;
-          g.drawCircle(0, 0, b.circleRadius * SCALE);
+          //g.alpha = 0.8;
+          g.drawCircle(0, 0, b.circleRadius * SCALE - thickness/2);
           g.endFill();
 
-          if(b.agentActive) {
-            g.beginFill(0x000000);
-            g.drawCircle(0, 0, b.circleRadius*0.1)
-          }
+          let ledRadius = b.circleRadius * 0.4;
+
+          g.beginFill(b.robot.led.toHex());
+          g.lineStyle(0);
+          g.drawCircle(-(-b.circleRadius+ledRadius) * SCALE+thickness, 0, ledRadius * SCALE);
+
 
           /*
         const crossSize = 0;
@@ -184,7 +200,6 @@ class Box2DPhysics {
 		this.currentFrame = 0;
 		this.destroyCallbacks = [];
 
-		this.bodies = []; // Indexes start from 1
 		// Box2D-interfacing code
 		let gravity = new Box2D.b2Vec2(0.0, 0.0);
 		this.world = new Box2D.b2World(gravity);
@@ -212,13 +227,6 @@ class Box2DPhysics {
     }
     */
 
-    setInterval(() => {
-      const coef = 50;
-      randomItem(this.bodies).ApplyForceToCenter(
-        new Box2D.b2Vec2(coef * (Math.random()-0.5), coef * (Math.random()-0.5)),
-        true,
-      );
-    }, 10);
 
 	}
 
@@ -256,17 +264,29 @@ class Box2DPhysics {
   }
 
 	circle(pos, radius, botProg) {
-
 		let b2bodyDef = new Box2D.b2BodyDef();
-		b2bodyDef.set_linearDamping(2.0);
-		b2bodyDef.set_angularDamping(2.0);
+    b2bodyDef.set_linearDamping(10.0);
+		b2bodyDef.set_angularDamping(10.0);
 		b2bodyDef.set_type(Box2D.b2_dynamicBody);
+
+    if(!PERFECT) {
+      pos.x += noise(radius * 0.2);
+      pos.y += noise(radius * 0.2);
+    }
+
 		b2bodyDef.set_position(new Box2D.b2Vec2(pos.x, pos.y));
+    // b2bodyDef.set_bullet(true);
+
 
 		let circleShape = new Box2D.b2CircleShape();
     circleShape.set_m_radius(radius);
+    // if(!this.circleShape) {
+    //   this.circleShape = new Box2D.b2CircleShape();
+    //   this.circleShape.set_m_radius(radius);
+    // }
+
 		let fixtureDef = new Box2D.b2FixtureDef();
-		fixtureDef.set_density(5.0);
+		fixtureDef.set_density(1.0);
 		fixtureDef.set_friction(0.6);
 		fixtureDef.set_restitution(0.0);
 		fixtureDef.set_shape(circleShape);
@@ -274,7 +294,10 @@ class Box2DPhysics {
 		let body = this.world.CreateBody(b2bodyDef);
     body.CreateFixture(fixtureDef);
 
-		this.bodies.push(body);
+    if(!PERFECT) {
+      body.ApplyTorque(noise(Math.PI/2));
+    }
+
 		/*
 		let circleShape = new Box2D.b2CircleShape();
 		circleShape.set_m_radius(radius);
@@ -293,7 +316,6 @@ class Box2DPhysics {
 		// body.CreateFixture(fixtureDef);
 
 		body.CreateFixture(circleShape, 1.0);
-		this.bodies.push(body);
 
 		// let b = Matter.Bodies.circle(pos.x, pos.y, radius)
 		// b.restitution = 0;
@@ -306,20 +328,43 @@ class Box2DPhysics {
 		// b.agentLastActions = [];
 		// Matter.World.add(this.engine.world, b);
 		*/
-		return {
-			box2dBody: body,
-			label: 'Circle Body',
-			collisionFilter: {category: 0x0001},
-			circleRadius: radius,
-			getPosition: () => {
-				let bpos = body.GetPosition();
-				return {
-					x: bpos.get_x(),
-					y: bpos.get_y(),
-				};
-			},
-		};
+
+    let b = new Body(body, radius);
+    b.robot = new MyRobot();
+    b.robot._phys = body;
+    b.robot._Box2D = Box2D;
+    return b;
 	}
+}
+
+class Body {
+  constructor(body, radius) {
+    this.body = body;
+    this.label = 'Circle Body';
+    this.circleRadius = radius;
+  }
+
+    /*
+  setAgentActive(value) {
+    if(this.agentActive == value) {
+      return;
+    } else {
+      this.agentActive = value;
+      this.agentActiveChanged = true;
+    }
+  }
+  */
+
+  getData () {
+    let bpos = this.body.GetPosition();
+    return {
+      angle: this.body.GetAngle(),
+      pos: {
+        x: bpos.get_x(),
+        y: bpos.get_y(),
+      },
+    };
+  }
 }
 
 
