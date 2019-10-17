@@ -1,17 +1,37 @@
-let SCALE = 1;
-
 let OFFSET = {
   x: 0,
   y: 0,
 }
 
 let SIZE = {
-  w: 770 * 0.5 * SCALE,
-  h: 680 * 0.5 * SCALE,
+  w: 10,
+  h: 10,
 }
 
-const COUNT = 200;
-const FRAME_LIMIT = 100;
+let SCALE = 1.0;
+
+{
+  let dimensions = {
+    w: $(window).width() - 20,
+    h: $(window).height() - 20,
+    // w: Math.min($(window).width(), 10),
+    // h: $(window).height(),
+  }
+  console.log(dimensions);
+  let scale1 = 1.0 * dimensions.w / SIZE.w;
+  let scale2 = 1.0 * dimensions.h / SIZE.h;
+  SCALE = Math.min(scale1, scale2);
+}
+
+let gSIZE = {
+  w: SIZE.w * SCALE,
+  h: SIZE.h * SCALE,
+}
+
+let RADIUS = 0.1;
+
+const COUNT = 1000;
+const FRAME_LIMIT = null;
 const MAX_DEPTH = 3;
 const FRAMES_PER_BODY = 50;
 let RAND_SEED = 0;
