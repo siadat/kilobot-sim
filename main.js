@@ -8,10 +8,11 @@ Box2D({
 // create two boxes and a ground
 class Pitch {
   constructor(graphical, fastforward) {
-    this.destroyCallbacks = [];
+    this.destroyFuncs = [];
 
     this.graphical = graphical;
     this.fastforward = fastforward;
+    this.connections = [];
 
     if(this.graphical) {
       PIXI.utils.skipHello();
@@ -43,24 +44,55 @@ class Pitch {
         });
       }
 
+      {
+        if(DRAW_CONNECTIONS) {
+          let connGraphics = new PIXI.Graphics()
+          connGraphics.zIndex = 2;
+          this.pixiApp.stage.addChild(connGraphics);
+          this.pixiApp.ticker.add(() => {
+            connGraphics.clear();
+
+            this.bounds.forEach(bound => {
+              connGraphics.endFill();
+              connGraphics.lineStyle(2, bound.color || 0x00ff00);
+              connGraphics.drawRect(
+                SCALE * (bound.aabb.get_lowerBound().get_x()),
+                SCALE * (bound.aabb.get_lowerBound().get_y()),
+                SCALE * (bound.aabb.get_upperBound().get_x() - bound.aabb.get_lowerBound().get_x()),
+                SCALE * (bound.aabb.get_upperBound().get_y() - bound.aabb.get_lowerBound().get_y()),
+              );
+            });
+
+            this.connections.forEach(conn => {
+              connGraphics.lineStyle(SCALE * RADIUS/3, 0x00ff00);
+              let pos1 = this.bodies[conn.from].body.GetPosition();
+              let pos2 = this.bodies[conn.to].body.GetPosition();
+              connGraphics.moveTo(pos1.get_x() * SCALE, pos1.get_y() * SCALE);
+              connGraphics.lineTo(pos2.get_x() * SCALE, pos2.get_y() * SCALE);
+            });
+
+          });
+        }
+      }
+
 
       this.pixiApp.stage.sortableChildren = true;
 
       document.body.appendChild(this.pixiApp.view);
 
       // update at least once:
-      this.destroyCallbacks.push(() => this.pixiApp.ticker.update());
+      this.destroyFuncs.push(() => this.pixiApp.ticker.update());
       // destroy
-      this.destroyCallbacks.push(() => this.pixiApp.destroy());
+      this.destroyFuncs.push(() => this.pixiApp.destroy());
     }
 
     // this.physics = new MatterPhysics();
     this.physics = new Box2DPhysics();
-    this.destroyCallbacks.push(() => this.physics.destroy());
+    this.destroyFuncs.push(() => this.physics.destroy());
   }
 
   destroy() {
-    this.destroyCallbacks.forEach(cb => cb());
+    this.destroyFuncs.forEach(cb => cb());
   }
 
   run(botProg) {
@@ -73,7 +105,7 @@ class Pitch {
       pos.x = (i % PER_ROW) * (RADIUS*2) + SIZE.w/2 - PER_ROW*(RADIUS*2)/2 + RADIUS*(rowi%2);
       pos.y = SIZE.h/2 - (COUNT/PER_ROW) * 0.5 * (RADIUS*2);
       pos.y += rowi*(RADIUS*2);
-      let b = this.physics.circle(pos, RADIUS, botProg);
+      let b = this.physics.circle(pos, RADIUS, i);
       this.bodies.push(b);
       this.createGraphics(b);
     }
@@ -89,7 +121,7 @@ class Pitch {
 
     return new Promise((resolve, reject) => {
       const tickFunc = (frameCount) => {
-        if(frameCount == FRAME_LIMIT) {
+        if(frameCount == FRAME_LIMIT || window._state_stop) {
           resolve();
           return;
         }
@@ -116,6 +148,85 @@ class Pitch {
           }
         }
         // ******
+
+        this.connections = [];
+        this.bounds = [];
+
+        /*
+        this.bodies.forEach(b => {
+          let aabb = b.body.GetFixtureList().GetAABB();
+          this.bounds.push({aabb: aabb});
+        });
+        */
+
+        // ---
+        // all of this logic is to make sure each robot sends roughly 2 messages per second
+        let i = 0;
+        const FPS = 60;
+
+        let msgsPerFrame = MSG_PER_SEC * COUNT / FPS;
+        let cond = () => i < msgsPerFrame;
+
+        if(msgsPerFrame < 1) {
+          cond = () => (frameCount+i) % (FPS/MSG_PER_SEC) == 0
+        }
+
+        for(; cond(); i++){
+          let broadcasterIndex = Math.floor(Math.random() * COUNT);
+          let broadcastingBody = this.bodies[broadcasterIndex];
+          // if(!broadcastingBody._started) { continue; }
+          let pos = broadcastingBody.body.GetPosition();
+          let queryCallback = new Box2D.JSQueryCallback();
+
+          const handleReceiver = (index) => {
+            let receiverBody = this.bodies[index];
+
+            if(receiverBody.body.GetUserData() == broadcastingBody.body.GetUserData()) {
+              // same body
+              return;
+            }
+
+            let message = broadcastingBody.robot.kilo_message_tx();
+            if(message == null) {
+              return;
+            }
+
+            let p1 = broadcastingBody.body.GetPosition();
+            let p2 = receiverBody.body.GetPosition();
+            let distance = Math.sqrt(Math.pow(p1.get_x() - p2.get_x(), 2) + Math.pow(p1.get_y() - p2.get_y(), 2));
+
+            if(distance > NEIGHBOUR_DISTANCE) {
+              return;
+            }
+
+            receiverBody.robot.kilo_message_rx(message, distance);
+            this.connections.push({
+              from: broadcastingBody.body.GetUserData(),
+              to: receiverBody.body.GetUserData(),
+            });
+          };
+
+          queryCallback.ReportFixture = function(fixturePtr) {
+            var fixture = Box2D.wrapPointer(fixturePtr, Box2D.b2Fixture);
+            let id = fixture.GetBody().GetUserData();
+            // this.receiverIDs.push(id);
+            handleReceiver(id);
+            return ContinueQuery;
+          }
+          // queryCallback.receiverIDs = [];
+
+          let aabb = new Box2D.b2AABB();
+          let lowerBound = new Box2D.b2Vec2(pos.get_x()-NEIGHBOUR_DISTANCE/2, pos.get_y()-NEIGHBOUR_DISTANCE/2);
+          let upperBound = new Box2D.b2Vec2(pos.get_x()+NEIGHBOUR_DISTANCE/2, pos.get_y()+NEIGHBOUR_DISTANCE/2);
+          aabb.set_lowerBound(lowerBound);
+          aabb.set_upperBound(upperBound);
+          Box2D.destroy(lowerBound);
+          Box2D.destroy(upperBound);
+
+          this.physics.world.QueryAABB(queryCallback, aabb);
+          Box2D.destroy(aabb);
+          // queryCallback.receiverIDs.forEach(id => { });
+        }
 
         // ******
         if(this.fastforward) {
@@ -230,7 +341,7 @@ class Pitch {
 class Box2DPhysics {
 	constructor() {
 		this.currentFrame = 0;
-		this.destroyCallbacks = [];
+		this.destroyFuncs = [];
 
 		// Box2D-interfacing code
 		let gravity = new Box2D.b2Vec2(0.0, 0.0);
@@ -259,7 +370,7 @@ class Box2DPhysics {
     }
     */
 
-		let listener = new Box2D.JSContactListener;
+		let listener = new Box2D.JSContactListener();
 		listener.PreSolve = function(contact) {
       // console.log('PreSolve', arguments);
       return;
@@ -313,7 +424,7 @@ class Box2DPhysics {
 */
 
   destroy() {
-    this.destroyCallbacks.forEach(cb => cb());
+    this.destroyFuncs.forEach(cb => cb());
   }
 
   update() {
@@ -321,7 +432,7 @@ class Box2DPhysics {
     this.currentFrame++;
   }
 
-	circle(pos, radius, botProg) {
+	circle(pos, radius, id) {
 		let b2bodyDef = new Box2D.b2BodyDef();
     b2bodyDef.set_linearDamping(10.0);
 		b2bodyDef.set_angularDamping(10.0);
@@ -360,6 +471,7 @@ class Box2DPhysics {
     Box2D.destroy(filter1);
     // Box2D.destroy(this.circleShape);
 
+    /*
     // ---
     let filter2 = new Box2D.b2Filter();
     filter2.set_categoryBits(0x0002);
@@ -383,11 +495,14 @@ class Box2DPhysics {
     fixtureSensor.set_filter(filter2);
     Box2D.destroy(filter2);
     // Box2D.destroy(this.sensorShape);
+    */
     
 		let body = this.world.CreateBody(b2bodyDef);
     body.CreateFixture(fixtureDef);
-    body.CreateFixture(fixtureSensor);
+    // body.CreateFixture(fixtureSensor);
     // Box2D.destroy(b2bodyDef);
+
+    body.SetUserData(id);
 
     if(!PERFECT) {
       body.ApplyTorque(noise(Math.PI/2));
@@ -482,3 +597,7 @@ function _runPitch(botProg, graphical, fastforward) {
 }
   showPitch({});
 });
+
+function stop() {
+  window._state_stop = true;
+}

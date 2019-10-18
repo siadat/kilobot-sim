@@ -17,14 +17,13 @@ class Kilobot {
 
   _internal_loop() {
     this._internalTicker++;
-    if(this._internalTicker % 40 == 0) {
-      // console.log("you can send now");
-      let msgToSend = this.kilo_message_tx();
-      if(!msgToSend) {
-        return;
-      }
-      console.log("broadcasting message", msgToSend);
-    }
+    // if(this._internalTicker % 40 == 0) {
+    //   let msgToSend = this.kilo_message_tx();
+    //   if(!msgToSend) {
+    //     return;
+    //   }
+    //   console.log("broadcasting message", msgToSend);
+    // }
   }
 
   kilo_init() {
@@ -61,12 +60,13 @@ class Kilobot {
   }
 
   kilo_message_rx(message, distance) {
-    console.log(`received message=${message} from distance=${distance}`);
+    console.log(`kilo_message_rx: unhandled message=${message} from distance=${distance}`);
   }
 
   // roughly every 2 seconds
   // the returned message is sent, unless it is null
   kilo_message_tx() {
+    console.log(`kilo_message_tx: no message`);
     return null;
   }
 
@@ -84,7 +84,7 @@ class Kilobot {
       this._phys.SetAwake(true);
     }
 
-    let coef = 0.01;
+    let coef = 0.003;
 
     let angle = Math.PI * this._phys.GetAngle() / 180.0;
     if(!PERFECT) {
@@ -98,7 +98,7 @@ class Kilobot {
       this._permanentSpeedErr * coef * Math.sin(angle),
     );
 
-    this._phys.ApplyTorque(coef * right/255.0);
+    this._phys.ApplyTorque(1*coef * right/255.0);
     this._phys.ApplyForce(force1, this._phys.GetPosition());
     this._Box2D.destroy(force1);
 
@@ -107,7 +107,7 @@ class Kilobot {
       coef * Math.sin(angle),
     );
 
-    this._phys.ApplyTorque(-coef * left/255.0);
+    this._phys.ApplyTorque(-1*coef * left/255.0);
     this._phys.ApplyForce(force2, this._phys.GetPosition());
     this._Box2D.destroy(force2);
   }

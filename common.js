@@ -27,16 +27,22 @@ let gSIZE = {
   h: SIZE.h * SCALE,
 }
 
-let RADIUS = 0.06;
+let RADIUS = 0.03;
+let NEIGHBOUR_DISTANCE = RADIUS * 3;
 
+const MSG_PER_SEC = 2;
 const PERFECT = false;
-const COUNT = 200;
+const COUNT = 60;
+const DRAW_CONNECTIONS = false;
 const FRAME_LIMIT = null;
 const MAX_DEPTH = 3;
 const FRAMES_PER_BODY = 50;
 let RAND_SEED = 0;
 const NO_COLLISION = 0;
 const randomPos = {x: SIZE.w*Math.random(), y: SIZE.h*Math.random()};
+
+const ContinueQuery = true;
+const StopQuery = false;
 
 const noise = function(magnitude) {
   return magnitude * (Math.random()-0.5);

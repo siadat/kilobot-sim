@@ -1,7 +1,7 @@
 class MatterPhysics {
   constructor() {
     this.movingBodies = [];
-    this.destroyCallbacks = [];
+    this.destroyFuncs = [];
     let world = Matter.World.create({
       gravity: {
         // scale: 0.001,
@@ -51,14 +51,14 @@ class MatterPhysics {
     });
 
 
-    this.destroyCallbacks.push(() => Matter.World.clear(this.engine.world));
-    this.destroyCallbacks.push(() => Matter.Engine.clear(this.engine));
-    this.destroyCallbacks.push(() => delete(this.engine.world));
-    this.destroyCallbacks.push(() => delete(this.engine));
+    this.destroyFuncs.push(() => Matter.World.clear(this.engine.world));
+    this.destroyFuncs.push(() => Matter.Engine.clear(this.engine));
+    this.destroyFuncs.push(() => delete(this.engine.world));
+    this.destroyFuncs.push(() => delete(this.engine));
   }
 
   destroy() {
-    this.destroyCallbacks.forEach(cb => cb());
+    this.destroyFuncs.forEach(cb => cb());
   }
   update() {
     this.engine.world.currentFrame++;
