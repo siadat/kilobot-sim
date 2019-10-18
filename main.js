@@ -17,7 +17,7 @@ class Pitch {
     if(this.graphical) {
       PIXI.utils.skipHello();
       this.pixiApp = new PIXI.Application({
-        backgroundColor: 0xdddddd,
+        backgroundColor: DARK_MODE ? 0x111111 : 0xdddddd,
         autoStart: true,
         width: OFFSET.x + gSIZE.w,
         height: OFFSET.y + gSIZE.h,
@@ -64,7 +64,7 @@ class Pitch {
             });
 
             this.connections.forEach(conn => {
-              connGraphics.lineStyle(SCALE * RADIUS/3, 0x00ff00);
+              connGraphics.lineStyle(SCALE * RADIUS/4, 0x00ff00);
               let pos1 = this.bodies[conn.from].body.GetPosition();
               let pos2 = this.bodies[conn.to].body.GetPosition();
               connGraphics.moveTo(pos1.get_x() * SCALE, pos1.get_y() * SCALE);
@@ -106,6 +106,20 @@ class Pitch {
       pos.y = SIZE.h/2 - (COUNT/PER_ROW) * 0.5 * (RADIUS*2);
       pos.y += rowi*(RADIUS*2);
       let b = this.physics.circle(pos, RADIUS, i);
+
+      let gradientIndex = Math.floor(COUNT / 2) + Math.floor(Math.sqrt(COUNT)/2);
+      if(i == gradientIndex ) {
+        b.robot = new GradientSeedRobot();
+      } else if(i > gradientIndex  && i < gradientIndex  + 4) {
+        b.robot = new SeedRobot();
+      } else {
+        b.robot = new SelfAssemblyRobot();
+      }
+
+      b.robot._uid = i;
+      b.robot._phys = b.body;
+      b.robot._Box2D = Box2D;
+
       this.bodies.push(b);
       this.createGraphics(b);
     }
@@ -174,9 +188,16 @@ class Pitch {
         for(; cond(); i++){
           let broadcasterIndex = Math.floor(Math.random() * COUNT);
           let broadcastingBody = this.bodies[broadcasterIndex];
-          // if(!broadcastingBody._started) { continue; }
+          if(!broadcastingBody.robot._started) {
+            continue;
+          }
           let pos = broadcastingBody.body.GetPosition();
           let queryCallback = new Box2D.JSQueryCallback();
+
+          let message = broadcastingBody.robot.kilo_message_tx();
+          if(message == null) {
+            continue;
+          }
 
           const handleReceiver = (index) => {
             let receiverBody = this.bodies[index];
@@ -186,8 +207,7 @@ class Pitch {
               return;
             }
 
-            let message = broadcastingBody.robot.kilo_message_tx();
-            if(message == null) {
+            if(!receiverBody.robot._started) {
               return;
             }
 
@@ -296,6 +316,15 @@ class Pitch {
 
           g.beginFill(b.robot.led.toHex());
           g.lineStyle(0);
+          /*
+          if(b.robot.led.toHex() != 0x000000) {
+            g.filters = [
+              new PIXI.filters.GlowFilter(2, 2, 1, b.robot.led.toHex(), 0.5),
+            ];
+          } else {
+            g.filters = [];
+          }
+          */
           g.drawCircle(-(-b.circleRadius+ledRadius) * SCALE+thickness, 0, ledRadius * SCALE);
 
 
@@ -539,11 +568,16 @@ class Box2DPhysics {
 		// Matter.World.add(this.engine.world, b);
 		*/
 
+    return new Body(body, radius)
+
+      /*
     let b = new Body(body, radius);
-    b.robot = new MyRobot();
+    b.robot = new SelfAssemblyRobot();
+    b.robot._uid = id;
     b.robot._phys = body;
     b.robot._Box2D = Box2D;
     return b;
+    */
 	}
 }
 

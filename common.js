@@ -28,12 +28,13 @@ let gSIZE = {
 }
 
 let RADIUS = 0.03;
-let NEIGHBOUR_DISTANCE = RADIUS * 3;
+let NEIGHBOUR_DISTANCE = RADIUS * 4;
 
 const MSG_PER_SEC = 2;
 const PERFECT = false;
-const COUNT = 60;
+const COUNT = Math.floor(1024 * 1.0);
 const DRAW_CONNECTIONS = false;
+const DARK_MODE = !false;
 const FRAME_LIMIT = null;
 const MAX_DEPTH = 3;
 const FRAMES_PER_BODY = 50;

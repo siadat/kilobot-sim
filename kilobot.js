@@ -60,7 +60,7 @@ class Kilobot {
   }
 
   kilo_message_rx(message, distance) {
-    console.log(`kilo_message_rx: unhandled message=${message} from distance=${distance}`);
+    // console.log(`kilo_message_rx: unhandled message=${message} from distance=${distance}`);
   }
 
   // roughly every 2 seconds
@@ -121,7 +121,7 @@ class Kilobot {
     // this.dalay(15);
   }
 
-  kilo_uid() {
+  get kilo_uid() {
     return this._uid;
   }
 
@@ -138,15 +138,28 @@ class Kilobot {
 
 class RGB {
   constructor(r, g, b) {
+    if(r < 0 || r > 3) {
+      console.error("r must be between 0 and 3", r);
+      return;
+    }
+    if(g < 0 || g > 3) {
+      console.error("g must be between 0 and 3", g);
+      return;
+    }
+    if(b < 0 || b > 3) {
+      console.error("b must be between 0 and 3", b);
+      return;
+    }
+
     this.r = r;
     this.g = g;
     this.b = b;
   }
 
   toHex() {
-    let r = (0xff * (this.r/3)).toString(16);
-    let g = (0xff * (this.g/3)).toString(16);
-    let b = (0xff * (this.b/3)).toString(16);
+    let r = Math.floor(0xff * this.r / 3.0).toString(16);
+    let g = Math.floor(0xff * this.g / 3.0).toString(16);
+    let b = Math.floor(0xff * this.b / 3.0).toString(16);
     if(r.length == 1) r = `0${r}`;
     if(g.length == 1) g = `0${g}`;
     if(b.length == 1) b = `0${b}`;
