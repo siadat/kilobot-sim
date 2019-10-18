@@ -27,10 +27,10 @@ let gSIZE = {
   h: SIZE.h * SCALE,
 }
 
-let RADIUS = 0.03;
+let RADIUS = 0.06;
 
 const PERFECT = false;
-const COUNT = 100;
+const COUNT = 200;
 const FRAME_LIMIT = null;
 const MAX_DEPTH = 3;
 const FRAMES_PER_BODY = 50;

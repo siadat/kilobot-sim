@@ -6,11 +6,26 @@ class Kilobot {
     this._seed = 0;
     this._permanentSpeedErr = 1.0;
     this._startedAt = new Date();
+    this._internalTicker = 0;
     if(!PERFECT) {
       this._permanentSpeedErr = 1 + noise(0.4);
     }
   }
 
+  setup() { }
+  loop() { }
+
+  _internal_loop() {
+    this._internalTicker++;
+    if(this._internalTicker % 40 == 0) {
+      // console.log("you can send now");
+      let msgToSend = this.kilo_message_tx();
+      if(!msgToSend) {
+        return;
+      }
+      console.log("broadcasting message", msgToSend);
+    }
+  }
 
   kilo_init() {
     // Ok!
@@ -46,7 +61,7 @@ class Kilobot {
   }
 
   kilo_message_rx(message, distance) {
-    // No operation.
+    console.log(`received message=${message} from distance=${distance}`);
   }
 
   // roughly every 2 seconds
@@ -69,7 +84,7 @@ class Kilobot {
       this._phys.SetAwake(true);
     }
 
-    let coef = 0.001;
+    let coef = 0.01;
 
     let angle = Math.PI * this._phys.GetAngle() / 180.0;
     if(!PERFECT) {

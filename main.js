@@ -2,7 +2,7 @@ Box2D({
   // I initially wanted to change it to delay the out of memory
   // error. However, I fixed the problem completely by doing
   // Box2D.destory(b2Vec2Instance).
-  // TOTAL_MEMORY: 1024 * 1024 * 16, // default value is 1024 * 1024 * 16.
+  TOTAL_MEMORY: 1024 * 1024 * 32, // default value is 1024 * 1024 * 16.
 }).then(function(Box2D) {
   window.box2D = Box2D;
 // create two boxes and a ground
@@ -22,6 +22,27 @@ class Pitch {
         height: OFFSET.y + gSIZE.h,
         antialias: !false,
       });
+
+      {
+        const g = new PIXI.Graphics()
+        const t = new PIXI.Text('FPS', {fontSize: 12, align: 'center'});
+        // t.anchor.set(0.5);
+        t.position = {
+          x: 20,
+          y: 20,
+        }
+        g.addChild(t);
+        this.pixiApp.stage.addChild(g);
+
+        this.pixiApp.ticker.add(() => {
+          let fpsLine = '';
+          for(let i = 0; i < this.metaFPS/10; i++) {
+            fpsLine += `${i}`;
+          }
+          t.text = `FPS: ${this.metaFPS} ${fpsLine}`;
+        });
+      }
+
 
       this.pixiApp.stage.sortableChildren = true;
 
@@ -75,23 +96,28 @@ class Pitch {
 
         this.physics.update();
 
+        // ******
         let runningCount = 0;
         for(let i = 0; i < this.bodies.length; i++) {
           let b = this.bodies[i];
           if(b.robot._started) {
             runningCount++;
             b.robot.loop();
+            b.robot._internal_loop();
             continue;
           } 
 
-          // like a wave: if(i < runningCount + this.bodies.length/10) {
+          // like a wave:
+          //   if(i < runningCount + this.bodies.length/10) { ...
           if(Math.random() < 0.05) {
             runningCount++;
             b.robot.setup();
             b.robot._started = true;
           }
         }
+        // ******
 
+        // ******
         if(this.fastforward) {
           // setTimeout(() => tickFunc(frameCount+1), 1);
           tickFunc(frameCount+1);
@@ -100,7 +126,7 @@ class Pitch {
           window.requestAnimationFrame(() => {
             tickFunc(frameCount+1);
             let dt = (new Date() - time0)/1000;
-            // console.log('fps', Math.floor(1.0/dt));
+            this.metaFPS = Math.floor(1.0/dt);
           });
         }
       }
@@ -116,7 +142,7 @@ class Pitch {
     switch(b.label) {
       case "Circle Body":
         const g = new PIXI.Graphics();
-        const color = '0xffffff';
+        const color = '0x000000';
 
         const agentGraphicsTick = (b) => {
           let pos = b.position;
@@ -138,6 +164,12 @@ class Pitch {
 
           g.clear();
           g.removeChildren();
+
+          // g.beginFill(0x000000, 0.1);
+          // g.lineStyle(0);
+          // g.drawCircle(0, 0, 2 * b.circleRadius * SCALE);
+
+
           g.beginFill(color);
 
           let thickness = 0;
@@ -227,7 +259,33 @@ class Box2DPhysics {
     }
     */
 
+		let listener = new Box2D.JSContactListener;
+		listener.PreSolve = function(contact) {
+      // console.log('PreSolve', arguments);
+      return;
+    }
+		listener.PostSolve = function(contact) {
+      // console.log('PreSolve', arguments);
+      return;
+    }
+		listener.BeginContact = function(contact) {
+      // console.log('BeginContact', contact.GetFixtureA().GetBody().GetUserData());
+      // console.log('BeginContact', contact);
+      return;
+			div = document.getElementById("textUI");
+			div.innerHTML = "Come "+contact.GetFixtureA().GetBody();
+			defaultCarSpeed = defaultCarSpeed/2;
+		}
 
+		listener.EndContact = function(contact) {
+      // console.log('EndContact', contact.GetFixtureA().GetBody().GetUserData());
+      // console.log('EndContact', contact);
+      return;
+      div = document.getElementById("textUI");
+			div.innerHTML = "Go "+contact.GetFixtureA().GetBody();
+			defaultCarSpeed = defaultCarSpeed*2;
+		}
+		this.world.SetContactListener(listener);
 	}
 
 	edgeShape(from, to) {
@@ -259,7 +317,7 @@ class Box2DPhysics {
   }
 
   update() {
-    this.world.Step(1.0/60.0, 2, 2);
+    this.world.Step(1.0/60.0, 8, 3); // 8, 2
     this.currentFrame++;
   }
 
@@ -274,25 +332,62 @@ class Box2DPhysics {
       pos.y += noise(radius * 0.2);
     }
 
-		b2bodyDef.set_position(new Box2D.b2Vec2(pos.x, pos.y));
-    // b2bodyDef.set_bullet(true);
+    let posVec = new Box2D.b2Vec2(pos.x, pos.y);
+		b2bodyDef.set_position(posVec);
+    Box2D.destroy(posVec);
 
+    b2bodyDef.set_bullet(false);
 
-		let circleShape = new Box2D.b2CircleShape();
-    circleShape.set_m_radius(radius);
-    // if(!this.circleShape) {
-    //   this.circleShape = new Box2D.b2CircleShape();
-    //   this.circleShape.set_m_radius(radius);
-    // }
+    // ---
+    let filter1 = new Box2D.b2Filter();
+    filter1.set_categoryBits(0x0001);
+    filter1.set_maskBits(0x0001);
+
+    // let circleShape = new Box2D.b2CircleShape();
+    // circleShape.set_m_radius(radius);
+
+    if(!this.circleShape) {
+      this.circleShape = new Box2D.b2CircleShape();
+      this.circleShape.set_m_radius(radius);
+    }
 
 		let fixtureDef = new Box2D.b2FixtureDef();
 		fixtureDef.set_density(1.0);
 		fixtureDef.set_friction(0.6);
 		fixtureDef.set_restitution(0.0);
-		fixtureDef.set_shape(circleShape);
+		fixtureDef.set_shape(this.circleShape);
+    fixtureDef.set_filter(filter1);
+    Box2D.destroy(filter1);
+    // Box2D.destroy(this.circleShape);
 
+    // ---
+    let filter2 = new Box2D.b2Filter();
+    filter2.set_categoryBits(0x0002);
+    filter2.set_maskBits(0x0002);
+
+    // let sensorShape = new Box2D.b2CircleShape();
+    // sensorShape.set_m_radius(radius * 2);
+    if(!this.sensorShape) {
+      this.sensorShape  = new Box2D.b2PolygonShape();
+      this.sensorShape.SetAsBox(radius*2, radius*2);
+      // this.sensorShape = new Box2D.b2CircleShape();
+      // this.sensorShape.set_m_radius(radius * 2);
+    }
+
+		let fixtureSensor = new Box2D.b2FixtureDef();
+    // fixtureSensor.set_density(1.0);
+    // fixtureSensor.set_friction(0.6);
+    // fixtureSensor.set_restitution(0.0);
+		fixtureSensor.set_shape(this.sensorShape);
+    fixtureSensor.set_isSensor(true);
+    fixtureSensor.set_filter(filter2);
+    Box2D.destroy(filter2);
+    // Box2D.destroy(this.sensorShape);
+    
 		let body = this.world.CreateBody(b2bodyDef);
     body.CreateFixture(fixtureDef);
+    body.CreateFixture(fixtureSensor);
+    // Box2D.destroy(b2bodyDef);
 
     if(!PERFECT) {
       body.ApplyTorque(noise(Math.PI/2));
