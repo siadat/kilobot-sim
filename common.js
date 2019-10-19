@@ -32,7 +32,7 @@ let RADIUS = 0.08;
 let NEIGHBOUR_DISTANCE = RADIUS * 4;
 
 const MSG_PER_SEC = 2;
-const PERFECT = false;
+const PERFECT = !false;
 const COUNT = 100; // Math.floor(1024 * 1.0);
 const DRAW_CONNECTIONS = false;
 const DARK_MODE = !false;
@@ -66,6 +66,13 @@ const clampVector = function(v) {
   }
 
   return v;
+}
+
+const forEachObj = function(obj, f) {
+  Object.keys(obj).forEach(k => {
+    let item = obj[k];
+    f(item);
+  });
 }
 
 const calcDist = function(pos1, pos2) {

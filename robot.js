@@ -95,6 +95,10 @@ class SelfAssemblyRobot extends Kilobot {
     }
   }
 
+  cannotMove() {
+    this.ticksUntilCanMove = WAIT_TICKS;
+  }
+
   kilo_message_rx(message, distance) {
     switch(message.type) {
       case 'gradient':
@@ -118,7 +122,7 @@ class SelfAssemblyRobot extends Kilobot {
         // not set yet
         if(this.myGradient == null) {
           this.newEvent('(this.myGradient == null)');
-          this.ticksUntilCanMove = WAIT_TICKS;
+          this.cannotMove();
           this.myGradient = message.value + 1;
           break;
         }
@@ -127,6 +131,7 @@ class SelfAssemblyRobot extends Kilobot {
         // both peelers and waiters get this
         if(this.myGradient == message.value) {
           this.newEvent('(this.myGradient == message.value)');
+          this.cannotMove();
           break;
         }
 
@@ -138,17 +143,17 @@ class SelfAssemblyRobot extends Kilobot {
         }
 
         // from outer layers
-        // peelers don't get this, so reset ticksUntilCanMove
+        // peelers don't get this, so cannot move
         if(this.myGradient < message.value + 1) {
           this.newEvent('(this.myGradient < message.value)');
-          this.ticksUntilCanMove = WAIT_TICKS;
+          this.cannotMove();
           break;
         }
 
         // still finding the min gradient among neighbors
         if(this.myGradient > message.value + 1) {
           this.newEvent('(this.myGradient > message.value + 1)');
-          this.ticksUntilCanMove = WAIT_TICKS;
+          this.cannotMove();
           this.myGradient = message.value + 1;
           break;
         }
@@ -156,7 +161,7 @@ class SelfAssemblyRobot extends Kilobot {
         break;
       case 'noGradientYet':
         this.newEvent("case 'noGradientYet'");
-        this.ticksUntilCanMove = WAIT_TICKS;
+        this.cannotMove();
         break;
     }
   }

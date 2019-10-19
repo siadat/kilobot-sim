@@ -117,7 +117,7 @@ class Pitch {
   }
 
   run(botProg) {
-		this.bodies = [];
+		this.bodies = {};
 
     for(let i = 0; i < COUNT; i++) {
       let pos = {x: 0, y: 0};
@@ -141,12 +141,15 @@ class Pitch {
       b.robot._phys = b.body;
       b.robot._Box2D = Box2D;
 
-      this.bodies.push(b);
+      // this.bodies.push(b);
+      this.bodies[i] = b;
+
       this.createGraphics(b);
     }
 
     if(PERFECT) {
-      this.bodies.forEach(b => {
+      // this.bodies.forEach(b => {
+      forEachObj(this.bodies, b => {
         b.robot.setup();
         b.robot._started = true;
       });
@@ -165,25 +168,23 @@ class Pitch {
 
         // ******
         let runningCount = 0;
-        for(let i = 0; i < this.bodies.length; i++) {
-          let b = this.bodies[i];
+        forEachObj(this.bodies, b => {
           if(b.robot._started) {
             runningCount++;
             b.robot.loop();
             b.robot._internal_loop();
-            continue;
-          } 
+            return;
+          }
 
-          // like a wave:
-          //   if(i < runningCount + this.bodies.length/10) { ...
           if(Math.random() < 0.05) {
             runningCount++;
             b.robot.setup();
             b.robot._started = true;
           }
-        }
+        });
         // ******
 
+        // this.bodies = this.bodies.filter(b => !b._to_be_removed);
         this.connections = [];
         this.bounds = [];
 
@@ -207,8 +208,13 @@ class Pitch {
         }
 
         for(; cond(); i++){
-          let broadcasterIndex = Math.floor(Math.random() * COUNT);
-          let broadcastingBody = this.bodies[broadcasterIndex];
+          let broadcasterID = randomItem(Object.keys(this.bodies));
+          let broadcastingBody = this.bodies[broadcasterID];
+          if(!broadcastingBody) {
+            console.error("deleted robot fetched");
+            continue;
+          }
+
           if(!broadcastingBody.robot._started) {
             continue;
           }
@@ -220,8 +226,13 @@ class Pitch {
             continue;
           }
 
-          const handleReceiver = (index) => {
-            let receiverBody = this.bodies[index];
+          const handleReceiver = (id) => {
+            let receiverBody = this.bodies[id];
+
+            if(!receiverBody) {
+              console.error("body id not found");
+              return;
+            }
 
             if(receiverBody.body.GetUserData() == broadcastingBody.body.GetUserData()) {
               // same body
@@ -296,8 +307,15 @@ class Pitch {
         const g = new PIXI.Graphics();
         g.interactive = true;
         g.buttonMode = true;
-        g.on('pointerdown', function() {
+        g.on('pointerdown', () => {
           console.log(`clicked uid:${b.robot._uid} counter:${b.robot.counter} ticksUntilCanMove:${b.robot.ticksUntilCanMove}`);
+          b._to_be_removed = true;
+          b.robot._graphics_must_update = true;
+          b.robot._phys.GetWorld().DestroyBody(b.robot._phys);
+          delete(this.bodies[b.robot._uid]);
+          this.pixiApp.stage.removeChild(g);
+
+          // this.physics.world.DestroyBody(b.robot._phys);
           if(!b.robot.events) return;
           b.robot.events.forEach(e => {
             console.log(e);
@@ -585,7 +603,7 @@ class Box2DPhysics {
     Box2D.destroy(filter2);
     // Box2D.destroy(this.sensorShape);
     */
-    
+
 		let body = this.world.CreateBody(b2bodyDef);
     body.CreateFixture(fixtureDef);
     // body.CreateFixture(fixtureSensor);
