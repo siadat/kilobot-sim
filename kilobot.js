@@ -84,32 +84,27 @@ class Kilobot {
       this._phys.SetAwake(true);
     }
 
-    let coef = 0.003;
+    let coef = 0.006;
 
     let angle = Math.PI * this._phys.GetAngle() / 180.0;
     if(!PERFECT) {
       angle += noise(0.05 * Math.PI);
     }
 
-    // this._phys.ApplyAngularImpulse(
-
-    let force1 = new this._Box2D.b2Vec2(
+    let force = new this._Box2D.b2Vec2(
       this._permanentSpeedErr * coef * Math.cos(angle),
       this._permanentSpeedErr * coef * Math.sin(angle),
     );
 
-    this._phys.ApplyTorque(1*coef * right/255.0);
-    this._phys.ApplyForce(force1, this._phys.GetPosition());
-    this._Box2D.destroy(force1);
-
-    let force2 = new this._Box2D.b2Vec2(
-      coef * Math.cos(angle),
-      coef * Math.sin(angle),
+    // The reason I am not using ApplyTorque or ApplyAngularImpulse is that no
+    // matter what value I give it the angular velocity doesn't exceed a limit around a PI/second.
+    // Replace this SetTransform if you could get ApplyTorque to be fast enough.
+    this._phys.SetTransform(
+      this._phys.GetPosition(),
+      this._phys.GetAngle() + 5 * (right - left)/255.0,
     );
-
-    this._phys.ApplyTorque(-1*coef * left/255.0);
-    this._phys.ApplyForce(force2, this._phys.GetPosition());
-    this._Box2D.destroy(force2);
+    this._phys.ApplyForce(force, this._phys.GetPosition());
+    this._Box2D.destroy(force);
   }
 
   delay(ms) {
@@ -123,6 +118,18 @@ class Kilobot {
 
   get kilo_uid() {
     return this._uid;
+  }
+
+  mark() {
+    if(this._mark) return;
+    this._mark = true;
+    this._graphics_must_update = true;
+  }
+
+  unmark() {
+    if(!this._mark) return;
+    this._mark = false;
+    this._graphics_must_update = true;
   }
 
   set_color(rgb) {

@@ -19,8 +19,10 @@ class SelfAssemblyRobot extends Kilobot {
     this.SHAPE_DESC = SHAPE_DESC;
     this.myGradient = null;
     this.ticksUntilCanMove = WAIT_TICKS;
+    this.neighbourIsMovingExpiry = WAIT_TICKS;
     this.counter = 0;
     this.events = [];
+    this.myMoving = false;
 
     this.colors = [
       new RGB(3, 0, 0), // red
@@ -68,16 +70,28 @@ class SelfAssemblyRobot extends Kilobot {
 
   loop() {
     this.counter++;
-    if(this.ticksUntilCanMove <= 0) {
+    this.ticksUntilCanMove--;
+    this.neighbourIsMovingExpiry--;
+
+    if(this.ticksUntilCanMove < 0) {
+
+      if(this.neighbourIsMovingExpiry < 0) {
+        // this.myMoving = true;
+        // this.set_motors(0, this.kilo_turn_right);
+      }
+
       this.newEvent('(this.ticksUntilCanMove <= 0)');
+      this.mark();
+      /*
       if(this.counter % 60 < 55) {
         this.set_colors_for_gradient(this.myGradient);
       } else {
         this.set_color(new RGB(3, 3, 3));
       }
+      */
     } else {
+      this.unmark();
       this.set_colors_for_gradient(this.myGradient);
-      this.ticksUntilCanMove--;
     }
   }
 
@@ -87,6 +101,15 @@ class SelfAssemblyRobot extends Kilobot {
         this.newEvent("case 'gradient'");
         if(distance > GRADIENT_DIST) {
           break;
+        }
+
+        if(message.isMoving) {
+          this.neighbourIsMovingExpiry = WAIT_TICKS;
+        }
+
+        if(this.closestNeighbourDist > distance) {
+          this.closestNeighbourDistDiff = distance - this.closestNeighbourDist;
+          this.closestNeighbourDist = distance;
         }
 
         // each robot needs to set its gradient to x+1
@@ -148,6 +171,7 @@ class SelfAssemblyRobot extends Kilobot {
     return {
       type: 'gradient',
       value: this.myGradient,
+      isMoving: this.myMoving,
     };
   }
 }

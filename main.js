@@ -17,7 +17,7 @@ class Pitch {
     if(this.graphical) {
       PIXI.utils.skipHello();
       this.pixiApp = new PIXI.Application({
-        backgroundColor: DARK_MODE ? 0x111111 : 0xdddddd,
+        backgroundColor: DARK_MODE ? 0x222222 : 0xdddddd,
         autoStart: true,
         width: OFFSET.x + gSIZE.w,
         height: OFFSET.y + gSIZE.h,
@@ -32,7 +32,11 @@ class Pitch {
           left: 20,
         };
         g.zIndex = 3;
-        g.beginFill(0x000000, 0.5);
+        if(DARK_MODE) {
+          g.beginFill(0x000000, 0.5);
+        } else {
+          g.beginFill(0xffffff, 0.5);
+        }
         g.drawRect(
           0, 0,
           2*opts.left + 110, opts.fontSize + 2*opts.top,
@@ -64,13 +68,14 @@ class Pitch {
         if(DRAW_CONNECTIONS) {
           let connGraphics = new PIXI.Graphics()
           connGraphics.zIndex = 2;
+          connGraphics.alpha = 0.5;
           this.pixiApp.stage.addChild(connGraphics);
           this.pixiApp.ticker.add(() => {
             connGraphics.clear();
 
             this.bounds.forEach(bound => {
-              connGraphics.endFill();
               connGraphics.lineStyle(2, bound.color || 0x00ff00);
+
               connGraphics.drawRect(
                 SCALE * (bound.aabb.get_lowerBound().get_x()),
                 SCALE * (bound.aabb.get_lowerBound().get_y()),
@@ -80,9 +85,9 @@ class Pitch {
             });
 
             this.connections.forEach(conn => {
-              connGraphics.lineStyle(SCALE * RADIUS/4, 0x00ff00);
               let pos1 = this.bodies[conn.from].body.GetPosition();
               let pos2 = this.bodies[conn.to].body.GetPosition();
+              connGraphics.lineStyle(SCALE * RADIUS/4, this.bodies[conn.from].robot.led.toHex());
               connGraphics.moveTo(pos1.get_x() * SCALE, pos1.get_y() * SCALE);
               connGraphics.lineTo(pos2.get_x() * SCALE, pos2.get_y() * SCALE);
             });
@@ -289,7 +294,6 @@ class Pitch {
     switch(b.label) {
       case "Circle Body":
         const g = new PIXI.Graphics();
-        const color = '0x000000';
         g.interactive = true;
         g.buttonMode = true;
         g.on('pointerdown', function() {
@@ -311,6 +315,7 @@ class Pitch {
           g.x = pos.x * SCALE;
           g.y = pos.y * SCALE;
           g.angle = angle;
+          g.zIndex = 1;
 
           if(!b.robot._graphics_must_update) {
             return;
@@ -321,27 +326,22 @@ class Pitch {
           g.clear();
           g.removeChildren();
 
-          // g.beginFill(0x000000, 0.1);
-          // g.lineStyle(0);
-          // g.drawCircle(0, 0, 2 * b.circleRadius * SCALE);
-
-
-          g.beginFill(color);
 
           let thickness = 0;
+
+          if(DARK_MODE) {
+            g.beginFill(0x000000);
+          } else {
+            thickness = 1;
+            g.beginFill(0xffffff);
+          }
           g.lineStyle(thickness, 0x000000);
-
-          g.zIndex = 1;
-
-          //g.alpha = 0.8;
           g.drawCircle(0, 0, b.circleRadius * SCALE - thickness/2);
-          g.endFill();
 
           let ledRadius = b.circleRadius * 0.4;
           // let ledRadius = b.circleRadius * 1.0;
 
           g.lineStyle(0);
-
           g.beginFill(b.robot.led.toHex(), 0.2);
           g.drawCircle(0, 0, b.circleRadius * SCALE - thickness/2);
 
@@ -354,8 +354,28 @@ class Pitch {
             g.filters = [];
           }
           */
+          g.lineStyle(b.circleRadius*SCALE/2.0);
+          g.moveTo(0, 0);
+          g.lineTo(b.circleRadius*SCALE, 0);
+
+          g.lineStyle(thickness);
           g.beginFill(b.robot.led.toHex());
-          g.drawCircle(-(-b.circleRadius+ledRadius) * SCALE+thickness, 0, ledRadius * SCALE);
+          g.drawCircle(
+            // (b.circleRadius-ledRadius) * SCALE,
+            0,
+            0,
+            ledRadius * SCALE,
+          );
+
+          if(b.robot._mark) {
+            g.beginFill(0x000000);
+            g.drawCircle(
+              // (b.circleRadius-ledRadius) * SCALE,
+              0,
+              0,
+              ledRadius * SCALE * 0.75,
+            );
+          }
 
           if(false) {
             // const t = new PIXI.Text(`${b.robot._uid}`, {fontSize: 9, align: 'center'});
@@ -367,7 +387,6 @@ class Pitch {
             }
             g.addChild(t);
           }
-
 
           /*
         const crossSize = 0;
