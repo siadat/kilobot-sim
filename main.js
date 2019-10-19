@@ -26,11 +26,27 @@ class Pitch {
 
       {
         const g = new PIXI.Graphics()
-        const t = new PIXI.Text('FPS', {fontSize: 12, align: 'center'});
+        const opts = {
+          fontSize: 12,
+          top: 20,
+          left: 20,
+        };
+        g.zIndex = 3;
+        g.beginFill(0x000000, 0.5);
+        g.drawRect(
+          0, 0,
+          2*opts.left + 110, opts.fontSize + 2*opts.top,
+        );
+
+        const t = new PIXI.Text('FPS', {
+          fontSize: opts.fontSize,
+          align: 'center',
+          fill: DARK_MODE ? 0xffffff : 0x000000
+        });
         // t.anchor.set(0.5);
         t.position = {
-          x: 20,
-          y: 20,
+          x: opts.left,
+          y: opts.top,
         }
         g.addChild(t);
         this.pixiApp.stage.addChild(g);
@@ -274,6 +290,15 @@ class Pitch {
       case "Circle Body":
         const g = new PIXI.Graphics();
         const color = '0x000000';
+        g.interactive = true;
+        g.buttonMode = true;
+        g.on('pointerdown', function() {
+          console.log(`clicked uid:${b.robot._uid} counter:${b.robot.counter} ticksUntilCanMove:${b.robot.ticksUntilCanMove}`);
+          if(!b.robot.events) return;
+          b.robot.events.forEach(e => {
+            console.log(e);
+          });
+        });
 
         const agentGraphicsTick = (b) => {
           let pos = b.position;
@@ -313,9 +338,13 @@ class Pitch {
           g.endFill();
 
           let ledRadius = b.circleRadius * 0.4;
+          // let ledRadius = b.circleRadius * 1.0;
 
-          g.beginFill(b.robot.led.toHex());
           g.lineStyle(0);
+
+          g.beginFill(b.robot.led.toHex(), 0.2);
+          g.drawCircle(0, 0, b.circleRadius * SCALE - thickness/2);
+
           /*
           if(b.robot.led.toHex() != 0x000000) {
             g.filters = [
@@ -325,7 +354,19 @@ class Pitch {
             g.filters = [];
           }
           */
+          g.beginFill(b.robot.led.toHex());
           g.drawCircle(-(-b.circleRadius+ledRadius) * SCALE+thickness, 0, ledRadius * SCALE);
+
+          if(false) {
+            // const t = new PIXI.Text(`${b.robot._uid}`, {fontSize: 9, align: 'center'});
+            const t = new PIXI.Text(`${b.robot.counter || '0'}`, {fontSize: 9, align: 'center', fill: 0xf0f0f0});
+            t.anchor.set(0.5);
+            t.position = {
+              x: 0,
+              y: 0,
+            }
+            g.addChild(t);
+          }
 
 
           /*
@@ -629,6 +670,7 @@ function _runPitch(botProg, graphical, fastforward) {
     pitch.destroy();
   });
 }
+  console.log("Loaded.");
   showPitch({});
 });
 

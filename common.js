@@ -27,7 +27,8 @@ let gSIZE = {
   h: SIZE.h * SCALE,
 }
 
-let RADIUS = 0.03;
+// let RADIUS = 0.025;
+let RADIUS = 0.035;
 let NEIGHBOUR_DISTANCE = RADIUS * 4;
 
 const MSG_PER_SEC = 2;

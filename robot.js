@@ -11,12 +11,16 @@ const SHAPE_DESC = [
   '    ##    ',
   '    ##    ',
 ];
+const WAIT_TICKS = (1+MSG_PER_SEC) * 60;
 
 class SelfAssemblyRobot extends Kilobot {
   setup() {
     this.shapeScale = 2 * RADIUS;
     this.SHAPE_DESC = SHAPE_DESC;
     this.myGradient = null;
+    this.ticksUntilCanMove = WAIT_TICKS;
+    this.counter = 0;
+    this.events = [];
 
     this.colors = [
       new RGB(3, 0, 0), // red
@@ -28,10 +32,14 @@ class SelfAssemblyRobot extends Kilobot {
     ];
   }
 
-  loop() {
-  }
+  smoothColor(x, b) {
+    // Usage::
+    //   this.set_color(new RGB(
+    //     this.smoothColor(Math.floor(c / (4*4)), 4),
+    //     this.smoothColor(Math.floor(c / (4)), 4),
+    //     this.smoothColor(c, 4),
+    //   ));
 
-  smoothMode(x, b) {
     // return x % b;
     let newBase = 2*b - 2;
     let values = []
@@ -45,36 +53,96 @@ class SelfAssemblyRobot extends Kilobot {
     return values[x%newBase];
   }
 
+  newEvent(s) {
+    if(false) {
+      this.events.push(s);
+    }
+  }
+
+  set_colors_for_gradient(g) {
+    if(g == null) {
+      return;
+    }
+    this.set_color(this.colors[g % this.colors.length]);
+  }
+
+  loop() {
+    this.counter++;
+    if(this.ticksUntilCanMove <= 0) {
+      this.newEvent('(this.ticksUntilCanMove <= 0)');
+      if(this.counter % 60 < 55) {
+        this.set_colors_for_gradient(this.myGradient);
+      } else {
+        this.set_color(new RGB(3, 3, 3));
+      }
+    } else {
+      this.set_colors_for_gradient(this.myGradient);
+      this.ticksUntilCanMove--;
+    }
+  }
+
   kilo_message_rx(message, distance) {
     switch(message.type) {
       case 'gradient':
-        if(distance < GRADIENT_DIST) {
-          if(this.myGradient != null && this.myGradient < message.value + 1) {
-            return;
-          }
-          this.myGradient = message.value + 1;
-          let c = this.myGradient;
-          this.set_color(this.colors[this.myGradient % this.colors.length]);
-
-          // this.set_color(new RGB(
-          //   this.smoothMode(Math.floor(c / (4*4)), 4),
-          //   this.smoothMode(Math.floor(c / (4)), 4),
-          //   this.smoothMode(c, 4),
-          // ));
-
-          // this.set_color(new RGB(
-          //   Math.floor(c / (4*4)) % 4,
-          //   Math.floor(c/4) % 4,
-          //   c % 4,
-          // ));
+        this.newEvent("case 'gradient'");
+        if(distance > GRADIENT_DIST) {
+          break;
         }
+
+        // each robot needs to set its gradient to x+1
+        // where x="lowest value of all neighboring robots"
+
+        // not set yet
+        if(this.myGradient == null) {
+          this.newEvent('(this.myGradient == null)');
+          this.ticksUntilCanMove = WAIT_TICKS;
+          this.myGradient = message.value + 1;
+          break;
+        }
+
+        // from same layer
+        // both peelers and waiters get this
+        if(this.myGradient == message.value) {
+          this.newEvent('(this.myGradient == message.value)');
+          break;
+        }
+
+        // from inner layer
+        // both peelers and waiters get this
+        if(this.myGradient == message.value + 1) {
+          this.newEvent('(this.myGradient == message.value + 1)');
+          break;
+        }
+
+        // from outer layers
+        // peelers don't get this, so reset ticksUntilCanMove
+        if(this.myGradient < message.value + 1) {
+          this.newEvent('(this.myGradient < message.value)');
+          this.ticksUntilCanMove = WAIT_TICKS;
+          break;
+        }
+
+        // still finding the min gradient among neighbors
+        if(this.myGradient > message.value + 1) {
+          this.newEvent('(this.myGradient > message.value + 1)');
+          this.ticksUntilCanMove = WAIT_TICKS;
+          this.myGradient = message.value + 1;
+          break;
+        }
+
+        break;
+      case 'noGradientYet':
+        this.newEvent("case 'noGradientYet'");
+        this.ticksUntilCanMove = WAIT_TICKS;
         break;
     }
   }
 
   kilo_message_tx() {
     if(this.myGradient == null) {
-      return null;
+      return {
+        type: 'noGradientYet',
+      };
     }
 
     return {
@@ -103,10 +171,7 @@ class SeedRobot extends Kilobot {
   }
 
   kilo_message_tx() {
-    return {
-      type: 'gradient',
-      value: 0,
-    };
+    return null;
   }
 }
 
@@ -114,10 +179,10 @@ class GradientSeedRobot extends Kilobot {
   setup() {
     this.shapeScale = 2 * RADIUS;
     this.SHAPE_DESC = SHAPE_DESC;
+    this.set_color(new RGB(3, 3, 3));
   }
 
   loop() {
-    this.set_color(new RGB(3, 3, 3));
   }
 
   kilo_message_rx(message, distance) {
@@ -135,37 +200,3 @@ class GradientSeedRobot extends Kilobot {
     };
   }
 }
-
-// ----
-class MyRobot extends Kilobot {
-  setup() {
-    this.counter = 0;
-  }
-
-  loop() {
-    this.counter++;
-    // this.set_motors(this.kilo_straight_left, this.kilo_straight_left);
-    // this.set_motors(this.kilo_turn_left, 0);
-    // if(this.counter % 10 == 0) {
-    //   this.set_color(new RGB(this.rand_soft() % 4, this.rand_soft() % 4, this.rand_soft() % 4));
-    // }
-    this.set_color(new RGB(0, 2, 0));
-    if(this.kilo_uid == 55) {
-      this.set_color(new RGB(2, 0, 0));
-      this.set_motors(this.kilo_turn_left, 0);
-    }
-  }
-
-  kilo_message_rx(message, distance) {
-    // console.log(`kilo_message_rx: from distance=${distance}`); //, message);
-    // console.log(`kilo_message_rx`);
-  }
-
-  // roughly every 2 seconds
-  // the returned message is sent, unless it is null
-  kilo_message_tx() {
-    // return null;
-    return {"hello": true};
-  }
-}
-
