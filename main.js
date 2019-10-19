@@ -309,11 +309,13 @@ class Pitch {
         g.buttonMode = true;
         g.on('pointerdown', () => {
           console.log(`clicked uid:${b.robot._uid} counter:${b.robot.counter} ticksUntilCanMove:${b.robot.ticksUntilCanMove}`);
+          /*
           b._to_be_removed = true;
           b.robot._graphics_must_update = true;
           b.robot._phys.GetWorld().DestroyBody(b.robot._phys);
           delete(this.bodies[b.robot._uid]);
           this.pixiApp.stage.removeChild(g);
+          */
 
           // this.physics.world.DestroyBody(b.robot._phys);
           if(!b.robot.events) return;
@@ -438,7 +440,16 @@ class Pitch {
         }
         */
         };
-        this.pixiApp.ticker.add(() => agentGraphicsTick && agentGraphicsTick(b));
+        this.pixiApp.ticker.add(() => {
+          if(!agentGraphicsTick) {
+            return;
+          }
+          if(b._to_be_removed) {
+            this.pixiApp.stage.removeChild(g);
+            return;
+          }
+          agentGraphicsTick(b);
+        });
         this.pixiApp.stage.addChild(g);
         break;
     }
@@ -707,6 +718,16 @@ function _runPitch(botProg, graphical, fastforward) {
     pitch.destroy();
   });
 }
+
+  window.deleteBody = function(id) {
+    let b = this.bodies[id];
+    b._to_be_removed = true;
+    b.robot._graphics_must_update = true;
+    b.robot._phys.GetWorld().DestroyBody(b.robot._phys);
+    delete(this.bodies[b.robot._uid]);
+    // window.pitch.pixiApp.stage.removeChild(g);
+  }
+
   console.log("Loaded.");
   showPitch({});
 });
@@ -714,3 +735,4 @@ function _runPitch(botProg, graphical, fastforward) {
 function stop() {
   window._state_stop = true;
 }
+

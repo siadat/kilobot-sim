@@ -11,15 +11,15 @@ const SHAPE_DESC = [
   '    ##    ',
   '    ##    ',
 ];
-const WAIT_TICKS = (1+MSG_PER_SEC) * 60;
+const HESITATE = (1+MSG_PER_SEC) * 60;
 
 class SelfAssemblyRobot extends Kilobot {
   setup() {
     this.shapeScale = 2 * RADIUS;
     this.SHAPE_DESC = SHAPE_DESC;
     this.myGradient = null;
-    this.ticksUntilCanMove = WAIT_TICKS;
-    this.neighbourIsMovingExpiry = WAIT_TICKS;
+    this.hesitateAt = 0;
+    this.neighbourIsMovingExpiry = HESITATE;
     this.counter = 0;
     this.events = [];
     this.myMoving = false;
@@ -70,17 +70,15 @@ class SelfAssemblyRobot extends Kilobot {
 
   loop() {
     this.counter++;
-    this.ticksUntilCanMove--;
     this.neighbourIsMovingExpiry--;
 
-    if(this.ticksUntilCanMove < 0) {
+    if(this.counter - this.hesitateAt > HESITATE) {
 
       if(this.neighbourIsMovingExpiry < 0) {
         // this.myMoving = true;
         // this.set_motors(0, this.kilo_turn_right);
       }
 
-      this.newEvent('(this.ticksUntilCanMove <= 0)');
       this.mark();
       /*
       if(this.counter % 60 < 55) {
@@ -95,8 +93,8 @@ class SelfAssemblyRobot extends Kilobot {
     }
   }
 
-  cannotMove() {
-    this.ticksUntilCanMove = WAIT_TICKS;
+  hesitate() {
+    this.hesitateAt = this.counter;
   }
 
   kilo_message_rx(message, distance) {
@@ -108,7 +106,7 @@ class SelfAssemblyRobot extends Kilobot {
         }
 
         if(message.isMoving) {
-          this.neighbourIsMovingExpiry = WAIT_TICKS;
+          this.neighbourIsMovingExpiry = HESITATE;
         }
 
         if(this.closestNeighbourDist > distance) {
@@ -122,7 +120,7 @@ class SelfAssemblyRobot extends Kilobot {
         // not set yet
         if(this.myGradient == null) {
           this.newEvent('(this.myGradient == null)');
-          this.cannotMove();
+          this.hesitate();
           this.myGradient = message.value + 1;
           break;
         }
@@ -131,7 +129,11 @@ class SelfAssemblyRobot extends Kilobot {
         // both peelers and waiters get this
         if(this.myGradient == message.value) {
           this.newEvent('(this.myGradient == message.value)');
-          this.cannotMove();
+          if(message.robotUUID > this.kilo_uid && message.consideringMovement) {
+            this.hesitate();
+          }
+          // equalGradIDs[message.robotUUID] = {receivedAt: this.counter};
+          // we can move ONLY IF we have the greatest ID
           break;
         }
 
@@ -146,14 +148,14 @@ class SelfAssemblyRobot extends Kilobot {
         // peelers don't get this, so cannot move
         if(this.myGradient < message.value + 1) {
           this.newEvent('(this.myGradient < message.value)');
-          this.cannotMove();
+          this.hesitate();
           break;
         }
 
         // still finding the min gradient among neighbors
         if(this.myGradient > message.value + 1) {
           this.newEvent('(this.myGradient > message.value + 1)');
-          this.cannotMove();
+          this.hesitate();
           this.myGradient = message.value + 1;
           break;
         }
@@ -161,7 +163,7 @@ class SelfAssemblyRobot extends Kilobot {
         break;
       case 'noGradientYet':
         this.newEvent("case 'noGradientYet'");
-        this.cannotMove();
+        this.hesitate();
         break;
     }
   }
@@ -177,6 +179,8 @@ class SelfAssemblyRobot extends Kilobot {
       type: 'gradient',
       value: this.myGradient,
       isMoving: this.myMoving,
+      robotUUID: this.kilo_uid,
+      consideringMovement: this.counter - this.hesitateAt > HESITATE,
     };
   }
 }
