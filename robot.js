@@ -1,22 +1,26 @@
 const GRADIENT_DIST = 3 * RADIUS;
-const SHAPE_DESC = [
-  '    ##    ',
-  '    ##    ',
-  '    ##    ',
-  '   ####   ',
-  '##########',
-  '##########',
-  '   ####   ',
-  '    ##    ',
-  '    ##    ',
-  '    ##    ',
+
+const COLORS = [
+  new RGB(3, 0, 0), // red
+  new RGB(3, 0, 3), // magenta
+  new RGB(0, 0, 3), // blue
+  new RGB(0, 3, 3), // cyan
+  new RGB(0, 3, 0), // green
+  new RGB(3, 3, 0), // yellow
 ];
+
 const HESITATE = (1+MSG_PER_SEC) * 60;
 
-class SelfAssemblyRobot extends Kilobot {
+class GradientAndAssemblyRobot extends Kilobot {
+  constructor(opts) {
+    super();
+    this.shapeScale = opts.shapeScale;
+    this.shapeDesc = opts.shapeDesc;
+    this.isStationary = opts.isStationary;
+    this.shapePos = opts.shapePos;
+  }
+
   setup() {
-    this.shapeScale = 2 * RADIUS;
-    this.SHAPE_DESC = SHAPE_DESC;
     this.myGradient = null;
     this.hesitateAt = 0;
     this.neighbourIsMovingExpiry = HESITATE;
@@ -24,14 +28,9 @@ class SelfAssemblyRobot extends Kilobot {
     this.events = [];
     this.myMoving = false;
 
-    this.colors = [
-      new RGB(3, 0, 0), // red
-      new RGB(3, 0, 3), // magenta
-      new RGB(0, 0, 3), // blue
-      new RGB(0, 3, 3), // cyan
-      new RGB(0, 3, 0), // green
-      new RGB(3, 3, 0), // yellow
-    ];
+    if(this.isStationary) {
+      this.set_color(new RGB(3, 3, 3));
+    }
   }
 
   smoothColor(x, b) {
@@ -65,11 +64,14 @@ class SelfAssemblyRobot extends Kilobot {
     if(g == null) {
       return;
     }
-    this.set_color(this.colors[g % this.colors.length]);
+    this.set_color(COLORS[g % COLORS.length]);
   }
 
   loop() {
     this.counter++;
+
+    if(this.isStationary) return;
+
     this.neighbourIsMovingExpiry--;
 
     if(this.counter - this.hesitateAt > HESITATE) {
@@ -181,38 +183,21 @@ class SelfAssemblyRobot extends Kilobot {
       isMoving: this.myMoving,
       robotUUID: this.kilo_uid,
       consideringMovement: this.counter - this.hesitateAt > HESITATE,
+      shapePos: this.shapePos,
     };
   }
 }
 
 class RootSeedRobot extends Kilobot {
-  setup() {
-    this.shapeScale = 2 * RADIUS;
-    this.SHAPE_DESC = SHAPE_DESC;
+  constructor(opts) {
+    super();
+    this.shapeScale = opts.shapeScale;
+    this.shapeDesc = opts.shapeDesc;
+    this.shapePos = opts.shapePos;
   }
 
-  loop() {
+  setup() {
     this.set_color(new RGB(1, 1, 1));
-  }
-
-  kilo_message_rx(message, distance) {
-    switch(message.type) {
-      case 'gradient':
-        // ignore
-        break;
-    }
-  }
-
-  kilo_message_tx() {
-    return null;
-  }
-}
-
-class GradientSeedRobot extends Kilobot {
-  setup() {
-    this.shapeScale = 2 * RADIUS;
-    this.SHAPE_DESC = SHAPE_DESC;
-    this.set_color(new RGB(3, 3, 3));
   }
 
   loop() {
@@ -230,6 +215,7 @@ class GradientSeedRobot extends Kilobot {
     return {
       type: 'gradient',
       value: 0,
+      shapePos: this.shapePos,
     };
   }
 }

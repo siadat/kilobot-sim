@@ -64,6 +64,49 @@ class Pitch {
         });
       }
 
+      if(DRAW_LOCALIZATION_ERROR) {
+        // position vectors
+        let g = new PIXI.Graphics()
+        g.zIndex = 2;
+        g.alpha = 0.9;
+        let color = 0xff0000;
+
+        this.pixiApp.stage.addChild(g);
+        this.pixiApp.ticker.add(() => {
+          g.clear();
+          forEachObj(this.bodies, b => {
+            let shapePos = b.robot.shapePos;
+            if(!shapePos) return;
+
+            let pos = b.position;
+            if(!b.position && b.getData) {
+              let data = b.getData();
+              pos = data.pos;
+            }
+
+            let thickness = RADIUS*SCALE/5.0
+            let pos1 = {
+              x: pos.x * SCALE,
+              y: pos.y * SCALE,
+            }
+            let pos2 = {
+              x: RootSeedPos.x * SCALE + shapePos.x * ShapeScale * SCALE,
+              y: RootSeedPos.y * SCALE - shapePos.y * ShapeScale * SCALE,
+            }
+
+            g.lineStyle(thickness, color);
+            g.moveTo(pos1.x, pos1.y);
+            g.lineTo(pos2.x, pos2.y);
+
+            g.lineStyle(0);
+            g.beginFill(color);
+            g.drawCircle(pos1.x, pos1.y, thickness/2);
+            g.drawCircle(pos2.x, pos2.y, thickness/2);
+
+          })
+        });
+      }
+
       {
         if(DRAW_CONNECTIONS) {
           let connGraphics = new PIXI.Graphics()
@@ -118,37 +161,39 @@ class Pitch {
 
   run(botProg) {
 		this.bodies = {};
-    let pos0 = {
-      x: SIZE.w/2 - RADIUS,
-      y: SIZE.h/2,
-    };
     let uidCounter = 0;
 
     for(let i = 0; i < 4; i++) {
-      let pos = {x: 0, y: 0};
+      const pos = (shapePos) => {
+        return {
+          x: RootSeedPos.x + ShapeScale*shapePos.x,
+          y: RootSeedPos.y - ShapeScale*shapePos.y, // y-axis in shape goes up, in physics goes down
+        };
+      }
       let b = undefined;
       uidCounter++;
 
+      let shapePos = {x: 0, y: 0};
       switch(i) {
         case 0:
-          pos = {x: pos0.x, y: pos0.y};
-          b = this.physics.circle(pos, RADIUS, uidCounter);
-          b.robot = new RootSeedRobot();
+          shapePos = {x: 0, y: 0};
+          b = this.physics.circle(pos(shapePos), RADIUS, uidCounter);
+          b.robot = new RootSeedRobot({ShapeDesc: ShapeDesc, ShapeScale: ShapeScale, shapePos: shapePos});
           break;
         case 1:
-          pos = {x: pos0.x + RADIUS*2, y: pos0.y};
-          b = this.physics.circle(pos, RADIUS, uidCounter);
-          b.robot = new GradientSeedRobot();
+          shapePos = {x: 2, y: 0};
+          b = this.physics.circle(pos(shapePos), RADIUS, uidCounter);
+          b.robot = new GradientAndAssemblyRobot({ShapeDesc: ShapeDesc, ShapeScale: ShapeScale, shapePos: shapePos, isStationary: true});
           break;
         case 2:
-          pos = {x: pos0.x + RADIUS, y: pos0.y + Math.sqrt(3)*RADIUS};
-          b = this.physics.circle(pos, RADIUS, uidCounter);
-          b.robot = new GradientSeedRobot();
+          shapePos = {x: 1, y: Math.sqrt(3)};
+          b = this.physics.circle(pos(shapePos), RADIUS, uidCounter);
+          b.robot = new GradientAndAssemblyRobot({ShapeDesc: ShapeDesc, ShapeScale: ShapeScale, shapePos: shapePos, isStationary: true});
           break;
         case 3:
-          pos = {x: pos0.x + RADIUS, y: pos0.y - Math.sqrt(3)*RADIUS};
-          b = this.physics.circle(pos, RADIUS, uidCounter);
-          b.robot = new GradientSeedRobot();
+          shapePos = {x: 1, y: -Math.sqrt(3)};
+          b = this.physics.circle(pos(shapePos), RADIUS, uidCounter);
+          b.robot = new GradientAndAssemblyRobot({ShapeDesc: ShapeDesc, ShapeScale: ShapeScale, shapePos: shapePos, isStationary: true});
           break;
       }
 
@@ -169,12 +214,12 @@ class Pitch {
       let coli = i % PER_ROW;
 
       let pos = {
-        x: pos0.x + RADIUS,
-        y: pos0.y + Math.sqrt(3) * RADIUS + 2*RADIUS,
+        x: RootSeedPos.x + RADIUS,
+        y: RootSeedPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS,
       };
 
       if(PER_ROW % 2 == 0) {
-        pos.y = pos0.y + Math.sqrt(3) * RADIUS + Math.sqrt(3)*RADIUS;
+        pos.y = RootSeedPos.y + Math.sqrt(3) * RADIUS + Math.sqrt(3)*RADIUS;
       }
 
       let firstToLastCentersInOneRow = (PER_ROW-1)*(RADIUS*2);
@@ -182,7 +227,7 @@ class Pitch {
       pos.y += rowi * (RADIUS*Math.sqrt(3));
       let b = this.physics.circle(pos, RADIUS, uidCounter);
 
-      b.robot = new SelfAssemblyRobot();
+      b.robot = new GradientAndAssemblyRobot({ShapeDesc: ShapeDesc, ShapeScale: ShapeScale, shapePos: null, isStationary: false});
       b.robot._uid = uidCounter;
       b.robot._phys = b.body;
       b.robot._Box2D = Box2D;
@@ -356,7 +401,13 @@ class Pitch {
         g.interactive = true;
         g.buttonMode = true;
         g.on('pointerdown', () => {
-          console.log(`clicked uid:${b.robot._uid} counter:${b.robot.counter} ticksUntilCanMove:${b.robot.ticksUntilCanMove}`);
+          console.log('clicked', {
+            uid: b.robot._uid,
+            counter: b.robot.counter,
+            isStationary: b.robot.isStationary,
+            hesitateAt: b.robot.hesitateAt,
+            shapePos: b.robot.shapePos,
+          });
           /*
           b._to_be_removed = true;
           b.robot._graphics_must_update = true;
@@ -393,7 +444,6 @@ class Pitch {
 
           g.clear();
           g.removeChildren();
-
 
           let thickness = 0;
 
@@ -710,7 +760,7 @@ class Box2DPhysics {
 
       /*
     let b = new Body(body, radius);
-    b.robot = new SelfAssemblyRobot();
+    b.robot = new GradientAndAssemblyRobot();
     b.robot._uid = id;
     b.robot._phys = body;
     b.robot._Box2D = Box2D;

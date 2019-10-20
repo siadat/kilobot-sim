@@ -32,11 +32,27 @@ let RADIUS = 0.05;
 let NEIGHBOUR_DISTANCE = RADIUS * 4;
 
 // const SQRT3 = Math.sqrt(3);
+const RootSeedPos = {
+  x: SIZE.w/2 - RADIUS,
+  y: SIZE.h/2,
+};
+const ShapeScale = 1*RADIUS;
+const ShapeDesc = [
+  '       ## ',
+  '       ###',
+  '      ####',
+  '  ########',
+  ' ######## ',
+  '###       ',
+  '###       ',
+  '###       ',
+];
 
 const MSG_PER_SEC = 2;
-const PERFECT = !false;
+const PERFECT = false;
 const COUNT = 4 + 144; // Math.floor(1024 * 1.0);
 const DRAW_CONNECTIONS = false;
+const DRAW_LOCALIZATION_ERROR = !false;
 const DARK_MODE = !false;
 const FRAME_LIMIT = null;
 const MAX_DEPTH = 3;
