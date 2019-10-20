@@ -185,7 +185,7 @@ class SelfAssemblyRobot extends Kilobot {
   }
 }
 
-class SeedRobot extends Kilobot {
+class RootSeedRobot extends Kilobot {
   setup() {
     this.shapeScale = 2 * RADIUS;
     this.SHAPE_DESC = SHAPE_DESC;

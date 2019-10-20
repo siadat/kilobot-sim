@@ -28,12 +28,14 @@ let gSIZE = {
 }
 
 // let RADIUS = 0.025;
-let RADIUS = 0.08;
+let RADIUS = 0.05;
 let NEIGHBOUR_DISTANCE = RADIUS * 4;
+
+// const SQRT3 = Math.sqrt(3);
 
 const MSG_PER_SEC = 2;
 const PERFECT = !false;
-const COUNT = 100; // Math.floor(1024 * 1.0);
+const COUNT = 4 + 144; // Math.floor(1024 * 1.0);
 const DRAW_CONNECTIONS = false;
 const DARK_MODE = !false;
 const FRAME_LIMIT = null;
@@ -42,6 +44,7 @@ const FRAMES_PER_BODY = 50;
 let RAND_SEED = 0;
 const NO_COLLISION = 0;
 const randomPos = {x: SIZE.w*Math.random(), y: SIZE.h*Math.random()};
+const BODY_ID_IGNORE = 0;
 
 const ContinueQuery = true;
 const StopQuery = false;

@@ -118,31 +118,76 @@ class Pitch {
 
   run(botProg) {
 		this.bodies = {};
+    let pos0 = {
+      x: SIZE.w/2 - RADIUS,
+      y: SIZE.h/2,
+    };
+    let uidCounter = 0;
 
-    for(let i = 0; i < COUNT; i++) {
+    for(let i = 0; i < 4; i++) {
       let pos = {x: 0, y: 0};
-      const PER_ROW = Math.floor(Math.sqrt(COUNT));
-      let rowi = Math.floor(i/PER_ROW);
-      pos.x = (i % PER_ROW) * (RADIUS*2) + SIZE.w/2 - PER_ROW*(RADIUS*2)/2 + RADIUS*(rowi%2);
-      pos.y = SIZE.h/2 - (COUNT/PER_ROW) * 0.5 * (RADIUS*2);
-      pos.y += rowi*(RADIUS*2);
-      let b = this.physics.circle(pos, RADIUS, i);
+      let b = undefined;
+      uidCounter++;
 
-      let gradientIndex = Math.floor(COUNT / 2) + Math.floor(Math.sqrt(COUNT)/2);
-      if(i == gradientIndex ) {
-        b.robot = new GradientSeedRobot();
-      } else if(i > gradientIndex  && i < gradientIndex  + 4) {
-        b.robot = new SeedRobot();
-      } else {
-        b.robot = new SelfAssemblyRobot();
+      switch(i) {
+        case 0:
+          pos = {x: pos0.x, y: pos0.y};
+          b = this.physics.circle(pos, RADIUS, uidCounter);
+          b.robot = new RootSeedRobot();
+          break;
+        case 1:
+          pos = {x: pos0.x + RADIUS*2, y: pos0.y};
+          b = this.physics.circle(pos, RADIUS, uidCounter);
+          b.robot = new GradientSeedRobot();
+          break;
+        case 2:
+          pos = {x: pos0.x + RADIUS, y: pos0.y + Math.sqrt(3)*RADIUS};
+          b = this.physics.circle(pos, RADIUS, uidCounter);
+          b.robot = new GradientSeedRobot();
+          break;
+        case 3:
+          pos = {x: pos0.x + RADIUS, y: pos0.y - Math.sqrt(3)*RADIUS};
+          b = this.physics.circle(pos, RADIUS, uidCounter);
+          b.robot = new GradientSeedRobot();
+          break;
       }
 
-      b.robot._uid = i;
+      b.robot._uid = uidCounter;
       b.robot._phys = b.body;
       b.robot._Box2D = Box2D;
 
-      // this.bodies.push(b);
-      this.bodies[i] = b;
+      this.bodies[b.robot._uid] = b;
+
+      this.createGraphics(b);
+    }
+
+    let assemblyCount = COUNT - 4;
+    for(let i = 0; i < assemblyCount; i++) {
+      uidCounter++;
+      const PER_ROW = Math.floor(Math.sqrt(assemblyCount * SIZE.w/SIZE.h*2));
+      let rowi = Math.floor(i/PER_ROW);
+      let coli = i % PER_ROW;
+
+      let pos = {
+        x: pos0.x + RADIUS,
+        y: pos0.y + Math.sqrt(3) * RADIUS + 2*RADIUS,
+      };
+
+      if(PER_ROW % 2 == 0) {
+        pos.y = pos0.y + Math.sqrt(3) * RADIUS + Math.sqrt(3)*RADIUS;
+      }
+
+      let firstToLastCentersInOneRow = (PER_ROW-1)*(RADIUS*2);
+      pos.x += coli * (RADIUS*2) - firstToLastCentersInOneRow/2 + RADIUS*(rowi%2);
+      pos.y += rowi * (RADIUS*Math.sqrt(3));
+      let b = this.physics.circle(pos, RADIUS, uidCounter);
+
+      b.robot = new SelfAssemblyRobot();
+      b.robot._uid = uidCounter;
+      b.robot._phys = b.body;
+      b.robot._Box2D = Box2D;
+
+      this.bodies[b.robot._uid] = b;
 
       this.createGraphics(b);
     }
@@ -200,7 +245,7 @@ class Pitch {
         let i = 0;
         const FPS = 60;
 
-        let msgsPerFrame = MSG_PER_SEC * COUNT / FPS;
+        let msgsPerFrame = MSG_PER_SEC * Object.keys(this.bodies).length / FPS;
         let cond = () => i < msgsPerFrame;
 
         if(msgsPerFrame < 1) {
@@ -230,7 +275,7 @@ class Pitch {
             let receiverBody = this.bodies[id];
 
             if(!receiverBody) {
-              console.error("body id not found");
+              console.error(`body id not found id=${id}`);
               return;
             }
 
@@ -261,6 +306,9 @@ class Pitch {
           queryCallback.ReportFixture = function(fixturePtr) {
             var fixture = Box2D.wrapPointer(fixturePtr, Box2D.b2Fixture);
             let id = fixture.GetBody().GetUserData();
+            if(id == BODY_ID_IGNORE) {
+              return ContinueQuery;
+            }
             // this.receiverIDs.push(id);
             handleReceiver(id);
             return ContinueQuery;
@@ -521,6 +569,7 @@ class Box2DPhysics {
 		let bd_ground = new Box2D.b2BodyDef();
 		bd_ground.set_type(Box2D.b2_staticBody);
 		let ground = this.world.CreateBody(bd_ground);
+    ground .SetUserData(BODY_ID_IGNORE);
 		let shape0 = new Box2D.b2EdgeShape();
 		shape0.Set(new Box2D.b2Vec2(from.x, from.y), new Box2D.b2Vec2(to.x, to.y));
 		ground.CreateFixture(shape0, 0.0);
