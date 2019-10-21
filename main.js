@@ -68,8 +68,8 @@ class Pitch {
         // position vectors
         let g = new PIXI.Graphics()
         g.zIndex = 2;
-        g.alpha = 0.9;
-        let color = 0xff0000;
+        g.alpha = 0.5;
+        let color = 0x008400; // 0xff0000
 
         this.pixiApp.stage.addChild(g);
         this.pixiApp.ticker.add(() => {
@@ -85,23 +85,34 @@ class Pitch {
             }
 
             let thickness = RADIUS*SCALE/5.0
-            let pos1 = {
+            let posActual = {
               x: pos.x * SCALE,
               y: pos.y * SCALE,
             }
-            let pos2 = {
+            let posEstimated = {
               x: RootSeedPos.x * SCALE + shapePos.x * ShapeScale * SCALE,
               y: RootSeedPos.y * SCALE - shapePos.y * ShapeScale * SCALE,
             }
 
-            g.lineStyle(thickness, color);
-            g.moveTo(pos1.x, pos1.y);
-            g.lineTo(pos2.x, pos2.y);
+            const MAX = 100000;
+            if(posEstimated.x > +MAX) posEstimated.x = +MAX;
+            if(posEstimated.x < -MAX) posEstimated.x = -MAX;
+            if(posEstimated.y > +MAX) posEstimated.y = +MAX;
+            if(posEstimated.y < -MAX) posEstimated.y = -MAX;
 
-            g.lineStyle(0);
-            g.beginFill(color);
-            g.drawCircle(pos1.x, pos1.y, thickness/2);
-            g.drawCircle(pos2.x, pos2.y, thickness/2);
+            g.endFill();
+            // color = b.robot.led.toHex();
+            g.lineStyle(thickness, color);
+            g.moveTo(posActual.x, posActual.y);
+            g.lineTo(posEstimated.x, posEstimated.y);
+
+            // for perfect cases:
+            if(calcDist(posActual, posEstimated) < thickness) {
+              g.lineStyle(0);
+              g.beginFill(color);
+              g.drawCircle(posActual.x, posActual.y, thickness/2);
+              g.drawCircle(posEstimated.x, posEstimated.y, thickness/2);
+            }
 
           })
         });
@@ -163,37 +174,96 @@ class Pitch {
 		this.bodies = {};
     let uidCounter = 0;
 
-    for(let i = 0; i < 4; i++) {
-      const pos = (shapePos) => {
-        return {
-          x: RootSeedPos.x + ShapeScale*shapePos.x,
-          y: RootSeedPos.y - ShapeScale*shapePos.y, // y-axis in shape goes up, in physics goes down
-        };
+    const shapePosToPhysPos = (shapePos) => {
+      return {
+        x: RootSeedPos.x + ShapeScale*shapePos.x,
+        y: RootSeedPos.y - ShapeScale*shapePos.y, // y-axis in shape goes up, in physics goes down
+      };
+    }
+
+    [
+      {isRoot: true,  x: 0, y: 0},
+      {isRoot: false, x: 2, y: 0},
+      {isRoot: false, x: 1, y: Math.sqrt(3)},
+      {isRoot: false, x: 1, y: -Math.sqrt(3)},
+    ].forEach(shapePos => {
+      uidCounter++;
+
+      // if(!PERFECT) {
+      //   shapePos.x += noise(0.2);
+      //   shapePos.y += noise(0.2);
+      // }
+
+      let b = this.physics.circle(shapePosToPhysPos(shapePos), RADIUS, uidCounter);
+      if(shapePos.isRoot) {
+        b.robot = new RootSeedRobot({
+          shapeDesc: ShapeDesc,
+          shapeScale: ShapeScale,
+          shapePos: shapePos,
+        });
+      } else {
+        b.robot = new GradientAndAssemblyRobot({
+          shapeDesc: ShapeDesc,
+          shapeScale: ShapeScale,
+          shapePos: shapePos,
+          isSeed: true,
+        });
       }
+
+      b.robot._uid = uidCounter;
+      b.robot._phys = b.body;
+      b.robot._Box2D = Box2D;
+
+      this.bodies[b.robot._uid] = b;
+
+      this.createGraphics(b);
+    });
+
+    /*
+    for(let i = 0; i < 4; i++) {
       let b = undefined;
       uidCounter++;
 
-      let shapePos = {x: 0, y: 0};
+
       switch(i) {
         case 0:
           shapePos = {x: 0, y: 0};
-          b = this.physics.circle(pos(shapePos), RADIUS, uidCounter);
-          b.robot = new RootSeedRobot({ShapeDesc: ShapeDesc, ShapeScale: ShapeScale, shapePos: shapePos});
+          b = this.physics.circle(shapePosToPhysPos(shapePos), RADIUS, uidCounter);
+          b.robot = new RootSeedRobot({
+            shapeDesc: ShapeDesc,
+            shapeScale: ShapeScale,
+            shapePos: shapePos,
+          });
           break;
         case 1:
           shapePos = {x: 2, y: 0};
-          b = this.physics.circle(pos(shapePos), RADIUS, uidCounter);
-          b.robot = new GradientAndAssemblyRobot({ShapeDesc: ShapeDesc, ShapeScale: ShapeScale, shapePos: shapePos, isStationary: true});
+          b = this.physics.circle(shapePosToPhysPos(shapePos), RADIUS, uidCounter);
+          b.robot = new GradientAndAssemblyRobot({
+            shapeDesc: ShapeDesc,
+            shapeScale: ShapeScale,
+            shapePos: shapePos,
+            isSeed: true,
+          });
           break;
         case 2:
           shapePos = {x: 1, y: Math.sqrt(3)};
-          b = this.physics.circle(pos(shapePos), RADIUS, uidCounter);
-          b.robot = new GradientAndAssemblyRobot({ShapeDesc: ShapeDesc, ShapeScale: ShapeScale, shapePos: shapePos, isStationary: true});
+          b = this.physics.circle(shapePosToPhysPos(shapePos), RADIUS, uidCounter);
+          b.robot = new GradientAndAssemblyRobot({
+            shapeDesc: ShapeDesc,
+            shapeScale: ShapeScale,
+            shapePos: shapePos,
+            isSeed: true,
+          });
           break;
         case 3:
           shapePos = {x: 1, y: -Math.sqrt(3)};
-          b = this.physics.circle(pos(shapePos), RADIUS, uidCounter);
-          b.robot = new GradientAndAssemblyRobot({ShapeDesc: ShapeDesc, ShapeScale: ShapeScale, shapePos: shapePos, isStationary: true});
+          b = this.physics.circle(shapePosToPhysPos(shapePos), RADIUS, uidCounter);
+          b.robot = new GradientAndAssemblyRobot({
+            shapeDesc: ShapeDesc,
+            shapeScale: ShapeScale,
+            shapePos: shapePos,
+            isSeed: true,
+          });
           break;
       }
 
@@ -205,11 +275,11 @@ class Pitch {
 
       this.createGraphics(b);
     }
+    */
 
     let assemblyCount = COUNT - 4;
     for(let i = 0; i < assemblyCount; i++) {
       uidCounter++;
-      const PER_ROW = Math.floor(Math.sqrt(assemblyCount * SIZE.w/SIZE.h*2));
       let rowi = Math.floor(i/PER_ROW);
       let coli = i % PER_ROW;
 
@@ -225,9 +295,20 @@ class Pitch {
       let firstToLastCentersInOneRow = (PER_ROW-1)*(RADIUS*2);
       pos.x += coli * (RADIUS*2) - firstToLastCentersInOneRow/2 + RADIUS*(rowi%2);
       pos.y += rowi * (RADIUS*Math.sqrt(3));
+
+      if(!PERFECT) {
+        pos.x += noise(RADIUS * 0.2);
+        pos.y += noise(RADIUS * 0.2);
+      }
+
       let b = this.physics.circle(pos, RADIUS, uidCounter);
 
-      b.robot = new GradientAndAssemblyRobot({ShapeDesc: ShapeDesc, ShapeScale: ShapeScale, shapePos: null, isStationary: false});
+      b.robot = new GradientAndAssemblyRobot({
+        shapeDesc: ShapeDesc,
+        shapeScale: ShapeScale,
+        shapePos: null,
+        isSeed: false,
+      });
       b.robot._uid = uidCounter;
       b.robot._phys = b.body;
       b.robot._Box2D = Box2D;
@@ -253,21 +334,52 @@ class Pitch {
           resolve();
           return;
         }
+        const nextFrame = () => {
+          if(this.fastforward) {
+            // setTimeout(() => tickFunc(frameCount+1), 1);
+            tickFunc(frameCount+1);
+          } else {
+            let time0 = new Date();
+            // setTimeout(() => {
+            //   tickFunc(frameCount+1);
+            //   let dt = (new Date() - time0)/1000;
+            //   this.metaFPS = Math.floor(1.0/dt);
+            // }, 500);
+            window.requestAnimationFrame(() => {
+              tickFunc(frameCount+1);
+              let dt = (new Date() - time0)/1000;
+              this.metaFPS = Math.floor(1.0/dt);
+            });
+          }
+        }
 
         this.physics.update();
+        /*
+        // ******
+        let sleepingRobots = 0;
+        forEachObj(this.bodies, b => {
+          if(!b.body.IsAwake()) {
+            sleepingRobots++;
+          }
+        });
+        console.log(sleepingRobots, Object.keys(this.bodies).length);
+
+        if(sleepingRobots != Object.keys(this.bodies).length) {
+          // let bodies go into sleep mode (so their position is fixed)
+          nextFrame();
+          return;
+        }
+        */
 
         // ******
-        let runningCount = 0;
         forEachObj(this.bodies, b => {
           if(b.robot._started) {
-            runningCount++;
             b.robot.loop();
             b.robot._internal_loop();
             return;
           }
 
           if(Math.random() < 0.05) {
-            runningCount++;
             b.robot.setup();
             b.robot._started = true;
           }
@@ -290,11 +402,14 @@ class Pitch {
         let i = 0;
         const FPS = 60;
 
-        let msgsPerFrame = MSG_PER_SEC * Object.keys(this.bodies).length / FPS;
-        let cond = () => i < msgsPerFrame;
+        let cond = () => false;
 
-        if(msgsPerFrame < 1) {
-          cond = () => (frameCount+i) % (FPS/MSG_PER_SEC) == 0
+        let msgsPerSecond = MSG_PER_SEC * Object.keys(this.bodies).length;
+
+        if(msgsPerSecond > FPS) {
+          cond = () => i < msgsPerSecond/FPS;
+        } else {
+          cond = () => Math.random() < msgsPerSecond/FPS;
         }
 
         for(; cond(); i++){
@@ -361,8 +476,8 @@ class Pitch {
           // queryCallback.receiverIDs = [];
 
           let aabb = new Box2D.b2AABB();
-          let lowerBound = new Box2D.b2Vec2(pos.get_x()-NEIGHBOUR_DISTANCE/2, pos.get_y()-NEIGHBOUR_DISTANCE/2);
-          let upperBound = new Box2D.b2Vec2(pos.get_x()+NEIGHBOUR_DISTANCE/2, pos.get_y()+NEIGHBOUR_DISTANCE/2);
+          let lowerBound = new Box2D.b2Vec2(pos.get_x()-NEIGHBOUR_DISTANCE, pos.get_y()-NEIGHBOUR_DISTANCE);
+          let upperBound = new Box2D.b2Vec2(pos.get_x()+NEIGHBOUR_DISTANCE, pos.get_y()+NEIGHBOUR_DISTANCE);
           aabb.set_lowerBound(lowerBound);
           aabb.set_upperBound(upperBound);
           Box2D.destroy(lowerBound);
@@ -374,17 +489,7 @@ class Pitch {
         }
 
         // ******
-        if(this.fastforward) {
-          // setTimeout(() => tickFunc(frameCount+1), 1);
-          tickFunc(frameCount+1);
-        } else {
-          let time0 = new Date();
-          window.requestAnimationFrame(() => {
-            tickFunc(frameCount+1);
-            let dt = (new Date() - time0)/1000;
-            this.metaFPS = Math.floor(1.0/dt);
-          });
-        }
+        nextFrame();
       }
 
       tickFunc(0);
@@ -404,9 +509,13 @@ class Pitch {
           console.log('clicked', {
             uid: b.robot._uid,
             counter: b.robot.counter,
-            isStationary: b.robot.isStationary,
+            isSeed: b.robot.isSeed,
             hesitateAt: b.robot.hesitateAt,
             shapePos: b.robot.shapePos,
+            neighbors: b.robot.neighbors,
+            // closestNeighbours: b.robot.get3ClosestNeighbours && b.robot.get3ClosestNeighbours(),
+            closestRobustNeighbors: b.robot.getFirstRobustQuadrilateral && b.robot.getFirstRobustQuadrilateral(),
+            robot: b.robot,
           });
           /*
           b._to_be_removed = true;
@@ -446,6 +555,12 @@ class Pitch {
           g.removeChildren();
 
           let thickness = 0;
+
+          if(false && b.robot._uid == 504) {
+            g.lineStyle(1, 0x000000);
+            g.beginFill(0x000000, 0.1);
+            g.drawCircle(0, 0, NEIGHBOUR_DISTANCE * SCALE);
+          }
 
           if(DARK_MODE) {
             g.beginFill(0x000000);
@@ -655,11 +770,6 @@ class Box2DPhysics {
 		b2bodyDef.set_angularDamping(10.0);
 		b2bodyDef.set_type(Box2D.b2_dynamicBody);
 
-    if(!PERFECT) {
-      pos.x += noise(radius * 0.2);
-      pos.y += noise(radius * 0.2);
-    }
-
     let posVec = new Box2D.b2Vec2(pos.x, pos.y);
 		b2bodyDef.set_position(posVec);
     Box2D.destroy(posVec);
@@ -722,7 +832,11 @@ class Box2DPhysics {
     body.SetUserData(id);
 
     if(!PERFECT) {
-      body.ApplyTorque(noise(Math.PI/2));
+      // body.ApplyTorque(noise(Math.PI/2));
+      body.SetTransform(
+        body.GetPosition(),
+        body.GetAngle() + noise(20),
+      );
     }
 
 		/*

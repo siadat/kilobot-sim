@@ -27,15 +27,18 @@ let gSIZE = {
   h: SIZE.h * SCALE,
 }
 
-// let RADIUS = 0.025;
-let RADIUS = 0.05;
-let NEIGHBOUR_DISTANCE = RADIUS * 4;
+const COUNT = 4 + 16;
+const PER_ROW = Math.floor(Math.sqrt((COUNT-4) * SIZE.w/SIZE.h*2));
+
+let RADIUS = SIZE.w / (2*(PER_ROW + 8));
+let NEIGHBOUR_DISTANCE = 3 * RADIUS + 2 * RADIUS * Math.sqrt(3);
 
 // const SQRT3 = Math.sqrt(3);
 const RootSeedPos = {
   x: SIZE.w/2 - RADIUS,
   y: SIZE.h/2,
 };
+
 const ShapeScale = 1*RADIUS;
 const ShapeDesc = [
   '       ## ',
@@ -50,7 +53,6 @@ const ShapeDesc = [
 
 const MSG_PER_SEC = 2;
 const PERFECT = false;
-const COUNT = 4 + 144; // Math.floor(1024 * 1.0);
 const DRAW_CONNECTIONS = false;
 const DRAW_LOCALIZATION_ERROR = !false;
 const DARK_MODE = !false;
@@ -90,8 +92,25 @@ const clampVector = function(v) {
 const forEachObj = function(obj, f) {
   Object.keys(obj).forEach(k => {
     let item = obj[k];
-    f(item);
+    f(item, k);
   });
+}
+
+const pow2 = function(x) {
+  return x * x;
+}
+
+const calcSlope = function(pos1, pos2) {
+  return (pos2.y - pos1.y) / (pos2.x - pos1.x);
+}
+
+const positiveMod = function(num, n) {
+  return ((num % n) + n) % n;
+}
+
+const calcDegree = function(pos1, pos2) {
+  let d = calcDist(pos1, pos2);
+  return (pos2.y - pos1.y) / (pos2.x - pos1.x);
 }
 
 const calcDist = function(pos1, pos2) {
