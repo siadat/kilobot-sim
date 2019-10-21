@@ -84,7 +84,8 @@ class Kilobot {
       this._phys.SetAwake(true);
     }
 
-    let coef = 0.006;
+    let coef = 0.01 * (RADIUS*RADIUS) / 0.015625;
+    
 
     let angle = Math.PI * this._phys.GetAngle() / 180.0;
     if(!PERFECT) {
@@ -101,7 +102,7 @@ class Kilobot {
     // Replace this SetTransform if you could get ApplyTorque to be fast enough.
     this._phys.SetTransform(
       this._phys.GetPosition(),
-      this._phys.GetAngle() + 5 * (right - left)/255.0,
+      this._phys.GetAngle() + 0.5 * (right - left)/255.0,
     );
     this._phys.ApplyForce(force, this._phys.GetPosition());
     this._Box2D.destroy(force);
@@ -167,6 +168,15 @@ class RGB {
     let r = Math.floor(0xff * this.r / 3.0).toString(16);
     let g = Math.floor(0xff * this.g / 3.0).toString(16);
     let b = Math.floor(0xff * this.b / 3.0).toString(16);
+    if(r.length == 1) r = `0${r}`;
+    if(g.length == 1) g = `0${g}`;
+    if(b.length == 1) b = `0${b}`;
+    return `0x${r}${g}${b}`;
+  }
+  toHexDark() {
+    let r = Math.floor(0xff * this.r / 3.0 / 2).toString(16);
+    let g = Math.floor(0xff * this.g / 3.0 / 2).toString(16);
+    let b = Math.floor(0xff * this.b / 3.0 / 2).toString(16);
     if(r.length == 1) r = `0${r}`;
     if(g.length == 1) g = `0${g}`;
     if(b.length == 1) b = `0${b}`;

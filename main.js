@@ -25,6 +25,7 @@ class Pitch {
       });
 
       {
+        // meta box:
         const g = new PIXI.Graphics()
         const opts = {
           fontSize: 12,
@@ -61,6 +62,37 @@ class Pitch {
             fpsLine += `${i}`;
           }
           t.text = `FPS: ${this.metaFPS} ${fpsLine}`;
+        });
+      }
+
+      if(DRAW_TRAVERSED_DOTS) {
+        // position vectors
+        let g = new PIXI.Graphics()
+        g.zIndex = 3;
+        g.alpha = 0.5;
+        // g.beginFill(b.robot.led.toHexDark());
+        g.endFill();
+
+        this.pixiApp.stage.addChild(g);
+        this.pixiApp.ticker.add(() => {
+          g.clear();
+          forEachObj(this.bodies, b => {
+            g.lineStyle(2, b.robot.led.toHexDark());
+
+            let lastPos = null;
+            b.posHistory.forEach(p => {
+              if(lastPos == null) {
+                lastPos = p;
+                return;
+              }
+              // g.drawCircle(p.x * SCALE, p.y * SCALE, 2);
+              g.lineStyle(2, p.color);
+              g.moveTo(lastPos.x * SCALE, lastPos.y * SCALE);
+              g.lineTo(p.x * SCALE, p.y * SCALE);
+              lastPos = p;
+            });
+
+          });
         });
       }
 
@@ -101,7 +133,7 @@ class Pitch {
             if(posEstimated.y < -MAX) posEstimated.y = -MAX;
 
             g.endFill();
-            // color = b.robot.led.toHex();
+            color = b.robot.led.toHexDark();
             g.lineStyle(thickness, color);
             g.moveTo(posActual.x, posActual.y);
             g.lineTo(posEstimated.x, posEstimated.y);
@@ -113,6 +145,10 @@ class Pitch {
               g.drawCircle(posActual.x, posActual.y, thickness/2);
               g.drawCircle(posEstimated.x, posEstimated.y, thickness/2);
             }
+
+            g.endFill();
+            g.lineStyle(1, color);
+            g.drawCircle(posEstimated.x, posEstimated.y, SCALE * RADIUS);
 
           })
         });
@@ -194,7 +230,7 @@ class Pitch {
       //   shapePos.y += noise(0.2);
       // }
 
-      let b = this.physics.circle(shapePosToPhysPos(shapePos), RADIUS, uidCounter);
+      let b = this.physics.circle(shapePosToPhysPos(shapePos), Math.PI/2, RADIUS, uidCounter);
       if(shapePos.isRoot) {
         b.robot = new RootSeedRobot({
           shapeDesc: ShapeDesc,
@@ -301,7 +337,7 @@ class Pitch {
         pos.y += noise(RADIUS * 0.2);
       }
 
-      let b = this.physics.circle(pos, RADIUS, uidCounter);
+      let b = this.physics.circle(pos, Math.PI/2, RADIUS, uidCounter);
 
       b.robot = new GradientAndAssemblyRobot({
         shapeDesc: ShapeDesc,
@@ -351,6 +387,24 @@ class Pitch {
               this.metaFPS = Math.floor(1.0/dt);
             });
           }
+        }
+
+        if(frameCount % 100 == 0) {
+          let max = 5000;
+          forEachObj(this.bodies, b => {
+            let pos = b.body.GetPosition();
+            let lastPos = b.posHistory[b.posHistory.length-1];
+            let newPos = {x: pos.get_x(), y: pos.get_y()};
+            if(lastPos && newPos.x == lastPos.x && newPos.y == lastPos.y) {
+              return;
+            }
+
+            newPos.color = b.robot.led.toHex();
+            b.posHistory.push(newPos);
+            if(b.posHistory.length > max) {
+              b.posHistory = b.posHistory.slice(b.posHistory.length-max, b.posHistory.length);
+            }
+          });
         }
 
         this.physics.update();
@@ -513,7 +567,6 @@ class Pitch {
             hesitateAt: b.robot.hesitateAt,
             shapePos: b.robot.shapePos,
             neighbors: b.robot.neighbors,
-            // closestNeighbours: b.robot.get3ClosestNeighbours && b.robot.get3ClosestNeighbours(),
             closestRobustNeighbors: b.robot.getFirstRobustQuadrilateral && b.robot.getFirstRobustQuadrilateral(),
             robot: b.robot,
           });
@@ -619,6 +672,29 @@ class Pitch {
               y: 0,
             }
             g.addChild(t);
+          }
+
+          if(false && b.robot.stats) {
+            g.endFill();
+            if(b.robot.stats.tooClose) {
+              g.lineStyle(4, 0xff6666);
+            } else {
+              g.lineStyle(4, 0x440000);
+            }
+            switch(b.robot.stats.action) {
+              case 'stright':
+                g.moveTo(0, 0);
+                g.lineTo(SCALE * RADIUS, 0);
+                break;
+              case 'left-get-farther':
+                g.moveTo(0, 0);
+                g.lineTo(0, -SCALE * RADIUS);
+                break;
+              case 'right-get-close':
+                g.moveTo(0, 0);
+                g.lineTo(0, +SCALE * RADIUS);
+                break;
+            }
           }
 
           /*
@@ -764,10 +840,10 @@ class Box2DPhysics {
     this.currentFrame++;
   }
 
-	circle(pos, radius, id) {
+	circle(pos, angle, radius, id) {
 		let b2bodyDef = new Box2D.b2BodyDef();
-    b2bodyDef.set_linearDamping(10.0);
-		b2bodyDef.set_angularDamping(10.0);
+    b2bodyDef.set_linearDamping(20.0);
+		b2bodyDef.set_angularDamping(20.0);
 		b2bodyDef.set_type(Box2D.b2_dynamicBody);
 
     let posVec = new Box2D.b2Vec2(pos.x, pos.y);
@@ -831,6 +907,11 @@ class Box2DPhysics {
 
     body.SetUserData(id);
 
+    body.SetTransform(
+      body.GetPosition(),
+      180 * angle / Math.PI,
+    );
+
     if(!PERFECT) {
       // body.ApplyTorque(noise(Math.PI/2));
       body.SetTransform(
@@ -888,6 +969,7 @@ class Body {
     this.body = body;
     this.label = 'Circle Body';
     this.circleRadius = radius;
+    this.posHistory = [];
   }
 
     /*

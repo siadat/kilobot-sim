@@ -9,7 +9,7 @@ const COLORS = [
   new RGB(3, 3, 0), // yellow
 ];
 
-const HESITATE = (1+MSG_PER_SEC) * 60;
+const HESITATE_DURATION = (1+MSG_PER_SEC) * 60;
 const NEIGHBOUR_EXPIRY = (3+MSG_PER_SEC) * 60;
 
 class GradientAndAssemblyRobot extends Kilobot {
@@ -21,12 +21,13 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.shapePos = opts.shapePos;
     this.neighbors = {};
     this.isStationary = true;
+    this.prevNearestNeighDist = Infinity;
+    this.stats = {};
   }
 
   setup() {
     this.myGradient = null;
     this.hesitateAt = 0;
-    this.neighbourIsMovingExpiry = HESITATE;
     this.counter = 0;
     this.events = [];
     // this.posHistory = [];
@@ -96,6 +97,7 @@ class GradientAndAssemblyRobot extends Kilobot {
 
   getFirstRobustQuadrilateral() {
     let nIDs = Object.keys(this.neighbors);
+    nIDs = nIDs.filter(nid => this.neighbors[nid].shapePos != null && this.neighbors[nid].isStationary);
     // nIDs.sort((a, b) => this.neighbors[a].neighborGradient - this.neighbors[b].neighborGradient);
     nIDs.sort((a, b) => this.neighbors[a].measuredDist - this.neighbors[b].measuredDist);
     let ncount = nIDs.length;
@@ -233,7 +235,8 @@ class GradientAndAssemblyRobot extends Kilobot {
     //   console.log(closestNeighbours, closestNeighbours.map(n => n.shapePos));
     // }
     if(!closestNeighbours || closestNeighbours.length < 4) {
-      this.shapePos = null;
+      // this.shapePos = null;
+      // this.hesitate("not enough neighbours to localize");
       // this.localizeCounter = 0;
       return;
     }
@@ -323,55 +326,101 @@ class GradientAndAssemblyRobot extends Kilobot {
       */
   }
 
-  loop() {
-    this.counter++;
-
-    if(this.isSeed) return;
-    // this.set_motors(50 * Math.random(), 255 * Math.random());
-    // if(this.kilo_uid == 51 && this.myGradient != null) {
-    //   this.set_motors(50 * Math.random(), 255 * Math.random());
-    // }
-
+  cleanupExpiredNeighbors() {
     forEachObj(this.neighbors, (info, uid) => {
       if(this.counter - info.seenAt > NEIGHBOUR_EXPIRY) {
         delete(this.neighbors[uid]);
       }
     });
+  }
 
+  loop() {
+    this.counter++;
+
+    if(this.isSeed) return;
+
+    // this.set_motors(50 * Math.random(), 255 * Math.random());
+    // if(this.kilo_uid == 51 && this.myGradient != null) {
+    //   this.set_motors(50 * Math.random(), 255 * Math.random());
+    // }
+
+    this.cleanupExpiredNeighbors();
     this.localize();
 
-    this.neighbourIsMovingExpiry--;
-
-    if(this.counter - this.hesitateAt > HESITATE) {
-
-      if(this.neighbourIsMovingExpiry < 0) {
-        // this.isStationary = false;
-        // this.set_motors(0, this.kilo_turn_right);
-      }
-
+    if(!this.hesitating()) {
+      this.isStationary = false;
       this.mark();
-      /*
-      if(this.counter % 60 < 55) {
-        this.set_colors_for_gradient(this.myGradient);
-      } else {
-        this.set_color(new RGB(3, 3, 3));
+
+      {
+        // if(!this.shapePos) {
+        //   console.error("no this.shapePos");
+        // }
+        // let distances = Object.keys(this.neighbors).map(uid => calcDist(this.shapePos, this.neighbors[uid].shapePos));
+
+        let distances = Object.keys(this.neighbors).map(uid => this.neighbors[uid].measuredDist);
+        let currentNearestNeighDist = Math.min.apply(null, distances);
+        let DESIRED_SHAPE_DIST = 2.1 * RADIUS/this.shapeScale;
+
+        let tooClose = currentNearestNeighDist/this.shapeScale < DESIRED_SHAPE_DIST;
+        let gettingFarther = this.prevNearestNeighDist < currentNearestNeighDist;
+        let noNewData = this.prevNearestNeighDist == currentNearestNeighDist;
+
+        if(noNewData) {
+          this.set_motors(this.stats.motors[0], this.stats.motors[1]);
+        } else {
+          this.stats.tooClose = tooClose;
+          this.stats.gettingFarther = gettingFarther;
+          this.stats.desiredDist = DESIRED_SHAPE_DIST;
+          // this._graphics_must_update = true;
+          // this.stats.orbitingBodyUID = nearestBodyUID;;
+          // console.log(`tooClose=${tooClose}, gettingFarther=${gettingFarther}`);
+
+          if(tooClose) {
+            if(gettingFarther) {
+              this.stats.action = 'stright';
+              this.stats.motors = [this.kilo_straight_left, this.kilo_straight_right];
+              this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
+            } else {
+              this.stats.action = 'left-get-farther';
+              this.stats.motors = [this.kilo_turn_left, 0];
+              this.set_motors(this.kilo_turn_left, 0);
+            }
+          } else {
+            if(gettingFarther) {
+              this.stats.action = 'right-get-close';
+              this.stats.motors = [0, this.kilo_turn_right];
+              this.set_motors(0, this.kilo_turn_right);
+            } else {
+              this.stats.action = 'stright';
+              this.stats.motors = [this.kilo_straight_left, this.kilo_straight_right];
+              this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
+            }
+          }
+        }
+
+        this.prevNearestNeighDist = currentNearestNeighDist;
       }
-      */
+
     } else {
+      this.isStationary = true;
       this.unmark();
       this.set_colors_for_gradient(this.myGradient);
     }
   }
 
-  hesitate() {
+  hesitate(reason) {
     this.hesitateAt = this.counter;
+  }
+
+  hesitating() {
+    return this.counter < this.hesitateAt + HESITATE_DURATION;
   }
 
   kilo_message_rx(message, distance) {
     switch(message.type) {
       case 'gradient':
         if(!this.isSeed) {
-          if(message.isStationary && message.shapePos) {
+          // if(message.isStationary && message.shapePos) {
             this.neighbors[message.robotUID] = {
               neighborUID: message.robotUID,
               neighborGradient: message.value,
@@ -379,16 +428,18 @@ class GradientAndAssemblyRobot extends Kilobot {
               measuredDist: distance,
               shapePos: message.shapePos,
               isSeed: message.isSeed,
+              isStationary: message.isStationary,
             };
-          }
+          // }
+        }
+
+
+        if(!message.isStationary) {
+          this.hesitate("someone else is moving");
         }
 
         if(distance > GRADIENT_DIST) {
           break;
-        }
-
-        if(!message.isStationary) {
-          this.neighbourIsMovingExpiry = HESITATE;
         }
 
         // if(this.closestNeighbourDist > distance) {
@@ -456,7 +507,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       value: this.myGradient,
       isStationary: this.isStationary,
       robotUID: this.kilo_uid,
-      consideringMovement: this.counter - this.hesitateAt > HESITATE,
+      consideringMovement: !this.hesitating(),
       shapePos: this.shapePos,
       isSeed: this.isSeed,
     };
