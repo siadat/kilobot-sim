@@ -91,6 +91,18 @@ class Pitch {
               g.lineStyle(2, p.color);
               g.moveTo(lastPos.x * SCALE, lastPos.y * SCALE);
               g.lineTo(p.x * SCALE, p.y * SCALE);
+
+              {
+                g.moveTo(
+                  p.x * SCALE - Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * 10,
+                  p.y * SCALE - Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * 10,
+                );
+                g.lineTo(
+                  p.x * SCALE + Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * 10,
+                  p.y * SCALE + Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * 10,
+                );
+              }
+
               g.moveTo(p.x * SCALE, p.y * SCALE);
               lastPos = p;
             });
@@ -419,12 +431,19 @@ class Pitch {
         this.physics.update();
 
         if(frameCount % 30 == 0) {
-          let max = 5000;
+          let max = 1000;
           forEachObj(this.bodies, b => {
             let pos = b.body.GetPosition();
             let lastPos = b.posHistory[b.posHistory.length-1];
-            let newPos = {x: pos.get_x(), y: pos.get_y()};
-            if(lastPos && newPos.x == lastPos.x && newPos.y == lastPos.y) {
+            let newPos = {
+              x: pos.get_x(),
+              y: pos.get_y(),
+              angle: b.body.GetAngle(),
+            };
+            if(lastPos
+              && newPos.x == lastPos.x
+              && newPos.y == lastPos.y
+              && newPos.angle) {
               return;
             }
 
