@@ -65,6 +65,7 @@ class Pitch {
         });
       }
 
+
       if(DRAW_TRAVERSED_PATH) {
         // position vectors
         let g = new PIXI.Graphics()
@@ -111,6 +112,31 @@ class Pitch {
               g.lineStyle(2, b.robot.led.toHex());
               g.lineTo(b.body.GetPosition().get_x() * SCALE, b.body.GetPosition().get_y() * SCALE);
             }
+          });
+        });
+      }
+
+      if(DRAW_SHADOW) {
+        // position vectors
+        let g = new PIXI.Graphics()
+        g.zIndex = 1;
+        g.alpha = 0.5;
+        // g.beginFill(b.robot.led.toHexDark());
+
+        this.pixiApp.stage.addChild(g);
+        this.pixiApp.ticker.add(() => {
+          g.clear();
+          if(!DRAW_SHADOW) return;
+
+          forEachObj(this.bodies, b => {
+
+            let shadowOffset = {
+              x: (b.body.GetPosition().get_x() + b.circleRadius*0.25) * SCALE,
+              y: (b.body.GetPosition().get_y() + b.circleRadius*0.25) * SCALE,
+            }
+
+            g.beginFill(0x000000)
+            g.drawCircle(shadowOffset.x, shadowOffset.y, b.circleRadius * SCALE);
           });
         });
       }
@@ -582,6 +608,7 @@ class Pitch {
             thickness = 1;
             g.beginFill(0xffffff);
           }
+
           g.lineStyle(thickness, 0x000000);
           g.drawCircle(0, 0, b.circleRadius * SCALE - thickness/2);
 

@@ -27,7 +27,7 @@ let gSIZE = {
   h: SIZE.h * SCALE,
 }
 
-const COUNT = 4 + 2;
+const COUNT = 4 + 4;
 const PER_ROW = Math.floor(Math.sqrt((COUNT-4) * SIZE.w/SIZE.h*2));
 
 let RADIUS = SIZE.w / (2*(PER_ROW + 8));
@@ -57,8 +57,13 @@ const PERFECT = false;
 let DRAW_TRAVERSED_PATH = !false;
 let DRAW_CONNECTIONS = false;
 let DRAW_LOCALIZATION_ERROR = !false;
+let DRAW_SHADOW = !false;
 
-const DARK_MODE = !false;
+if(COUNT > 500) {
+  DRAW_SHADOW = false;
+}
+
+const DARK_MODE = true;
 const FRAME_LIMIT = null;
 const MAX_DEPTH = 3;
 const FRAMES_PER_BODY = 50;
