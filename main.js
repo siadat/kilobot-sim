@@ -68,7 +68,7 @@ class Pitch {
       if(DRAW_TRAVERSED_PATH) {
         // position vectors
         let g = new PIXI.Graphics()
-        g.zIndex = 3;
+        g.zIndex = 1;
         g.alpha = 0.5;
         // g.beginFill(b.robot.led.toHexDark());
         g.endFill();
@@ -94,12 +94,12 @@ class Pitch {
 
               {
                 g.moveTo(
-                  p.x * SCALE - Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * 10,
-                  p.y * SCALE - Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * 10,
+                  p.x * SCALE - Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * SCALE * 0.1,
+                  p.y * SCALE - Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * SCALE * 0.1,
                 );
                 g.lineTo(
-                  p.x * SCALE + Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * 10,
-                  p.y * SCALE + Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * 10,
+                  p.x * SCALE + Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * SCALE * 0.1,
+                  p.y * SCALE + Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * SCALE * 0.1,
                 );
               }
 

@@ -356,6 +356,61 @@ class GradientAndAssemblyRobot extends Kilobot {
     });
   }
 
+  updateGradientWithNeighbour(message, distance) {
+    if(distance > GRADIENT_DIST) return;
+    if(!this.isStationary) return;
+    if(message.grad == null) return;
+
+    // not set yet
+    if(this.myGradient == null) {
+      this.hesitate("gradient", "movement");
+      this.setGradient(message.grad + 1);
+      return;
+    }
+
+    // from same layer
+    // both peelers and waiters get this
+    if(this.myGradient == message.grad) {
+      if(message.robotUID > this.kilo_uid && message.consideringMovement) {
+        this.hesitate("movement");
+      }
+      // equalGradIDs[message.robotUID] = {receivedAt: this.counter};
+      // we can move ONLY IF we have the greatest ID
+      return;
+    }
+
+    // from inner layer
+    // both peelers and waiters get this
+    if(this.myGradient == message.grad + 1) {
+      return;
+    }
+
+    // from outer layers
+    // peelers don't get this, so cannot move
+    if(this.myGradient < message.grad + 1) {
+      this.hesitate("gradient", "movement");
+      return;
+    }
+
+    // still finding the min gradient among neighbours
+    if(this.myGradient > message.grad + 1) {
+      this.hesitate("gradient", "movement");
+      this.setGradient(message.grad + 1);
+      return;
+    }
+  }
+
+  setGradient(newValue) {
+    if(this.myGradient == newValue) {
+      return;
+    }
+
+    this.myGradient = newValue;
+    if(!this.isSeed) {
+      this.set_colors_for_gradient(this.myGradient);
+    }
+  }
+
   loop() {
     this.counter++;
 
@@ -427,13 +482,11 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     } else {
       if(!this.isStationary) {
-        this.myGradient = null; // reset gradient
+        this.setGradient(null);
         this.isStationary = true;
       }
       this.unmark();
     }
-
-    this.set_colors_for_gradient(this.myGradient);
   }
 
   hesitate() {
@@ -453,50 +506,6 @@ class GradientAndAssemblyRobot extends Kilobot {
     return false;
   }
 
-  updateGradient(message, distance) {
-    if(distance > GRADIENT_DIST) return;
-    if(!this.isStationary) return;
-    if(message.grad == null) return;
-
-    // not set yet
-    if(this.myGradient == null) {
-      this.hesitate("gradient", "movement");
-      this.myGradient = message.grad + 1;
-      return;
-    }
-
-    // from same layer
-    // both peelers and waiters get this
-    if(this.myGradient == message.grad) {
-      if(message.robotUID > this.kilo_uid && message.consideringMovement) {
-        this.hesitate("movement");
-      }
-      // equalGradIDs[message.robotUID] = {receivedAt: this.counter};
-      // we can move ONLY IF we have the greatest ID
-      return;
-    }
-
-    // from inner layer
-    // both peelers and waiters get this
-    if(this.myGradient == message.grad + 1) {
-      return;
-    }
-
-    // from outer layers
-    // peelers don't get this, so cannot move
-    if(this.myGradient < message.grad + 1) {
-      this.hesitate("gradient", "movement");
-      return;
-    }
-
-    // still finding the min gradient among neighbours
-    if(this.myGradient > message.grad + 1) {
-      this.hesitate("gradient", "movement");
-      this.myGradient = message.grad + 1;
-      return;
-    }
-  }
-
   kilo_message_rx(message, distance) {
     if(!this.isSeed) {
       this.neighbors[message.robotUID] = {
@@ -514,18 +523,11 @@ class GradientAndAssemblyRobot extends Kilobot {
       this.hesitate("movement");
     }
 
-    this.updateGradient(message, distance)
+    this.updateGradientWithNeighbour(message, distance)
   }
 
   kilo_message_tx() {
-    // if(this.myGradient == null) {
-    //   return {
-    //     type: 'noGradientYet',
-    //   };
-    // }
-
     return {
-      // type: 'gradient',
       grad: this.myGradient,
       isStationary: this.isStationary,
       robotUID: this.kilo_uid,
@@ -555,16 +557,11 @@ class RootSeedRobot extends Kilobot {
   }
 
   kilo_message_rx(message, distance) {
-    switch(message.type) {
-      case 'gradient':
-        // ignore
-        break;
-    }
+    // ignore
   }
 
   kilo_message_tx() {
     return {
-      // type: 'gradient',
       grad: 0,
       isStationary: this.isStationary,
       shapePos: this.shapePos,
