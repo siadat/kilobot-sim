@@ -27,7 +27,7 @@ class GradientAndAssemblyRobot extends Kilobot {
 
   setup() {
     this.myGradient = null;
-    this.hesitateAt = 0;
+    this.hesitateData = {};
     this.counter = 0;
     this.events = [];
     // this.posHistory = [];
@@ -116,16 +116,16 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     for(let i = 0; i < ncount; i++) {
       p[0] = this.neighbors[nIDs[i]].shapePos;
-      if(this.neighbors[nIDs[i]].neighborGradient >= this.myGradient) continue;
+      if(this.neighbors[nIDs[i]].neighborGradient > this.myGradient) continue;
       for(let j = i+1; j < ncount; j++) {
         p[1] = this.neighbors[nIDs[j]].shapePos;
-        if(this.neighbors[nIDs[j]].neighborGradient >= this.myGradient) continue;
+        if(this.neighbors[nIDs[j]].neighborGradient > this.myGradient) continue;
         for(let k = j+1; k < ncount; k++) {
           p[2] = this.neighbors[nIDs[k]].shapePos;
-          if(this.neighbors[nIDs[k]].neighborGradient >= this.myGradient) continue;
+          if(this.neighbors[nIDs[k]].neighborGradient > this.myGradient) continue;
           for(let l = k+1; l < ncount; l++) {
             p[3] = this.neighbors[nIDs[l]].shapePos;
-            if(this.neighbors[nIDs[l]].neighborGradient >= this.myGradient) continue;
+            if(this.neighbors[nIDs[l]].neighborGradient > this.myGradient) continue;
 
             // console.log('p = ', p);
             let robustTriangles = 0;
@@ -347,7 +347,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.cleanupExpiredNeighbors();
     this.localize();
 
-    if(!this.hesitating()) {
+    if(!this.isHesitating("movement")) {
       this.isStationary = false;
       this.mark();
 
@@ -359,14 +359,16 @@ class GradientAndAssemblyRobot extends Kilobot {
 
         let distances = Object.keys(this.neighbors).map(uid => this.neighbors[uid].measuredDist);
         let currentNearestNeighDist = Math.min.apply(null, distances);
-        let DESIRED_SHAPE_DIST = 2.1 * RADIUS/this.shapeScale;
+        let DESIRED_SHAPE_DIST = 2.5 * RADIUS/this.shapeScale;
 
         let tooClose = currentNearestNeighDist/this.shapeScale < DESIRED_SHAPE_DIST;
         let gettingFarther = this.prevNearestNeighDist < currentNearestNeighDist;
         let noNewData = this.prevNearestNeighDist == currentNearestNeighDist;
 
         if(noNewData) {
-          this.set_motors(this.stats.motors[0], this.stats.motors[1]);
+          if(this.stats.motors) {
+            this.set_motors(this.stats.motors[0], this.stats.motors[1]);
+          }
         } else {
           this.stats.tooClose = tooClose;
           this.stats.gettingFarther = gettingFarther;
@@ -404,16 +406,22 @@ class GradientAndAssemblyRobot extends Kilobot {
     } else {
       this.isStationary = true;
       this.unmark();
-      this.set_colors_for_gradient(this.myGradient);
     }
+
+    this.set_colors_for_gradient(this.myGradient);
   }
 
-  hesitate(reason) {
-    this.hesitateAt = this.counter;
+  hesitate(what) {
+    this.hesitateData[what] = this.counter;
   }
 
-  hesitating() {
-    return this.counter < this.hesitateAt + HESITATE_DURATION;
+  isHesitating(what) {
+    let d = this.hesitateData[what];
+    if(d != undefined && this.counter < d + HESITATE_DURATION) {
+      return true;
+    }
+    delete(this.hesitateData[what]);
+    return false;
   }
 
   kilo_message_rx(message, distance) {
@@ -435,7 +443,7 @@ class GradientAndAssemblyRobot extends Kilobot {
 
 
         if(!message.isStationary) {
-          this.hesitate("someone else is moving");
+          this.hesitate("movement");
         }
 
         if(distance > GRADIENT_DIST) {
@@ -452,7 +460,7 @@ class GradientAndAssemblyRobot extends Kilobot {
 
         // not set yet
         if(this.myGradient == null) {
-          this.hesitate();
+          this.hesitate("gradient");
           this.myGradient = message.value + 1;
           break;
         }
@@ -461,7 +469,7 @@ class GradientAndAssemblyRobot extends Kilobot {
         // both peelers and waiters get this
         if(this.myGradient == message.value) {
           if(message.robotUID > this.kilo_uid && message.consideringMovement) {
-            this.hesitate();
+            this.hesitate("gradient");
           }
           // equalGradIDs[message.robotUID] = {receivedAt: this.counter};
           // we can move ONLY IF we have the greatest ID
@@ -477,20 +485,20 @@ class GradientAndAssemblyRobot extends Kilobot {
         // from outer layers
         // peelers don't get this, so cannot move
         if(this.myGradient < message.value + 1) {
-          this.hesitate();
+          this.hesitate("gradient");
           break;
         }
 
         // still finding the min gradient among neighbours
         if(this.myGradient > message.value + 1) {
-          this.hesitate();
+          this.hesitate("gradient");
           this.myGradient = message.value + 1;
           break;
         }
 
         break;
       case 'noGradientYet':
-        this.hesitate();
+        this.hesitate("gradient");
         break;
     }
   }
@@ -507,7 +515,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       value: this.myGradient,
       isStationary: this.isStationary,
       robotUID: this.kilo_uid,
-      consideringMovement: !this.hesitating(),
+      consideringMovement: !this.isHesitating("movement"),
       shapePos: this.shapePos,
       isSeed: this.isSeed,
     };

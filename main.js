@@ -65,7 +65,7 @@ class Pitch {
         });
       }
 
-      if(DRAW_TRAVERSED_DOTS) {
+      if(DRAW_TRAVERSED_PATH) {
         // position vectors
         let g = new PIXI.Graphics()
         g.zIndex = 3;
@@ -83,15 +83,21 @@ class Pitch {
             b.posHistory.forEach(p => {
               if(lastPos == null) {
                 lastPos = p;
+                g.moveTo(p.x * SCALE, p.y * SCALE);
                 return;
               }
               // g.drawCircle(p.x * SCALE, p.y * SCALE, 2);
               g.lineStyle(2, p.color);
               g.moveTo(lastPos.x * SCALE, lastPos.y * SCALE);
               g.lineTo(p.x * SCALE, p.y * SCALE);
+              g.moveTo(p.x * SCALE, p.y * SCALE);
               lastPos = p;
             });
 
+            if(lastPos != null) {
+              g.lineStyle(2, b.robot.led.toHex());
+              g.lineTo(b.body.GetPosition().get_x() * SCALE, b.body.GetPosition().get_y() * SCALE);
+            }
           });
         });
       }
@@ -389,6 +395,8 @@ class Pitch {
           }
         }
 
+        this.physics.update();
+
         if(frameCount % 100 == 0) {
           let max = 5000;
           forEachObj(this.bodies, b => {
@@ -406,8 +414,6 @@ class Pitch {
             }
           });
         }
-
-        this.physics.update();
         /*
         // ******
         let sleepingRobots = 0;
@@ -564,7 +570,7 @@ class Pitch {
             uid: b.robot._uid,
             counter: b.robot.counter,
             isSeed: b.robot.isSeed,
-            hesitateAt: b.robot.hesitateAt,
+            hesitateData: b.robot.hesitateData,
             shapePos: b.robot.shapePos,
             neighbors: b.robot.neighbors,
             closestRobustNeighbors: b.robot.getFirstRobustQuadrilateral && b.robot.getFirstRobustQuadrilateral(),

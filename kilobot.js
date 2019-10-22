@@ -84,7 +84,7 @@ class Kilobot {
       this._phys.SetAwake(true);
     }
 
-    let coef = 0.01 * (RADIUS*RADIUS) / 0.015625;
+    let coef = 7.5 * 0.01 * (RADIUS*RADIUS) / 0.015625;
     
 
     let angle = Math.PI * this._phys.GetAngle() / 180.0;
@@ -102,7 +102,7 @@ class Kilobot {
     // Replace this SetTransform if you could get ApplyTorque to be fast enough.
     this._phys.SetTransform(
       this._phys.GetPosition(),
-      this._phys.GetAngle() + 0.5 * (right - left)/255.0,
+      this._phys.GetAngle() + 2.5 * 0.5 * (right - left)/255.0,
     );
     this._phys.ApplyForce(force, this._phys.GetPosition());
     this._Box2D.destroy(force);
