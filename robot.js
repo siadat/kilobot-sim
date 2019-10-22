@@ -130,15 +130,19 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     for(let i = 0; i < ncount; i++) {
       p[0] = this.neighbors[nIDs[i]].shapePos;
+      if(this.neighbors[nIDs[i]].neighborGradient == null) continue;
       if(this.neighbors[nIDs[i]].neighborGradient > this.myGradient) continue;
       for(let j = i+1; j < ncount; j++) {
         p[1] = this.neighbors[nIDs[j]].shapePos;
+        if(this.neighbors[nIDs[i]].neighborGradient == null) continue;
         if(this.neighbors[nIDs[j]].neighborGradient > this.myGradient) continue;
         for(let k = j+1; k < ncount; k++) {
           p[2] = this.neighbors[nIDs[k]].shapePos;
+          if(this.neighbors[nIDs[i]].neighborGradient == null) continue;
           if(this.neighbors[nIDs[k]].neighborGradient > this.myGradient) continue;
           for(let l = k+1; l < ncount; l++) {
             p[3] = this.neighbors[nIDs[l]].shapePos;
+            if(this.neighbors[nIDs[i]].neighborGradient == null) continue;
             if(this.neighbors[nIDs[l]].neighborGradient > this.myGradient) continue;
 
             // console.log('p = ', p);
@@ -183,6 +187,10 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     forEachObj(this.neighbors, (neigh, uid) => {
       // if(neigh.neighborUID > this.kilo_uid)
+      if(neigh.neighborGradient == null) {
+        return;
+      }
+
       if(neigh.neighborGradient > this.myGradient) {
         return;
       }
@@ -445,44 +453,10 @@ class GradientAndAssemblyRobot extends Kilobot {
     return false;
   }
 
-  kilo_message_rx(message, distance) {
-    if(!this.isSeed) {
-      // if(message.isStationary && message.shapePos) {
-      this.neighbors[message.robotUID] = {
-        neighborUID: message.robotUID,
-        neighborGradient: message.grad,
-        seenAt: this.counter,
-        measuredDist: distance,
-        shapePos: message.shapePos,
-        isSeed: message.isSeed,
-        isStationary: message.isStationary,
-      };
-      // }
-    }
-
-    if(!message.isStationary) {
-      this.hesitate("movement");
-    }
-
-    if(distance > GRADIENT_DIST) {
-      return;
-    }
-
-    // if(this.closestNeighbourDist > distance) {
-    //   this.closestNeighbourDistDiff = distance - this.closestNeighbourDist;
-    //   this.closestNeighbourDist = distance;
-    // }
-
-    // each robot needs to set its gradient to x+1
-    // where x="lowest value of all neighboring robots"
-
-    if(!this.isStationary) {
-      return;
-    }
-
-    if(message.grad == null) {
-      return;
-    }
+  updateGradient(message, distance) {
+    if(distance > GRADIENT_DIST) return;
+    if(!this.isStationary) return;
+    if(message.grad == null) return;
 
     // not set yet
     if(this.myGradient == null) {
@@ -521,6 +495,26 @@ class GradientAndAssemblyRobot extends Kilobot {
       this.myGradient = message.grad + 1;
       return;
     }
+  }
+
+  kilo_message_rx(message, distance) {
+    if(!this.isSeed) {
+      this.neighbors[message.robotUID] = {
+        neighborUID: message.robotUID,
+        neighborGradient: message.grad,
+        seenAt: this.counter,
+        measuredDist: distance,
+        shapePos: message.shapePos,
+        isSeed: message.isSeed,
+        isStationary: message.isStationary,
+      };
+    }
+
+    if(!message.isStationary) {
+      this.hesitate("movement");
+    }
+
+    this.updateGradient(message, distance)
   }
 
   kilo_message_tx() {

@@ -431,7 +431,7 @@ class Pitch {
         this.physics.update();
 
         if(frameCount % 30 == 0) {
-          let max = 1000;
+          let max = 100;
           forEachObj(this.bodies, b => {
             let pos = b.body.GetPosition();
             let lastPos = b.posHistory[b.posHistory.length-1];
