@@ -76,6 +76,7 @@ class Pitch {
         this.pixiApp.stage.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
+          if(!DRAW_TRAVERSED_PATH) return;
           forEachObj(this.bodies, b => {
             g.lineStyle(2, b.robot.led.toHexDark());
 
@@ -106,12 +107,14 @@ class Pitch {
         // position vectors
         let g = new PIXI.Graphics()
         g.zIndex = 2;
-        g.alpha = 0.5;
+        g.alpha = 0.25;
         let color = 0x008400; // 0xff0000
 
         this.pixiApp.stage.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
+          if(!DRAW_LOCALIZATION_ERROR) return;
+
           forEachObj(this.bodies, b => {
             let shapePos = b.robot.shapePos;
             if(!shapePos) return;
@@ -122,7 +125,7 @@ class Pitch {
               pos = data.pos;
             }
 
-            let thickness = RADIUS*SCALE/5.0
+            let thickness = 2; // RADIUS*SCALE/5.0
             let posActual = {
               x: pos.x * SCALE,
               y: pos.y * SCALE,
@@ -145,16 +148,33 @@ class Pitch {
             g.lineTo(posEstimated.x, posEstimated.y);
 
             // for perfect cases:
+            /*
             if(calcDist(posActual, posEstimated) < thickness) {
               g.lineStyle(0);
               g.beginFill(color);
               g.drawCircle(posActual.x, posActual.y, thickness/2);
               g.drawCircle(posEstimated.x, posEstimated.y, thickness/2);
             }
+            */
 
             g.endFill();
             g.lineStyle(1, color);
             g.drawCircle(posEstimated.x, posEstimated.y, SCALE * RADIUS);
+
+            {
+              let crossPoints = [posEstimated, posActual];
+              let fullSize = SCALE * RADIUS * 0.2;
+              for(let i = 0, len = crossPoints.length; i < len; i++) {
+                let p = crossPoints[i];
+                let r = fullSize; // * ((i+1)/len);
+                g.endFill();
+                g.lineStyle(thickness, 0x000000, 1);
+                g.moveTo(p.x - r, p.y + 0);
+                g.lineTo(p.x + r, p.y + 0);
+                g.moveTo(p.x + 0,         p.y - r);
+                g.lineTo(p.x + 0,         p.y + r);
+              };
+            }
 
           })
         });
@@ -168,6 +188,7 @@ class Pitch {
           this.pixiApp.stage.addChild(connGraphics);
           this.pixiApp.ticker.add(() => {
             connGraphics.clear();
+            if(!DRAW_CONNECTIONS) return;
 
             this.bounds.forEach(bound => {
               connGraphics.lineStyle(2, bound.color || 0x00ff00);
@@ -397,7 +418,7 @@ class Pitch {
 
         this.physics.update();
 
-        if(frameCount % 100 == 0) {
+        if(frameCount % 30 == 0) {
           let max = 5000;
           forEachObj(this.bodies, b => {
             let pos = b.body.GetPosition();
@@ -660,12 +681,14 @@ class Pitch {
           );
 
           if(b.robot._mark) {
-            g.beginFill(0x000000);
+            // g.beginFill(0x000000);
+            g.endFill();
+            g.lineStyle(2, 0x000000);
             g.drawCircle(
               // (b.circleRadius-ledRadius) * SCALE,
               0,
               0,
-              ledRadius * SCALE * 0.75,
+              ledRadius * SCALE * 0.5,
             );
           }
 
@@ -760,11 +783,13 @@ class Box2DPhysics {
 		let gravity = new Box2D.b2Vec2(0.0, 0.0);
 		this.world = new Box2D.b2World(gravity);
 
-    this.edgeShape({x: 0, y: 0}, {x: SIZE.w, y: 0});
-    this.edgeShape({x: 0, y: 0}, {x: 0,      y: SIZE.h});
+    if(true /* edge/wall */) {
+      this.edgeShape({x: 0, y: 0}, {x: SIZE.w, y: 0});
+      this.edgeShape({x: 0, y: 0}, {x: 0,      y: SIZE.h});
 
-    this.edgeShape({x: SIZE.w, y: SIZE.h}, {x: 0, y: SIZE.h});
-    this.edgeShape({x: SIZE.w, y: SIZE.h}, {x: SIZE.w, y: 0});
+      this.edgeShape({x: SIZE.w, y: SIZE.h}, {x: 0, y: SIZE.h});
+      this.edgeShape({x: SIZE.w, y: SIZE.h}, {x: SIZE.w, y: 0});
+    }
 
 
     /*
@@ -873,7 +898,7 @@ class Box2DPhysics {
 
 		let fixtureDef = new Box2D.b2FixtureDef();
 		fixtureDef.set_density(1.0);
-		fixtureDef.set_friction(0.6);
+		fixtureDef.set_friction(10);
 		fixtureDef.set_restitution(0.0);
 		fixtureDef.set_shape(this.circleShape);
     fixtureDef.set_filter(filter1);

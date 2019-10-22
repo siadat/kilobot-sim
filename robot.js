@@ -347,11 +347,11 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.cleanupExpiredNeighbors();
     this.localize();
 
-    if(!this.isHesitating("movement")) {
+    if(!this.isHesitating("movement") && this.myGradient != null) {
       this.isStationary = false;
       this.mark();
 
-      {
+      if (true) {
         // if(!this.shapePos) {
         //   console.error("no this.shapePos");
         // }
@@ -404,15 +404,22 @@ class GradientAndAssemblyRobot extends Kilobot {
       }
 
     } else {
-      this.isStationary = true;
+      if(!this.isStationary) {
+        this.myGradient = null; // reset gradient
+        this.isStationary = true;
+      }
       this.unmark();
     }
 
     this.set_colors_for_gradient(this.myGradient);
   }
 
-  hesitate(what) {
-    this.hesitateData[what] = this.counter;
+  hesitate() {
+    let c = this.counter;
+    for(let i = 0; i < arguments.length; i++) {
+      let arg = arguments[i];
+      this.hesitateData[arg] = c;
+    }
   }
 
   isHesitating(what) {
@@ -458,47 +465,49 @@ class GradientAndAssemblyRobot extends Kilobot {
         // each robot needs to set its gradient to x+1
         // where x="lowest value of all neighboring robots"
 
-        // not set yet
-        if(this.myGradient == null) {
-          this.hesitate("gradient");
-          this.myGradient = message.value + 1;
-          break;
-        }
-
-        // from same layer
-        // both peelers and waiters get this
-        if(this.myGradient == message.value) {
-          if(message.robotUID > this.kilo_uid && message.consideringMovement) {
-            this.hesitate("gradient");
+        if(this.isStationary) {
+          // not set yet
+          if(this.myGradient == null) {
+            this.hesitate("gradient", "movement");
+            this.myGradient = message.value + 1;
+            break;
           }
-          // equalGradIDs[message.robotUID] = {receivedAt: this.counter};
-          // we can move ONLY IF we have the greatest ID
-          break;
-        }
 
-        // from inner layer
-        // both peelers and waiters get this
-        if(this.myGradient == message.value + 1) {
-          break;
-        }
+          // from same layer
+          // both peelers and waiters get this
+          if(this.myGradient == message.value) {
+            if(message.robotUID > this.kilo_uid && message.consideringMovement) {
+              this.hesitate("movement");
+            }
+            // equalGradIDs[message.robotUID] = {receivedAt: this.counter};
+            // we can move ONLY IF we have the greatest ID
+            break;
+          }
 
-        // from outer layers
-        // peelers don't get this, so cannot move
-        if(this.myGradient < message.value + 1) {
-          this.hesitate("gradient");
-          break;
-        }
+          // from inner layer
+          // both peelers and waiters get this
+          if(this.myGradient == message.value + 1) {
+            break;
+          }
 
-        // still finding the min gradient among neighbours
-        if(this.myGradient > message.value + 1) {
-          this.hesitate("gradient");
-          this.myGradient = message.value + 1;
-          break;
+          // from outer layers
+          // peelers don't get this, so cannot move
+          if(this.myGradient < message.value + 1) {
+            this.hesitate("gradient", "movement");
+            break;
+          }
+
+          // still finding the min gradient among neighbours
+          if(this.myGradient > message.value + 1) {
+            this.hesitate("gradient", "movement");
+            this.myGradient = message.value + 1;
+            break;
+          }
         }
 
         break;
       case 'noGradientYet':
-        this.hesitate("gradient");
+        this.hesitate("gradient", "movement");
         break;
     }
   }
