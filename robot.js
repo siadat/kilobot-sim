@@ -348,54 +348,44 @@ class GradientAndAssemblyRobot extends Kilobot {
       */
   }
 
-  cleanupExpiredNeighbors() {
-    forEachObj(this.neighbors, (info, uid) => {
-      if(this.counter - info.seenAt > NEIGHBOUR_EXPIRY) {
-        delete(this.neighbors[uid]);
-      }
-    });
-  }
-
-  updateGradientWithNeighbour(message, distance) {
+  updateMyGradientWithNeighbor(nGrad, nUID, nConsideringMovement, distance) {
     if(distance > GRADIENT_DIST) return;
     if(!this.isStationary) return;
-    if(message.grad == null) return;
+    if(nGrad == null) return;
 
     // not set yet
     if(this.myGradient == null) {
       this.hesitate("gradient", "movement");
-      this.setGradient(message.grad + 1);
+      this.setGradient(nGrad + 1);
       return;
     }
 
     // from same layer
     // both peelers and waiters get this
-    if(this.myGradient == message.grad) {
-      if(message.robotUID > this.kilo_uid && message.consideringMovement) {
+    if(this.myGradient == nGrad) {
+      if(nUID > this.kilo_uid && nConsideringMovement) {
         this.hesitate("movement");
       }
-      // equalGradIDs[message.robotUID] = {receivedAt: this.counter};
-      // we can move ONLY IF we have the greatest ID
       return;
     }
 
     // from inner layer
     // both peelers and waiters get this
-    if(this.myGradient == message.grad + 1) {
+    if(this.myGradient == nGrad + 1) {
       return;
     }
 
     // from outer layers
     // peelers don't get this, so cannot move
-    if(this.myGradient < message.grad + 1) {
+    if(this.myGradient < nGrad + 1) {
       this.hesitate("gradient", "movement");
       return;
     }
 
     // still finding the min gradient among neighbours
-    if(this.myGradient > message.grad + 1) {
+    if(this.myGradient > nGrad + 1) {
       this.hesitate("gradient", "movement");
-      this.setGradient(message.grad + 1);
+      this.setGradient(nGrad + 1);
       return;
     }
   }
@@ -414,14 +404,28 @@ class GradientAndAssemblyRobot extends Kilobot {
   loop() {
     this.counter++;
 
+    forEachObj(this.neighbors, (info, uid) => {
+      // too old, delete it (even if not processed)
+      if(this.counter - info.receivedAt > NEIGHBOUR_EXPIRY) {
+        delete(this.neighbors[uid]);
+        return;
+      }
+
+      if(!info.noticedOnce) {
+        if(!info.message.isStationary)
+          this.hesitate("movement");
+
+        this.updateMyGradientWithNeighbor(
+          info.message.grad,
+          info.message.robotUID,
+          info.message.consideringMovement,
+          info.measuredDist,
+        );
+        info.noticedOnce = true;
+      }
+    });
+
     if(this.isSeed) return;
-
-    // this.set_motors(50 * Math.random(), 255 * Math.random());
-    // if(this.kilo_uid == 51 && this.myGradient != null) {
-    //   this.set_motors(50 * Math.random(), 255 * Math.random());
-    // }
-
-    this.cleanupExpiredNeighbors();
     this.localize();
 
     if(!this.isHesitating("movement") && this.myGradient != null) {
@@ -507,23 +511,16 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   kilo_message_rx(message, distance) {
-    if(!this.isSeed) {
-      this.neighbors[message.robotUID] = {
-        neighborUID: message.robotUID,
-        neighborGradient: message.grad,
-        seenAt: this.counter,
-        measuredDist: distance,
-        shapePos: message.shapePos,
-        isSeed: message.isSeed,
-        isStationary: message.isStationary,
-      };
-    }
-
-    if(!message.isStationary) {
-      this.hesitate("movement");
-    }
-
-    this.updateGradientWithNeighbour(message, distance)
+    this.neighbors[message.robotUID] = {
+      neighborUID: message.robotUID,
+      neighborGradient: message.grad,
+      receivedAt: this.counter,
+      measuredDist: distance,
+      shapePos: message.shapePos,
+      isSeed: message.isSeed,
+      isStationary: message.isStationary,
+      message: message,
+    };
   }
 
   kilo_message_tx() {
