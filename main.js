@@ -271,10 +271,12 @@ class Pitch {
 
       let b = this.physics.circle(shapePosToPhysPos(shapePos), Math.PI/2, RADIUS, uidCounter);
       if(shapePos.isRoot) {
-        b.robot = new RootSeedRobot({
+        b.robot = new GradientAndAssemblyRobot({
           shapeDesc: ShapeDesc,
           shapeScale: ShapeScale,
           shapePos: shapePos,
+          isGradientSeed: true,
+          isSeed: true,
         });
       } else {
         b.robot = new GradientAndAssemblyRobot({
@@ -430,7 +432,7 @@ class Pitch {
 
         this.physics.update();
 
-        if(frameCount % 30 == 0) {
+        if(DRAW_TRAVERSED_PATH && frameCount % 30 == 0) {
           let max = 100;
           forEachObj(this.bodies, b => {
             let pos = b.body.GetPosition();
@@ -608,6 +610,8 @@ class Pitch {
         g.on('pointerdown', () => {
           console.log('clicked', {
             uid: b.robot._uid,
+            state: b.robot.state,
+            grad: b.robot.myGradient,
             counter: b.robot.counter,
             isSeed: b.robot.isSeed,
             hesitateData: b.robot.hesitateData,
@@ -615,6 +619,7 @@ class Pitch {
             neighbors: b.robot.neighbors,
             closestRobustNeighbors: b.robot.getFirstRobustQuadrilateral && b.robot.getFirstRobustQuadrilateral(),
             robot: b.robot,
+            events: b.robot.events,
           });
           /*
           b._to_be_removed = true;
@@ -625,10 +630,6 @@ class Pitch {
           */
 
           // this.physics.world.DestroyBody(b.robot._phys);
-          if(!b.robot.events) return;
-          b.robot.events.forEach(e => {
-            console.log(e);
-          });
         });
 
         const agentGraphicsTick = (b) => {
