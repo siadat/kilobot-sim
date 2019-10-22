@@ -12,6 +12,20 @@ const COLORS = [
 const HESITATE_DURATION = (1+MSG_PER_SEC) * 60;
 const NEIGHBOUR_EXPIRY = (3+MSG_PER_SEC) * 60;
 
+const STATES = [
+  'start',
+  'wait_to_move',
+  'move_while_outside',
+  'move_while_inside',
+  'joined_shape',
+
+  // 'idle',
+  // 'move_out', // mobile
+  // 'move_in',  // mobile
+  // 'stop_in',  // stopped
+  // 'stop_out', // stopped
+];
+
 class GradientAndAssemblyRobot extends Kilobot {
   constructor(opts) {
     super();
@@ -432,96 +446,93 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   kilo_message_rx(message, distance) {
-    switch(message.type) {
-      case 'gradient':
-        if(!this.isSeed) {
-          // if(message.isStationary && message.shapePos) {
-            this.neighbors[message.robotUID] = {
-              neighborUID: message.robotUID,
-              neighborGradient: message.value,
-              seenAt: this.counter,
-              measuredDist: distance,
-              shapePos: message.shapePos,
-              isSeed: message.isSeed,
-              isStationary: message.isStationary,
-            };
-          // }
-        }
+    if(!this.isSeed) {
+      // if(message.isStationary && message.shapePos) {
+      this.neighbors[message.robotUID] = {
+        neighborUID: message.robotUID,
+        neighborGradient: message.grad,
+        seenAt: this.counter,
+        measuredDist: distance,
+        shapePos: message.shapePos,
+        isSeed: message.isSeed,
+        isStationary: message.isStationary,
+      };
+      // }
+    }
 
+    if(!message.isStationary) {
+      this.hesitate("movement");
+    }
 
-        if(!message.isStationary) {
-          this.hesitate("movement");
-        }
+    if(distance > GRADIENT_DIST) {
+      return;
+    }
 
-        if(distance > GRADIENT_DIST) {
-          break;
-        }
+    // if(this.closestNeighbourDist > distance) {
+    //   this.closestNeighbourDistDiff = distance - this.closestNeighbourDist;
+    //   this.closestNeighbourDist = distance;
+    // }
 
-        // if(this.closestNeighbourDist > distance) {
-        //   this.closestNeighbourDistDiff = distance - this.closestNeighbourDist;
-        //   this.closestNeighbourDist = distance;
-        // }
+    // each robot needs to set its gradient to x+1
+    // where x="lowest value of all neighboring robots"
 
-        // each robot needs to set its gradient to x+1
-        // where x="lowest value of all neighboring robots"
+    if(!this.isStationary) {
+      return;
+    }
 
-        if(this.isStationary) {
-          // not set yet
-          if(this.myGradient == null) {
-            this.hesitate("gradient", "movement");
-            this.myGradient = message.value + 1;
-            break;
-          }
+    if(message.grad == null) {
+      return;
+    }
 
-          // from same layer
-          // both peelers and waiters get this
-          if(this.myGradient == message.value) {
-            if(message.robotUID > this.kilo_uid && message.consideringMovement) {
-              this.hesitate("movement");
-            }
-            // equalGradIDs[message.robotUID] = {receivedAt: this.counter};
-            // we can move ONLY IF we have the greatest ID
-            break;
-          }
+    // not set yet
+    if(this.myGradient == null) {
+      this.hesitate("gradient", "movement");
+      this.myGradient = message.grad + 1;
+      return;
+    }
 
-          // from inner layer
-          // both peelers and waiters get this
-          if(this.myGradient == message.value + 1) {
-            break;
-          }
+    // from same layer
+    // both peelers and waiters get this
+    if(this.myGradient == message.grad) {
+      if(message.robotUID > this.kilo_uid && message.consideringMovement) {
+        this.hesitate("movement");
+      }
+      // equalGradIDs[message.robotUID] = {receivedAt: this.counter};
+      // we can move ONLY IF we have the greatest ID
+      return;
+    }
 
-          // from outer layers
-          // peelers don't get this, so cannot move
-          if(this.myGradient < message.value + 1) {
-            this.hesitate("gradient", "movement");
-            break;
-          }
+    // from inner layer
+    // both peelers and waiters get this
+    if(this.myGradient == message.grad + 1) {
+      return;
+    }
 
-          // still finding the min gradient among neighbours
-          if(this.myGradient > message.value + 1) {
-            this.hesitate("gradient", "movement");
-            this.myGradient = message.value + 1;
-            break;
-          }
-        }
+    // from outer layers
+    // peelers don't get this, so cannot move
+    if(this.myGradient < message.grad + 1) {
+      this.hesitate("gradient", "movement");
+      return;
+    }
 
-        break;
-      case 'noGradientYet':
-        this.hesitate("gradient", "movement");
-        break;
+    // still finding the min gradient among neighbours
+    if(this.myGradient > message.grad + 1) {
+      this.hesitate("gradient", "movement");
+      this.myGradient = message.grad + 1;
+      return;
     }
   }
 
   kilo_message_tx() {
-    if(this.myGradient == null) {
-      return {
-        type: 'noGradientYet',
-      };
-    }
+    // if(this.myGradient == null) {
+    //   return {
+    //     type: 'noGradientYet',
+    //   };
+    // }
 
     return {
-      type: 'gradient',
-      value: this.myGradient,
+      // type: 'gradient',
+      grad: this.myGradient,
       isStationary: this.isStationary,
       robotUID: this.kilo_uid,
       consideringMovement: !this.isHesitating("movement"),
@@ -559,8 +570,8 @@ class RootSeedRobot extends Kilobot {
 
   kilo_message_tx() {
     return {
-      type: 'gradient',
-      value: 0,
+      // type: 'gradient',
+      grad: 0,
       isStationary: this.isStationary,
       shapePos: this.shapePos,
       robotUID: this.kilo_uid,
