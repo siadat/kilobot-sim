@@ -296,64 +296,6 @@ class Pitch {
       this.createGraphics(b);
     });
 
-    /*
-    for(let i = 0; i < 4; i++) {
-      let b = undefined;
-      uidCounter++;
-
-
-      switch(i) {
-        case 0:
-          shapePos = {x: 0, y: 0};
-          b = this.physics.circle(shapePosToPhysPos(shapePos), RADIUS, uidCounter);
-          b.robot = new RootSeedRobot({
-            shapeDesc: ShapeDesc,
-            shapeScale: ShapeScale,
-            shapePos: shapePos,
-          });
-          break;
-        case 1:
-          shapePos = {x: 2, y: 0};
-          b = this.physics.circle(shapePosToPhysPos(shapePos), RADIUS, uidCounter);
-          b.robot = new GradientAndAssemblyRobot({
-            shapeDesc: ShapeDesc,
-            shapeScale: ShapeScale,
-            shapePos: shapePos,
-            isSeed: true,
-          });
-          break;
-        case 2:
-          shapePos = {x: 1, y: Math.sqrt(3)};
-          b = this.physics.circle(shapePosToPhysPos(shapePos), RADIUS, uidCounter);
-          b.robot = new GradientAndAssemblyRobot({
-            shapeDesc: ShapeDesc,
-            shapeScale: ShapeScale,
-            shapePos: shapePos,
-            isSeed: true,
-          });
-          break;
-        case 3:
-          shapePos = {x: 1, y: -Math.sqrt(3)};
-          b = this.physics.circle(shapePosToPhysPos(shapePos), RADIUS, uidCounter);
-          b.robot = new GradientAndAssemblyRobot({
-            shapeDesc: ShapeDesc,
-            shapeScale: ShapeScale,
-            shapePos: shapePos,
-            isSeed: true,
-          });
-          break;
-      }
-
-      b.robot._uid = uidCounter;
-      b.robot._phys = b.body;
-      b.robot._Box2D = Box2D;
-
-      this.bodies[b.robot._uid] = b;
-
-      this.createGraphics(b);
-    }
-    */
-
     let assemblyCount = COUNT - 4;
     for(let i = 0; i < assemblyCount; i++) {
       uidCounter++;
@@ -396,7 +338,6 @@ class Pitch {
     }
 
     if(PERFECT) {
-      // this.bodies.forEach(b => {
       forEachObj(this.bodies, b => {
         b.robot.setup();
         b.robot._started = true;
@@ -456,22 +397,6 @@ class Pitch {
             }
           });
         }
-        /*
-        // ******
-        let sleepingRobots = 0;
-        forEachObj(this.bodies, b => {
-          if(!b.body.IsAwake()) {
-            sleepingRobots++;
-          }
-        });
-        console.log(sleepingRobots, Object.keys(this.bodies).length);
-
-        if(sleepingRobots != Object.keys(this.bodies).length) {
-          // let bodies go into sleep mode (so their position is fixed)
-          nextFrame();
-          return;
-        }
-        */
 
         // ******
         forEachObj(this.bodies, b => {
@@ -500,37 +425,29 @@ class Pitch {
         */
 
         // ---
-        // all of this logic is to make sure each robot sends roughly 2 messages per second
-        let i = 0;
-        const FPS = 60;
+        forEachObj(this.bodies, (b, i) => {
+          if(frameCount < b.lastMessageSentAt + 30) {
+            return;
+          }
 
-        let cond = () => false;
+          b.lastMessageSentAt = frameCount;
 
-        let msgsPerSecond = MSG_PER_SEC * Object.keys(this.bodies).length;
+          let broadcastingBody = b;
 
-        if(msgsPerSecond > FPS) {
-          cond = () => i < msgsPerSecond/FPS;
-        } else {
-          cond = () => Math.random() < msgsPerSecond/FPS;
-        }
-
-        for(; cond(); i++){
-          let broadcasterID = randomItem(Object.keys(this.bodies));
-          let broadcastingBody = this.bodies[broadcasterID];
           if(!broadcastingBody) {
             console.error("deleted robot fetched");
-            continue;
+            return;
           }
 
           if(!broadcastingBody.robot._started) {
-            continue;
+            return;
           }
           let pos = broadcastingBody.body.GetPosition();
           let queryCallback = new Box2D.JSQueryCallback();
 
           let message = broadcastingBody.robot.kilo_message_tx();
           if(message == null) {
-            continue;
+            return;
           }
 
           const handleReceiver = (id) => {
@@ -571,11 +488,9 @@ class Pitch {
             if(id == BODY_ID_IGNORE) {
               return ContinueQuery;
             }
-            // this.receiverIDs.push(id);
             handleReceiver(id);
             return ContinueQuery;
           }
-          // queryCallback.receiverIDs = [];
 
           let aabb = new Box2D.b2AABB();
           let lowerBound = new Box2D.b2Vec2(pos.get_x()-NEIGHBOUR_DISTANCE, pos.get_y()-NEIGHBOUR_DISTANCE);
@@ -587,8 +502,7 @@ class Pitch {
 
           this.physics.world.QueryAABB(queryCallback, aabb);
           Box2D.destroy(aabb);
-          // queryCallback.receiverIDs.forEach(id => { });
-        }
+        });
 
         // ******
         nextFrame();
@@ -672,7 +586,6 @@ class Pitch {
           g.drawCircle(0, 0, b.circleRadius * SCALE - thickness/2);
 
           let ledRadius = b.circleRadius * 0.4;
-          // let ledRadius = b.circleRadius * 1.0;
 
           g.lineStyle(0);
           g.beginFill(b.robot.led.toHex(), 0.2);
@@ -694,18 +607,15 @@ class Pitch {
           g.lineStyle(thickness);
           g.beginFill(b.robot.led.toHex());
           g.drawCircle(
-            // (b.circleRadius-ledRadius) * SCALE,
             0,
             0,
             ledRadius * SCALE,
           );
 
           if(b.robot._mark) {
-            // g.beginFill(0x000000);
             g.endFill();
             g.lineStyle(2, 0x000000);
             g.drawCircle(
-              // (b.circleRadius-ledRadius) * SCALE,
               0,
               0,
               ledRadius * SCALE * 0.5,
@@ -713,7 +623,6 @@ class Pitch {
           }
 
           if(false) {
-            // const t = new PIXI.Text(`${b.robot._uid}`, {fontSize: 9, align: 'center'});
             const t = new PIXI.Text(`${b.robot.counter || '0'}`, {fontSize: 9, align: 'center', fill: 0xf0f0f0});
             t.anchor.set(0.5);
             t.position = {
@@ -745,15 +654,6 @@ class Pitch {
                 break;
             }
           }
-
-          /*
-        const crossSize = 0;
-        g.lineStyle(1, 0x000000);
-        g.moveTo(-crossSize, 0);
-        g.lineTo(crossSize, 0);
-        g.moveTo(0, -crossSize);
-        g.lineTo(0, crossSize);
-        */
 
           /*
         const t = new PIXI.Text(`id:${b.id}`, {fontSize: 9, align: 'center'});
@@ -811,23 +711,7 @@ class Box2DPhysics {
       this.edgeShape({x: SIZE.w, y: SIZE.h}, {x: SIZE.w, y: 0});
     }
 
-
     /*
-    {
-      var bd_ground = new Box2D.b2BodyDef();
-      bd_ground.set_type(Box2D.b2_staticBody);
-      // bd_ground.set_position(new Box2D.b2Vec2(SIZE.w/2, SIZE.h));
-      var ground = this.world.CreateBody(bd_ground);
-
-      var shape0 = new Box2D.b2EdgeShape();
-      shape0.Set(new Box2D.b2Vec2(0, SIZE.h), new Box2D.b2Vec2(SIZE.w, SIZE.h));
-
-      // let shape0 = new Box2D.b2PolygonShape();
-      // shape0.SetAsBox(SIZE.w * 0.5, SIZE.h * 0.5);
-      ground.CreateFixture(shape0, 0.0);
-    }
-    */
-
 		let listener = new Box2D.JSContactListener();
 		listener.PreSolve = function(contact) {
       // console.log('PreSolve', arguments);
@@ -855,6 +739,7 @@ class Box2DPhysics {
 			defaultCarSpeed = defaultCarSpeed*2;
 		}
 		this.world.SetContactListener(listener);
+    */
 	}
 
 	edgeShape(from, to) {
@@ -903,13 +788,9 @@ class Box2DPhysics {
 
     b2bodyDef.set_bullet(false);
 
-    // ---
     let filter1 = new Box2D.b2Filter();
     filter1.set_categoryBits(0x0001);
     filter1.set_maskBits(0x0001);
-
-    // let circleShape = new Box2D.b2CircleShape();
-    // circleShape.set_m_radius(radius);
 
     if(!this.circleShape) {
       this.circleShape = new Box2D.b2CircleShape();
@@ -924,32 +805,6 @@ class Box2DPhysics {
     fixtureDef.set_filter(filter1);
     Box2D.destroy(filter1);
     // Box2D.destroy(this.circleShape);
-
-    /*
-    // ---
-    let filter2 = new Box2D.b2Filter();
-    filter2.set_categoryBits(0x0002);
-    filter2.set_maskBits(0x0002);
-
-    // let sensorShape = new Box2D.b2CircleShape();
-    // sensorShape.set_m_radius(radius * 2);
-    if(!this.sensorShape) {
-      this.sensorShape  = new Box2D.b2PolygonShape();
-      this.sensorShape.SetAsBox(radius*2, radius*2);
-      // this.sensorShape = new Box2D.b2CircleShape();
-      // this.sensorShape.set_m_radius(radius * 2);
-    }
-
-		let fixtureSensor = new Box2D.b2FixtureDef();
-    // fixtureSensor.set_density(1.0);
-    // fixtureSensor.set_friction(0.6);
-    // fixtureSensor.set_restitution(0.0);
-		fixtureSensor.set_shape(this.sensorShape);
-    fixtureSensor.set_isSensor(true);
-    fixtureSensor.set_filter(filter2);
-    Box2D.destroy(filter2);
-    // Box2D.destroy(this.sensorShape);
-    */
 
 		let body = this.world.CreateBody(b2bodyDef);
     body.CreateFixture(fixtureDef);
@@ -971,47 +826,7 @@ class Box2DPhysics {
       );
     }
 
-		/*
-		let circleShape = new Box2D.b2CircleShape();
-		circleShape.set_m_radius(radius);
-
-		let bd = new Box2D.b2BodyDef();
-		let box2dPos = new Box2D.b2Vec2(pos.x, pos.y);
-		bd.set_type(Box2D.b2_dynamicBody);
-		bd.set_position(box2dPos);
-		let body = this.world.CreateBody(bd);
-
-		// let fixtureDef = new Box2D.b2FixtureDef();
-		// fixtureDef.set_density(1);
-		// fixtureDef.set_friction(0.6);
-		// fixtureDef.set_restitution(1.0);
-		// fixtureDef.set_shape(circleShape);
-		// body.CreateFixture(fixtureDef);
-
-		body.CreateFixture(circleShape, 1.0);
-
-		// let b = Matter.Bodies.circle(pos.x, pos.y, radius)
-		// b.restitution = 0;
-		// b.friction = 0.05;
-		// b.frictionAir = 0.05;
-		// b.agentIsAgent = true;
-		// b.agentActive = true;
-		// b.agentBrain = botProg;
-		// b.agentAge = 0;
-		// b.agentLastActions = [];
-		// Matter.World.add(this.engine.world, b);
-		*/
-
     return new Body(body, radius)
-
-      /*
-    let b = new Body(body, radius);
-    b.robot = new GradientAndAssemblyRobot();
-    b.robot._uid = id;
-    b.robot._phys = body;
-    b.robot._Box2D = Box2D;
-    return b;
-    */
 	}
 }
 
@@ -1021,18 +836,8 @@ class Body {
     this.label = 'Circle Body';
     this.circleRadius = radius;
     this.posHistory = [];
+    this.lastMessageSentAt = Math.floor(Math.random() * 60);
   }
-
-    /*
-  setAgentActive(value) {
-    if(this.agentActive == value) {
-      return;
-    } else {
-      this.agentActive = value;
-      this.agentActiveChanged = true;
-    }
-  }
-  */
 
   getData () {
     let bpos = this.body.GetPosition();

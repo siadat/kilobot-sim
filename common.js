@@ -27,7 +27,7 @@ let gSIZE = {
   h: SIZE.h * SCALE,
 }
 
-const COUNT = 4 + 256;
+const COUNT = 4 + 2;
 const PER_ROW = Math.floor(Math.sqrt((COUNT-4) * SIZE.w/SIZE.h*2));
 
 let RADIUS = SIZE.w / (2*(PER_ROW + 8));
@@ -56,7 +56,7 @@ const PERFECT = false;
 
 let DRAW_TRAVERSED_PATH = !false;
 let DRAW_CONNECTIONS = false;
-let DRAW_LOCALIZATION_ERROR = false;
+let DRAW_LOCALIZATION_ERROR = !false;
 
 const DARK_MODE = !false;
 const FRAME_LIMIT = null;

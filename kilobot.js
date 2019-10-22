@@ -84,7 +84,7 @@ class Kilobot {
       this._phys.SetAwake(true);
     }
 
-    let coef = 3 * 0.01 * (RADIUS*RADIUS) / 0.015625;
+    let coef = 3 * 0.01 * (RADIUS*RADIUS*RADIUS) / 0.015625 / 0.0416666;
     
 
     let angle = Math.PI * this._phys.GetAngle() / 180.0;
