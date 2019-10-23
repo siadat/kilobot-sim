@@ -587,13 +587,19 @@ class GradientAndAssemblyRobot extends Kilobot {
         this.doEdgeFollow();
         break;
       case States.MoveWhileInside:
-        this.isStationary = false;
         this.localize();
+        if(!this.isInsideShape())
+          this.switchToState(States.JoinedShape);
+
+        this.mark();
+        this.isStationary = false;
+        this.doEdgeFollow();
         break;
       case States.JoinedShape:
+        this.unmark();
         this.isStationary = true;
         this.gradientFormation();
-        this.localize();
+        // this.localize();
         break;
     }
 

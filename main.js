@@ -128,14 +128,15 @@ class Pitch {
           g.clear();
           if(!DRAW_SHAPE) return;
 
-          g.lineStyle(2, 0x000000);
+          g.lineStyle(1, 0x000000);
           for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
             let row = ShapeDesc[rowi];
             for(let coli = 0; coli < row.length; coli++) {
               if(row[coli] == '#') {
                 g.beginFill(0xffffff);
               } else {
-                g.beginFill(0x888888);
+                // g.beginFill(0x888888);
+                continue;
               }
               g.drawRect(
                 SCALE * (RootSeedPos.x + coli * ShapeScale),
