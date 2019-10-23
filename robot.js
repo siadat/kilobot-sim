@@ -344,15 +344,14 @@ class GradientAndAssemblyRobot extends Kilobot {
 
   localize() {
     if(this.isSeed) return;
+    // this.localizeSimpleExact();
+    this.localizeSupplement();
+  }
 
+  localizeSimpleExact() {
     // let closestNeighbours = this.get3ClosestNeighbours();
     let closestNeighbours = this.getFirstRobustQuadrilateral();
-    // if(this.kilo_uid == 20 && closestNeighbours && this.counter == 600) {
-    //   console.log(closestNeighbours, closestNeighbours.map(n => n.shapePos));
-    // }
     if(!closestNeighbours || closestNeighbours.length < 4) {
-      // this.shapePos = null;
-      // this.localizeCounter = 0;
       return;
     }
 
@@ -412,33 +411,37 @@ class GradientAndAssemblyRobot extends Kilobot {
     //     y: 0.0,
     //   };
     // }*/
+  }
 
-    /*
-      this.shapePos = {
-        x: 0.0,
-        y: 0.0,
+  localizeSupplement() {
+    this.shapePos = {
+      x: 0.0,
+      y: 0.0,
+    };
+
+    let closestNeighbours = this.getFirstRobustQuadrilateral();
+    if(!closestNeighbours || closestNeighbours.length < 4) {
+      return;
+    }
+    forEachObj(closestNeighbours, (neigh, uid) => {
+      let c = calcDist(this.shapePos, neigh.shapePos);
+      if(c == 0) {
+        c = 1;
+      }
+
+      let v = {
+        x: (this.shapePos.x - neigh.shapePos.x)/c,
+        y: (this.shapePos.y - neigh.shapePos.y)/c,
       };
-
-      forEachObj(closestNeighbours, (neigh, uid) => {
-        let c = calcDist(this.shapePos, neigh.shapePos);
-        if(c == 0) {
-          c = 1;
-        }
-
-        let v = {
-          x: (this.shapePos.x - neigh.shapePos.x)/c,
-          y: (this.shapePos.y - neigh.shapePos.y)/c,
-        };
-        let n = {
-          x: neigh.shapePos.x + (neigh.measuredDist/this.shapeScale) * v.x,
-          y: neigh.shapePos.y + (neigh.measuredDist/this.shapeScale) * v.y,
-        }
-        this.shapePos = {
-          x: this.shapePos.x + (n.x - this.shapePos.x)/4, // Object.keys(this.neighbors).length,
-          y: this.shapePos.y + (n.y - this.shapePos.y)/4, // Object.keys(this.neighbors).length,
-        };
-      });
-      */
+      let n = {
+        x: neigh.shapePos.x + (neigh.measuredDist/this.shapeScale) * v.x,
+        y: neigh.shapePos.y + (neigh.measuredDist/this.shapeScale) * v.y,
+      }
+      this.shapePos = {
+        x: this.shapePos.x + (n.x - this.shapePos.x)/4, // Object.keys(this.neighbors).length,
+        y: this.shapePos.y + (n.y - this.shapePos.y)/4, // Object.keys(this.neighbors).length,
+      };
+    });
   }
 
   seenRecentMovingNeighbors() {
