@@ -1,5 +1,3 @@
-const GRADIENT_DIST = 3 * RADIUS;
-
 const COLORS = [
   new RGB(3, 0, 0), // red
   new RGB(3, 0, 3), // magenta
@@ -9,8 +7,10 @@ const COLORS = [
   new RGB(3, 3, 0), // yellow
 ];
 
-const HESITATE_DURATION = (1+MSG_PER_SEC) * 60;
-const NEIGHBOUR_EXPIRY = (3+MSG_PER_SEC) * 60;
+const GRADIENT_DIST = 3 * RADIUS;
+const HESITATE_DURATION = 2 * 60 / MSG_PER_SEC;
+const NEIGHBOUR_EXPIRY = 2 * 60 / MSG_PER_SEC;
+const DESIRED_SHAPE_DIST = 2.75 * RADIUS/ShapeScale;
 
 const States = {
   Start           : 'Start',
@@ -111,6 +111,10 @@ class GradientAndAssemblyRobot extends Kilobot {
     return minAngle > Math.PI * 20 / 180;
   }
 
+  // The reason getFirstRobustQuadrilateral doesn't always work is 3 things:
+  // - lack of nearby robust trianles in neighbors
+  // - we move and even accurate data becomes obsolete
+  // - ambiguities, eg flip
   getFirstRobustQuadrilateral() {
     let nIDs = Object.keys(this.neighbors);
     nIDs = nIDs.filter(nid => this.neighbors[nid].shapePos != null && this.neighbors[nid].isStationary);
@@ -339,6 +343,8 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   localize() {
+    if(this.isSeed) return;
+
     // let closestNeighbours = this.get3ClosestNeighbours();
     let closestNeighbours = this.getFirstRobustQuadrilateral();
     // if(this.kilo_uid == 20 && closestNeighbours && this.counter == 600) {
@@ -473,7 +479,6 @@ class GradientAndAssemblyRobot extends Kilobot {
   doEdgeFollow() {
     let distances = Object.keys(this.neighbors).map(uid => this.neighbors[uid].measuredDist);
     let currentNearestNeighDist = Math.min.apply(null, distances);
-    let DESIRED_SHAPE_DIST = 3 * RADIUS/this.shapeScale;
 
     let tooClose = currentNearestNeighDist/this.shapeScale < DESIRED_SHAPE_DIST;
     let gettingFarther = this.prevNearestNeighDist < currentNearestNeighDist;
@@ -598,7 +603,8 @@ class GradientAndAssemblyRobot extends Kilobot {
       case States.JoinedShape:
         this.unmark();
         this.isStationary = true;
-        this.gradientFormation();
+        if(this.isSeed)
+          this.gradientFormation();
         // this.localize();
         break;
     }

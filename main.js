@@ -760,7 +760,7 @@ class Box2DPhysics {
 		this.destroyFuncs = [];
 
 		// Box2D-interfacing code
-		let gravity = new Box2D.b2Vec2(0.0, 0.0);
+		let gravity = new Box2D.b2Vec2(0, 0);
 		this.world = new Box2D.b2World(gravity);
 
     if(true /* edge/wall */) {

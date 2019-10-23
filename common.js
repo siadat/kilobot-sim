@@ -13,7 +13,7 @@ let SCALE = 1.0;
 {
   let dimensions = {
     w: $(window).width(),
-    h: $(window).height(),
+    h: $(window).height()-5,
     // w: Math.min($(window).width(), 10),
     // h: $(window).height(),
   }
@@ -30,7 +30,7 @@ let gSIZE = {
 const COUNT = 4 + 4;
 const PER_ROW = Math.floor(Math.sqrt((COUNT-4) * SIZE.w/SIZE.h*2));
 
-let RADIUS = SIZE.w / (2*(PER_ROW + 8));
+let RADIUS = SIZE.w / (2*(PER_ROW + 8)) / 1.0 /* = my scale */;
 let NEIGHBOUR_DISTANCE = 3 * RADIUS + 2 * RADIUS * Math.sqrt(3);
 
 // const SQRT3 = Math.sqrt(3);
@@ -51,7 +51,7 @@ const ShapeDesc = [
   '#####    ',
 ];
 
-const MSG_PER_SEC = 4;
+const MSG_PER_SEC = 2;
 const PERFECT = false;
 
 let DRAW_TRAVERSED_PATH = !false;
