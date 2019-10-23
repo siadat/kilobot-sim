@@ -178,7 +178,7 @@ class Pitch {
         // position vectors
         let g = new PIXI.Graphics()
         g.zIndex = 2;
-        g.alpha = 0.25;
+        g.alpha = 0.75; // 0.25;
         let color = 0x008400; // 0xff0000
 
         this.pixiApp.stage.addChild(g);
@@ -196,7 +196,7 @@ class Pitch {
               pos = data.pos;
             }
 
-            let thickness = 2; // RADIUS*SCALE/5.0
+            let thickness = RADIUS*SCALE * 0.1; // 2
             let posActual = {
               x: pos.x * SCALE,
               y: pos.y * SCALE,
@@ -239,7 +239,7 @@ class Pitch {
                 let p = crossPoints[i];
                 let r = fullSize; // * ((i+1)/len);
                 g.endFill();
-                g.lineStyle(thickness, 0x000000, 1);
+                g.lineStyle(thickness, i == 0 ? color : 0x000000, 1);
                 g.moveTo(p.x - r, p.y + 0);
                 g.lineTo(p.x + r, p.y + 0);
                 g.moveTo(p.x + 0,         p.y - r);
@@ -333,7 +333,7 @@ class Pitch {
         b.robot = new GradientAndAssemblyRobot({
           shapeDesc: ShapeDesc,
           shapeScale: ShapeScale,
-          shapePos: shapePos,
+          shapePos: {x: shapePos.x, y: shapePos.y},
           isGradientSeed: true,
           isSeed: true,
         });
@@ -341,7 +341,7 @@ class Pitch {
         b.robot = new GradientAndAssemblyRobot({
           shapeDesc: ShapeDesc,
           shapeScale: ShapeScale,
-          shapePos: shapePos,
+          shapePos: {x: shapePos.x, y: shapePos.y},
           isSeed: true,
         });
       }

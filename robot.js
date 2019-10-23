@@ -111,10 +111,6 @@ class GradientAndAssemblyRobot extends Kilobot {
     return minAngle > Math.PI * 20 / 180;
   }
 
-  // The reason getFirstRobustQuadrilateral doesn't always work is 3 things:
-  // - lack of nearby robust trianles in neighbors
-  // - we move and even accurate data becomes obsolete
-  // - ambiguities, eg flip
   getFirstRobustQuadrilateral() {
     let nIDs = Object.keys(this.neighbors);
     nIDs = nIDs.filter(nid => this.neighbors[nid].shapePos != null && this.neighbors[nid].isStationary);
@@ -348,6 +344,10 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.localizeSupplement();
   }
 
+  // The reason localizeSimpleExact doesn't always work is 3 things:
+  // - lack of nearby robust trianles in neighbors
+  // - we move and even accurate data becomes obsolete
+  // - ambiguities, eg flip
   localizeSimpleExact() {
     // let closestNeighbours = this.get3ClosestNeighbours();
     let closestNeighbours = this.getFirstRobustQuadrilateral();
@@ -414,32 +414,39 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   localizeSupplement() {
-    this.shapePos = {
-      x: 0.0,
-      y: 0.0,
-    };
+    if(this.shapePos == null) {
+      // not starting from 0,0 because 0,0 is always inside the shape!
+      this.shapePos = {
+        x: -1,
+        y: -1,
+      };
+    }
 
     let closestNeighbours = this.getFirstRobustQuadrilateral();
-    if(!closestNeighbours || closestNeighbours.length < 4) {
+
+    if(!closestNeighbours || closestNeighbours.length < 3) {
       return;
     }
-    forEachObj(closestNeighbours, (neigh, uid) => {
-      let c = calcDist(this.shapePos, neigh.shapePos);
-      if(c == 0) {
-        c = 1;
-      }
 
-      let v = {
-        x: (this.shapePos.x - neigh.shapePos.x)/c,
-        y: (this.shapePos.y - neigh.shapePos.y)/c,
-      };
+    closestNeighbours.forEach(neigh => {
+      let c = calcDist(this.shapePos, neigh.shapePos);
+      let v = {x: 0, y: 0};
+      if(c != 0) {
+        v = {
+          x: (this.shapePos.x - neigh.shapePos.x)/c,
+          y: (this.shapePos.y - neigh.shapePos.y)/c,
+        };
+      }
       let n = {
         x: neigh.shapePos.x + (neigh.measuredDist/this.shapeScale) * v.x,
         y: neigh.shapePos.y + (neigh.measuredDist/this.shapeScale) * v.y,
       }
+      // console.log('iteration', this.shapePos, neigh.shapePos, c, v, n);
       this.shapePos = {
         x: this.shapePos.x + (n.x - this.shapePos.x)/4, // Object.keys(this.neighbors).length,
         y: this.shapePos.y + (n.y - this.shapePos.y)/4, // Object.keys(this.neighbors).length,
+        // x: this.shapePos.x - (this.shapePos.x - n.x)/1, // Object.keys(this.neighbors).length,
+        // y: this.shapePos.y - (this.shapePos.y - n.y)/1, // Object.keys(this.neighbors).length,
       };
     });
   }
@@ -480,6 +487,8 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   doEdgeFollow() {
+    // return; // for debugging localization
+
     let distances = Object.keys(this.neighbors).map(uid => this.neighbors[uid].measuredDist);
     let currentNearestNeighDist = Math.min.apply(null, distances);
 
