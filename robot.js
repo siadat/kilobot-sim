@@ -464,13 +464,10 @@ class GradientAndAssemblyRobot extends Kilobot {
     if(this.shapePos == null)
       return false;
 
-    let row = this.shapeDesc[Math.floor(this.shapePos.y)];
-    if(!row) return false;
+    let x = Math.floor(this.shapePos.x);
+    let y = this.shapeDesc.length - Math.floor(this.shapePos.y) - 1;
 
-    let ch = row[Math.floor(this.shapePos.x)];
-    if(ch != '#') return false;
-
-    return true;
+    return this.shapeDesc[y] && this.shapeDesc[y][x] == '#';
   }
 
   doEdgeFollow() {

@@ -41,14 +41,14 @@ const RootSeedPos = {
 
 const ShapeScale = 1*RADIUS;
 const ShapeDesc = [
-  '       ## ',
-  '       ###',
-  '      ####',
-  '  ########',
-  ' ######## ',
-  '###       ',
-  '###       ',
-  '###       ',
+  '     ####',
+  '     ####',
+  '     ####',
+  '  #######',
+  ' ########',
+  '#######  ',
+  '#####    ',
+  '#####    ',
 ];
 
 const MSG_PER_SEC = 4;
@@ -57,7 +57,8 @@ const PERFECT = false;
 let DRAW_TRAVERSED_PATH = !false;
 let DRAW_CONNECTIONS = false;
 let DRAW_LOCALIZATION_ERROR = !false;
-let DRAW_SHADOW = !false;
+let DRAW_SHADOW = false;
+let DRAW_SHAPE = true;
 
 if(COUNT > 500) {
   DRAW_SHADOW = false;

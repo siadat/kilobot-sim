@@ -116,6 +116,38 @@ class Pitch {
         });
       }
 
+      if(DRAW_SHAPE) {
+        // position vectors
+        let g = new PIXI.Graphics()
+        g.zIndex = 1;
+        g.alpha = 0.3;
+        // g.beginFill(b.robot.led.toHexDark());
+
+        this.pixiApp.stage.addChild(g);
+        this.pixiApp.ticker.add(() => {
+          g.clear();
+          if(!DRAW_SHAPE) return;
+
+          g.lineStyle(2, 0x000000);
+          for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
+            let row = ShapeDesc[rowi];
+            for(let coli = 0; coli < row.length; coli++) {
+              if(row[coli] == '#') {
+                g.beginFill(0xffffff);
+              } else {
+                g.beginFill(0x888888);
+              }
+              g.drawRect(
+                SCALE * (RootSeedPos.x + coli * ShapeScale),
+                SCALE * (RootSeedPos.y - (ShapeDesc.length - rowi - 1) * ShapeScale),
+                SCALE * (ShapeScale),
+                -SCALE * (ShapeScale),
+              );
+            }
+          }
+        });
+      }
+
       if(DRAW_SHADOW) {
         // position vectors
         let g = new PIXI.Graphics()
@@ -283,10 +315,10 @@ class Pitch {
     }
 
     [
-      {isRoot: true,  x: 0, y: 0},
-      {isRoot: false, x: 2, y: 0},
-      {isRoot: false, x: 1, y: Math.sqrt(3)},
-      {isRoot: false, x: 1, y: -Math.sqrt(3)},
+      {isRoot: true,  x: 0*RADIUS/ShapeScale, y: RADIUS/ShapeScale * 0},
+      {isRoot: false, x: 2*RADIUS/ShapeScale, y: RADIUS/ShapeScale * 0},
+      {isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * +Math.sqrt(3)},
+      {isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * -Math.sqrt(3)},
     ].forEach(shapePos => {
       uidCounter++;
 
