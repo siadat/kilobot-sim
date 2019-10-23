@@ -116,7 +116,7 @@ class Pitch {
         });
       }
 
-      if(DRAW_SHAPE) {
+      if(DRAW_SHAPE_DESCRIPTION) {
         // position vectors
         let g = new PIXI.Graphics()
         g.zIndex = 1;
@@ -126,7 +126,7 @@ class Pitch {
         this.pixiApp.stage.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
-          if(!DRAW_SHAPE) return;
+          if(!DRAW_SHAPE_DESCRIPTION) return;
 
           g.lineStyle(1, 0x000000);
           for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
@@ -590,7 +590,7 @@ class Pitch {
             hesitateData: b.robot.hesitateData,
             shapePos: b.robot.shapePos,
             neighbors: b.robot.neighbors,
-            closestRobustNeighbors: b.robot.getFirstRobustQuadrilateral && b.robot.getFirstRobustQuadrilateral(),
+            closestRobustNeighbors: b.robot.getFirstRobustTriangle && b.robot.getFirstRobustTriangle(),
             robot: b.robot,
             events: b.robot.events,
           });
@@ -648,7 +648,11 @@ class Pitch {
           let ledRadius = b.circleRadius * 0.4;
 
           g.lineStyle(0);
-          g.beginFill(b.robot.led.toHex(), 0.2);
+          if(b.robot.state == States.JoinedShape) {
+            g.beginFill(b.robot.led.toHex(), 0.9);
+          } else {
+            g.beginFill(b.robot.led.toHex(), 0.2);
+          }
           g.drawCircle(0, 0, b.circleRadius * SCALE - thickness/2);
 
           /*
