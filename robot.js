@@ -162,7 +162,15 @@ class GradientAndAssemblyRobot extends Kilobot {
 
   getFirstRobustQuadrilateral() {
     let nIDs = Object.keys(this.neighbors);
-    nIDs = nIDs.filter(nid => this.neighbors[nid].shapePos != null && this.neighbors[nid].isStationary);
+    nIDs = nIDs.filter(nid => {
+      let n = this.neighbors[nid];
+      return (
+           n.shapePos != null
+        && n.isStationary
+        && n.neighborGradient != null
+        && (n.neighborState == States.JoinedShape || n.neighborGradient <= this.myGradient)
+      );
+    });
     // nIDs.sort((a, b) => this.neighbors[a].neighborGradient - this.neighbors[b].neighborGradient);
     nIDs.sort((a, b) => this.neighbors[a].measuredDist - this.neighbors[b].measuredDist);
     let ncount = nIDs.length;
@@ -178,27 +186,18 @@ class GradientAndAssemblyRobot extends Kilobot {
       null,
     ];
 
-
     for(let i = 0; i < ncount; i++) {
       p[0] = this.neighbors[nIDs[i]].shapePos;
       let n = this.neighbors[nIDs[i]];
-      if(n.neighborGradient == null) continue;
-      if(n.neighborState != States.JoinedShape && n.neighborGradient > this.myGradient) continue;
       for(let j = i+1; j < ncount; j++) {
         p[1] = this.neighbors[nIDs[j]].shapePos;
         let n = this.neighbors[nIDs[j]];
-        if(n.neighborGradient == null) continue;
-        if(n.neighborState != States.JoinedShape && n.neighborGradient > this.myGradient) continue;
         for(let k = j+1; k < ncount; k++) {
           p[2] = this.neighbors[nIDs[k]].shapePos;
           let n = this.neighbors[nIDs[k]];
-          if(n.neighborGradient == null) continue;
-          if(n.neighborState != States.JoinedShape && n.neighborGradient > this.myGradient) continue;
           for(let l = k+1; l < ncount; l++) {
             p[3] = this.neighbors[nIDs[l]].shapePos;
             let n = this.neighbors[nIDs[l]];
-            if(n.neighborGradient == null) continue;
-            if(n.neighborState != States.JoinedShape && n.neighborGradient > this.myGradient) continue;
 
             if(this.neighbors[nIDs[l]].neighborGradient == null) continue;
             if(this.neighbors[nIDs[l]].neighborGradient > this.myGradient) continue;

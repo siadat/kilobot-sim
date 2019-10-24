@@ -607,7 +607,7 @@ class Pitch {
             hesitateData: b.robot.hesitateData,
             shapePos: b.robot.shapePos,
             neighbors: b.robot.neighbors,
-            closestRobustNeighbors: b.robot.getFirstRobustTriangle && b.robot.getFirstRobustTriangle(),
+            closestRobustNeighbors: b.robot.getFirstRobustQuadrilateral && b.robot.getFirstRobustQuadrilateral(),
             robot: b.robot,
             events: b.robot.events,
           });
