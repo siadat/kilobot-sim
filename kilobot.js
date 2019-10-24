@@ -70,7 +70,7 @@ class Kilobot {
     return null;
   }
 
-  set_motors(left, right) {
+  set_motors_old(left, right) {
     if(left < 0 || left > 255) {
       console.error("left must be between 0 and 255, left is", left);
       return;
@@ -108,6 +108,72 @@ class Kilobot {
     );
     this._phys.ApplyForce(force, this._phys.GetPosition());
     this._Box2D.destroy(force);
+  }
+
+  set_motors(left, right) {
+    if(left < 0 || left > 255) {
+      console.error("left must be between 0 and 255, left is", left);
+      return;
+    }
+    if(right < 0 || right > 255) {
+      console.error("right must be between 0 and 255, right is", right);
+      return;
+    }
+
+    if(left == 0 && right == 0)
+      return;
+
+    if(!this._phys.IsAwake())
+      this._phys.SetAwake(true);
+
+    let fps = 60;
+
+    // Actual Kilobot measurements:
+    //   16mm   radius
+    //   25mm/s forward speed
+    //   90°/s  turning speed
+    let degreePerTick = 90 * (1.0/fps);
+    let forwardSpeed = RADIUS * (25.0/16.0) * (1/fps);
+
+    if(left == right
+      && left == this.kilo_straight_left
+      && left == this.kilo_straight_right) {
+
+      let a = this._phys.GetAngle();
+      let p = this._phys.GetPosition();
+
+      let newPos = new this._Box2D.b2Vec2(
+        p.get_x() + forwardSpeed * Math.cos(a * Math.PI/180.0),
+        p.get_y() + forwardSpeed * Math.sin(a * Math.PI/180.0),
+      );
+
+      this._phys.SetTransform(newPos, a);
+      this._Box2D.destroy(newPos);
+    } else {
+      let a = this._phys.GetAngle();
+      let phi = degreePerTick * (right-left)/255.0;
+      a += phi;
+
+      let p = this._phys.GetPosition();
+
+      let temp_cos = 0;
+      let temp_sin = 0;
+      if(right > left) {
+        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * RADIUS;
+        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * RADIUS;
+      } else {
+        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * RADIUS;
+        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * RADIUS;
+      }
+
+      let newPos = new this._Box2D.b2Vec2(
+        p.get_x() + temp_cos - temp_cos*Math.cos(phi *Math.PI/180.0) + temp_sin*Math.sin(phi *Math.PI/180.0),
+        p.get_y() + temp_sin - temp_cos*Math.sin(phi *Math.PI/180.0) - temp_sin*Math.cos(phi *Math.PI/180.0),
+      );
+
+      this._phys.SetTransform(newPos, a);
+      this._Box2D.destroy(newPos);
+    }
   }
 
   delay(ms) {

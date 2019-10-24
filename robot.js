@@ -7,10 +7,10 @@ const COLORS = [
   new RGB(3, 3, 0), // yellow
 ];
 
-const GRADIENT_DIST = 3 * RADIUS;
+const GRADIENT_DIST = INITIAL_DIST + 1*RADIUS;
 const HESITATE_DURATION = 20 * 60 / MSG_PER_SEC;
 const NEIGHBOUR_EXPIRY = 2 * 60 / MSG_PER_SEC;
-const DESIRED_SHAPE_DIST = 2.2 * RADIUS/ShapeScale;
+const DESIRED_SHAPE_DIST = 2 * RADIUS/ShapeScale;
 
 const States = {
   Start           : 'Start',
@@ -323,8 +323,8 @@ class GradientAndAssemblyRobot extends Kilobot {
       this.unmark();
     }
 
-    if(!this.isStationary)
-      return;
+    // if(!this.isStationary)
+    //   return;
 
     if(this.isGradientSeed) {
       this.myGradient = 0;
@@ -359,39 +359,74 @@ class GradientAndAssemblyRobot extends Kilobot {
       this.setGradient(grad + 1);
   }
 
-  getHighestUIDInNeighbors() {
-    let maxUID = 0;
+  getNearestNeighbor() {
+    let ret = null;
 
-    this.forEachNeighbor((info, uid) => {
-      if(info.measuredDist > GRADIENT_DIST)
-        return;
-
-      if(maxUID < info.neighborUID)
-        maxUID = info.neighborUID;
-    });
-
-    return maxUID;
-  }
-
-  getHighestGradInNeighbors() {
-    let maxGradient = null;
-
-    this.forEachNeighbor((info, uid) => {
-      if(info.measuredDist > GRADIENT_DIST)
-        return;
-
-      if(maxGradient == null) {
-        maxGradient = info.neighborGradient;
+    this.forEachNeighbor((n, uid) => {
+      if(ret == null) {
+        ret = n;
         return;
       }
 
-      if(maxGradient > info.neighborGradient)
+      if(n.measuredDist < ret.measuredDist) {
+        ret = n
         return;
-
-      maxGradient = info.neighborGradient;
+      }
     });
 
-    return maxGradient;
+    return ret;
+  }
+
+  getHighestUIDInNeighbors() {
+    let ret = null;
+
+    this.forEachNeighbor((n, uid) => {
+      if(ret == null) {
+        ret = n;
+        return;
+      }
+
+      if(n.neighborUID == null)
+        return;
+
+      if(n.neighborUID > ret.neighborUID) {
+        ret = n;
+        return;
+      }
+
+    });
+
+    return ret;
+  }
+
+  getHighestGradAndIDNeighbor() {
+    let ret = null;
+
+    this.forEachNeighbor((n, uid) => {
+      if(n.measuredDist > GRADIENT_DIST)
+        return;
+
+      if(ret == null) {
+        ret = n;
+        return;
+      }
+
+      if(n.neighborGradient == null)
+        return;
+
+      if(n.neighborGradient > ret.neighborGradient) {
+        ret = n;
+        return;
+      }
+
+      if(n.neighborGradient == ret.neighborGradient && n.neighborUID > ret.neighborUID) {
+        ret = n;
+        return;
+      }
+
+    });
+
+    return ret;
   }
 
   localize() {
@@ -514,7 +549,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       if(seen == true)
         return;
 
-      if(!info.isStationary && info.edgeFollowingAge > this.edgeFollowingAge) {
+      if(!info.isStationary && info.edgeFollowingAge >= this.edgeFollowingAge) {
         seen = true;
       }
     });
@@ -545,57 +580,57 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   doEdgeFollow() {
-    // return; // for debugging localization
-
     this.edgeFollowingAge++;
-    let distances = Object.keys(this.neighbors).map(uid => this.neighbors[uid].measuredDist);
-    let currentNearestNeighDist = Math.min.apply(null, distances);
+    let nn = this.getNearestNeighbor();
+    if(nn == null) return;
 
-    let tooClose = currentNearestNeighDist/this.shapeScale < DESIRED_SHAPE_DIST;
-    let gettingFarther = this.prevNearestNeighDist < currentNearestNeighDist;
-    let noNewData = this.prevNearestNeighDist == currentNearestNeighDist;
+    let tooClose = nn.measuredDist/this.shapeScale < DESIRED_SHAPE_DIST;
+    let gettingFarther = this.prevNearestNeighDist < nn.measuredDist;
+    let noNewData = this.prevNearestNeighDist == nn.measuredDist;
+    this.prevNearestNeighDist = nn.measuredDist;
 
     if(noNewData) {
       if(this.stats.motors) {
-        this.set_motors(0, 0);
+        this.set_motors(this.stats.motors[0], this.stats.motors[1]);
+      }
+      return;
+    }
+    // this.stats.tooClose = tooClose;
+    // this._graphics_must_update = true;
+    // this.stats.orbitingBodyUID = nearestBodyUID;;
+    // console.log(`tooClose=${tooClose}, gettingFarther=${gettingFarther}`);
+
+    if(tooClose) {
+      if(gettingFarther) {
+        this.stats.action = 'stright';
+        this.stats.motors = [this.kilo_straight_left, this.kilo_straight_right];
+        this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
+      } else {
+        this.stats.action = 'left-get-farther';
+        this.stats.motors = [this.kilo_turn_left, 0];
+        this.set_motors(this.kilo_turn_left, 0);
       }
     } else {
-      this.stats.tooClose = tooClose;
-      this.stats.gettingFarther = gettingFarther;
-      this.stats.desiredDist = DESIRED_SHAPE_DIST;
-      // this._graphics_must_update = true;
-      // this.stats.orbitingBodyUID = nearestBodyUID;;
-      // console.log(`tooClose=${tooClose}, gettingFarther=${gettingFarther}`);
-
-      if(tooClose) {
-        if(gettingFarther) {
-          this.stats.action = 'stright';
-          this.stats.motors = [this.kilo_straight_left, this.kilo_straight_right];
-          this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
-        } else {
-          this.stats.action = 'left-get-farther';
-          this.stats.motors = [this.kilo_turn_left, 0];
-          this.set_motors(this.kilo_turn_left, 0);
-        }
+      if(gettingFarther) {
+        this.stats.action = 'right-get-close';
+        this.stats.motors = [0, this.kilo_turn_right];
+        this.set_motors(0, this.kilo_turn_right);
       } else {
-        if(gettingFarther) {
-          this.stats.action = 'right-get-close';
-          this.stats.motors = [0, this.kilo_turn_right];
-          this.set_motors(0, this.kilo_turn_right);
-        } else {
-          this.stats.action = 'stright';
-          this.stats.motors = [this.kilo_straight_left, this.kilo_straight_right];
-          this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
-        }
+        this.stats.action = 'stright';
+        this.stats.motors = [this.kilo_straight_left, this.kilo_straight_right];
+        this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
       }
     }
 
-    this.prevNearestNeighDist = currentNearestNeighDist;
   }
 
-  switchToState(newState) {
+  switchToState(newState, reason) {
     if(this.state != newState) {
-      this.newEvent(`switching state to ${newState}`);
+      let msg = `switching to ${newState}`;
+      if(reason) {
+        msg += `, reason: ${reason}`;
+      }
+      this.newEvent(msg);
       this._graphics_must_update = true;
       this.state = newState;
     }
@@ -611,7 +646,7 @@ class GradientAndAssemblyRobot extends Kilobot {
         this.localize();
 
         if(this.isSeed) {
-          this.switchToState(States.JoinedShape);
+          this.switchToState(States.JoinedShape, "isSeed");
           return;
         }
 
@@ -635,23 +670,26 @@ class GradientAndAssemblyRobot extends Kilobot {
         }
 
 
-        let maxNeighborGradient = this.getHighestGradInNeighbors();
-        if(maxNeighborGradient == null) {
-          break;
-        }
+        let hgn = this.getHighestGradAndIDNeighbor();
+        if(hgn == null) return;
 
-        if(this.myGradient > maxNeighborGradient) {
-          this.switchToState(States.MoveWhileOutside);
-        } else if(this.myGradient == maxNeighborGradient) {
-          if(this.kilo_uid > this.getHighestUIDInNeighbors()) {
-            this.switchToState(States.MoveWhileOutside);
+        if(this.myGradient > hgn.neighborGradient) {
+          this.switchToState(States.MoveWhileOutside, "my grad > my neighbors");
+        } else if(this.myGradient == hgn.neighborGradient) {
+          // if(this.kilo_uid > this.getHighestUIDInNeighbors().neighborUID) { // hgn.neighborUID) {
+          if(this.kilo_uid > hgn.neighborUID) {
+            this.switchToState(States.MoveWhileOutside, "equal grads, but my ID is larger");
           }
         }
         break;
       case States.MoveWhileOutside:
         this.localize();
-        if(this.isInsideShape())
-          this.switchToState(States.MoveWhileInside);
+        this.gradientFormation();
+
+        if(this.isInsideShape()) {
+          // this.myGradient = null;
+          this.switchToState(States.MoveWhileInside, "inside shape");
+        }
 
         if(this.seenRecentMovingNeighbors()) {
           this.isStationary = true;
@@ -665,9 +703,10 @@ class GradientAndAssemblyRobot extends Kilobot {
         break;
       case States.MoveWhileInside:
         this.localize();
+        this.gradientFormation();
+
         if(!this.isInsideShape()) {
-          this.gradientFormation(); // last gradient formation
-          this.switchToState(States.JoinedShape);
+          this.switchToState(States.JoinedShape, "went out");
         }
 
         {
@@ -678,9 +717,8 @@ class GradientAndAssemblyRobot extends Kilobot {
             }
           });
 
-          if(closestNeighbor != null && closestNeighbor.neighborGradient >= this.myGradient) {
-            this.gradientFormation(); // last gradient formation
-            this.switchToState(States.JoinedShape);
+          if(closestNeighbor != null && closestNeighbor.neighborGradient >= this.myGradient /*&& closestNeighbor.neighborGradient != 1*/) {
+            this.switchToState(States.JoinedShape, `my grad ${this.myGradient} >= closest neighbor ${closestNeighbor.neighborGradient }`);
           }
         }
 

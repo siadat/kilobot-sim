@@ -13,6 +13,7 @@ class Pitch {
     this.graphical = graphical;
     this.fastforward = fastforward;
     this.connections = [];
+    this.deltaTime = 0.0;
 
     if(this.graphical) {
       PIXI.utils.skipHello();
@@ -45,7 +46,7 @@ class Pitch {
 
         const t = new PIXI.Text('FPS', {
           fontSize: opts.fontSize,
-          align: 'center',
+          align: 'left',
           fill: DARK_MODE ? 0xffffff : 0x000000
         });
         // t.anchor.set(0.5);
@@ -57,11 +58,12 @@ class Pitch {
         this.pixiApp.stage.addChild(g);
 
         this.pixiApp.ticker.add(() => {
-          let fpsLine = '';
-          for(let i = 0; i < this.metaFPS/10; i++) {
-            fpsLine += `${i}`;
-          }
-          t.text = `FPS: ${this.metaFPS} ${fpsLine}`;
+          // let fpsLine = '';
+          // for(let i = 0; i < this.metaFPS/10; i++) {
+          //   fpsLine += `${i}`;
+          // }
+          // t.text = `FPS: ${Math.floor(1/this.deltaTime)} (${this.metaFPS})`;
+          t.text = `FPS: ${Math.floor(1/this.deltaTime)}/s`;
         });
       }
 
@@ -372,9 +374,9 @@ class Pitch {
         pos.y = RootSeedPos.y + Math.sqrt(3) * RADIUS + Math.sqrt(3)*RADIUS;
       }
 
-      let firstToLastCentersInOneRow = (PER_ROW-1)*(RADIUS*2);
-      pos.x += coli * (RADIUS*2) - firstToLastCentersInOneRow/2 + RADIUS*(rowi%2);
-      pos.y += rowi * (RADIUS*Math.sqrt(3));
+      let firstToLastCentersInOneRow = (PER_ROW-1)*INITIAL_DIST;
+      pos.x += coli * INITIAL_DIST - firstToLastCentersInOneRow/2 + (INITIAL_DIST/2)*(rowi%2);
+      pos.y += rowi * (INITIAL_DIST/2*Math.sqrt(3));
 
       if(!PERFECT) {
         pos.x += noise(RADIUS * 0.2);
@@ -408,31 +410,10 @@ class Pitch {
     window.bodies = this.bodies;
 
     return new Promise((resolve, reject) => {
-      const tickFunc = (frameCount) => {
+      const tickFunc = (frameCount, recursive) => {
         if(frameCount == FRAME_LIMIT || window._state_stop) {
           resolve();
           return;
-        }
-        const nextFrame = () => {
-          if(this.fastforward) {
-            // setTimeout(() => tickFunc(frameCount+1), 1);
-            tickFunc(frameCount+1);
-          } else {
-            let time0 = new Date();
-            if(FAST) {
-              setTimeout(() => {
-                tickFunc(frameCount+1);
-                let dt = (new Date() - time0)/1000;
-                this.metaFPS = Math.floor(1.0/dt);
-              }, 1);
-            } else {
-              window.requestAnimationFrame(() => {
-                tickFunc(frameCount+1);
-                let dt = (new Date() - time0)/1000;
-                this.metaFPS = Math.floor(1.0/dt);
-              });
-            }
-          }
         }
 
         this.physics.update();
@@ -568,11 +549,50 @@ class Pitch {
           Box2D.destroy(aabb);
         });
 
+        if(!recursive) {
+          return;
+        }
+
         // ******
-        nextFrame();
+        if(this.fastforward) {
+          // setTimeout(() => tickFunc(frameCount+1), 1);
+          tickFunc(frameCount+1);
+        } else {
+          let time0 = new Date();
+          if(false) {
+            tickFunc(++frameCount, false);
+
+            setTimeout(() => {
+              tickFunc(++frameCount, true);
+              let dt = (new Date() - time0)/1000;
+              // this.metaFPS = Math.floor(1.0/dt);
+              if(frameCount == 1) {
+                this.deltaTime = dt;
+              } else {
+                this.deltaTime += (dt - this.deltaTime) * 0.2;
+              }
+            }, 1);
+          } else {
+            if(FAST) {
+              for(let i = 0; i < 10; i++) {
+                tickFunc(++frameCount, false);
+              }
+            }
+            window.requestAnimationFrame(() => {
+              tickFunc(++frameCount, true);
+              let dt = (new Date() - time0)/1000;
+              // this.metaFPS = Math.floor(1.0/dt);
+              if(frameCount == 1) {
+                this.deltaTime = dt;
+              } else {
+                this.deltaTime += (dt - this.deltaTime) * 0.2;
+              }
+            });
+          }
+        }
       }
 
-      tickFunc(0);
+      tickFunc(0, true);
     });
   }
 

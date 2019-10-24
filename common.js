@@ -28,12 +28,14 @@ let gSIZE = {
 }
 
 const COUNT = 4 + 12;
-const PER_ROW = Math.floor(Math.sqrt((COUNT-4) * SIZE.w/SIZE.h*2));
+const PER_ROW = Math.floor(Math.sqrt(COUNT * SIZE.w/SIZE.h*2));
 
-const FAST = false;
+const FAST = !false;
 
-let RADIUS = SIZE.w / (2*(PER_ROW + 8)) * 1.0 /* = my scale */;
-let NEIGHBOUR_DISTANCE = 8 * RADIUS; // 4 * RADIUS + 2 * RADIUS * Math.sqrt(3);
+let INITIAL_DIST_RADIUS_UNITS = 2;
+let RADIUS = (SIZE.w / (PER_ROW * INITIAL_DIST_RADIUS_UNITS)) * 0.2 /* = my scale */;
+let INITIAL_DIST = INITIAL_DIST_RADIUS_UNITS * RADIUS;
+let NEIGHBOUR_DISTANCE = 15 * RADIUS; // 4 * RADIUS + 2 * RADIUS * Math.sqrt(3);
 
 // const SQRT3 = Math.sqrt(3);
 const RootSeedPos = {
@@ -41,23 +43,15 @@ const RootSeedPos = {
   y: SIZE.h/2,
 };
 
-const ShapeScale = 1*RADIUS;
+const ShapeScale = 2*RADIUS;
 const ShapeDesc = [
-  '###          ',
-  '###          ',
-  '###          ',
-  '###          ',
-  '#############',
-  '#############',
-  '#############',
-  '###          ',
-  '###          ',
-  '###          ',
-  '###          ',
-  '###          ',
-  '###          ',
-  '###          ',
-  '###          ',
+  '#########',
+  '#########',
+  '#########',
+  '###      ',
+  '###      ',
+  '###      ',
+  '###      ',
 ];
 
 const MSG_PER_SEC = 2;
@@ -116,6 +110,10 @@ const forEachObj = function(obj, f) {
 
 const pow2 = function(x) {
   return x * x;
+}
+
+const pow3 = function(x) {
+  return x * x * x;
 }
 
 const calcSlope = function(pos1, pos2) {
