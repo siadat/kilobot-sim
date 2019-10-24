@@ -320,10 +320,11 @@ class Pitch {
     }
 
     [
-      {isRoot: true,  x: 0*RADIUS/ShapeScale, y: RADIUS/ShapeScale * 0},
-      {isRoot: false, x: 2*RADIUS/ShapeScale, y: RADIUS/ShapeScale * 0},
-      {isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * +Math.sqrt(3)},
-      {isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * -Math.sqrt(3)},
+      {isSeed: true, isRoot: true,  x: 0*RADIUS/ShapeScale, y: RADIUS/ShapeScale * 0},
+      {isSeed: true, isRoot: false, x: 2*RADIUS/ShapeScale, y: RADIUS/ShapeScale * 0},
+      {isSeed: true, isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * +Math.sqrt(3)},
+      {isSeed: true, isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * -Math.sqrt(3)},
+      // {isSeed: false,isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * -Math.sqrt(3) - 2 * RADIUS/ShapeScale},
     ].forEach(shapePos => {
       uidCounter++;
 
@@ -333,22 +334,13 @@ class Pitch {
       // }
 
       let b = this.physics.circle(shapePosToPhysPos(shapePos), Math.PI/2, RADIUS, uidCounter);
-      if(shapePos.isRoot) {
-        b.robot = new GradientAndAssemblyRobot({
-          shapeDesc: ShapeDesc,
-          shapeScale: ShapeScale,
-          shapePos: {x: shapePos.x, y: shapePos.y},
-          isGradientSeed: true,
-          isSeed: true,
-        });
-      } else {
-        b.robot = new GradientAndAssemblyRobot({
-          shapeDesc: ShapeDesc,
-          shapeScale: ShapeScale,
-          shapePos: {x: shapePos.x, y: shapePos.y},
-          isSeed: true,
-        });
-      }
+      b.robot = new GradientAndAssemblyRobot({
+        shapeDesc: ShapeDesc,
+        shapeScale: ShapeScale,
+        shapePos: shapePos.isSeed ? {x: shapePos.x, y: shapePos.y} : null,
+        isGradientSeed: shapePos.isSeed && shapePos.isRoot,
+        isSeed: shapePos.isSeed,
+      });
 
       b.robot._uid = uidCounter;
       b.robot._phys = b.body;
@@ -359,7 +351,7 @@ class Pitch {
       this.createGraphics(b);
     });
 
-    let assemblyCount = COUNT - 4;
+    let assemblyCount = COUNT - 4 - 1;
     for(let i = 0; i < assemblyCount; i++) {
       uidCounter++;
       let rowi = Math.floor(i/PER_ROW);
@@ -367,7 +359,7 @@ class Pitch {
 
       let pos = {
         x: RootSeedPos.x + RADIUS,
-        y: RootSeedPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS,
+        y: RootSeedPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS, // + 2*RADIUS,
       };
 
       if(PER_ROW % 2 == 0) {
@@ -869,7 +861,8 @@ class Box2DPhysics {
 		let b2bodyDef = new Box2D.b2BodyDef();
     b2bodyDef.set_linearDamping(20.0);
 		b2bodyDef.set_angularDamping(20.0);
-		b2bodyDef.set_type(Box2D.b2_dynamicBody);
+    // b2bodyDef.set_type(Box2D.b2_dynamicBody);
+		b2bodyDef.set_type(Box2D.b2_staticBody);
 
     let posVec = new Box2D.b2Vec2(pos.x, pos.y);
 		b2bodyDef.set_position(posVec);

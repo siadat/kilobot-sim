@@ -27,13 +27,13 @@ let gSIZE = {
   h: SIZE.h * SCALE,
 }
 
-const COUNT = 4 + 12;
+const COUNT = 4 + 45;
 const PER_ROW = Math.floor(Math.sqrt(COUNT * SIZE.w/SIZE.h*2));
 
 const FAST = !false;
 
 let INITIAL_DIST_RADIUS_UNITS = 2;
-let RADIUS = (SIZE.w / (PER_ROW * INITIAL_DIST_RADIUS_UNITS)) * 0.2 /* = my scale */;
+let RADIUS = (SIZE.w / (PER_ROW * INITIAL_DIST_RADIUS_UNITS)) * 0.4 /* = my scale */;
 let INITIAL_DIST = INITIAL_DIST_RADIUS_UNITS * RADIUS;
 let NEIGHBOUR_DISTANCE = 15 * RADIUS; // 4 * RADIUS + 2 * RADIUS * Math.sqrt(3);
 

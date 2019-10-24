@@ -591,8 +591,15 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     if(noNewData) {
       if(this.stats.motors) {
-        this.set_motors(this.stats.motors[0], this.stats.motors[1]);
+        // if(this.counter % 2 == 0) {
+          this.set_motors(this.stats.motors[0], this.stats.motors[1]);
+        // }
       }
+      // if(this.stats.motors) {
+      //   if(this.stats.motors[0] > this.stats.motors[1]) {
+      //     this.set_motors(this.stats.motors[0], this.stats.motors[1]);
+      //   }
+      // }
       return;
     }
     // this.stats.tooClose = tooClose;
@@ -729,6 +736,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       case States.JoinedShape:
         this.unmark();
         this.isStationary = true;
+        this.localize();
         if(this.isSeed)
           this.gradientFormation();
         // this.localize();
