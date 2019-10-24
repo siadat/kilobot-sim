@@ -10,14 +10,15 @@ const COLORS = [
 const GRADIENT_DIST = INITIAL_DIST + 1*RADIUS;
 const HESITATE_DURATION = 20 * 60 / MSG_PER_SEC;
 const NEIGHBOUR_EXPIRY = 2 * 60 / MSG_PER_SEC;
-const DESIRED_SHAPE_DIST = 2 * RADIUS/ShapeScale;
+const DESIRED_SHAPE_DIST = 3 * RADIUS/ShapeScale;
 
 const States = {
-  Start           : 'Start',
-  WaitToMove      : 'WaitToMove',
-  MoveWhileOutside: 'MoveWhileOutside',
-  MoveWhileInside : 'MoveWhileInside',
-  JoinedShape     : 'JoinedShape',
+  Start                  : 'Start',
+  WaitToMove             : 'WaitToMove',
+  MoveWhileOutside       : 'MoveWhileOutside',
+  MoveWhileInside        : 'MoveWhileInside',
+  // MoveWhileInsideParking: 'MoveWhileInsideParking',
+  JoinedShape            : 'JoinedShape',
   // 'idle',
   // 'move_out', // mobile
   // 'move_in',  // mobile
@@ -39,6 +40,8 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.stats = {};
     this.events = [];
     this.edgeFollowingAge = 0;
+    this.desiredDistance = DESIRED_SHAPE_DIST;
+    // this.slowDown = false;
 
     this.switchToState(States.Start);
   }
@@ -583,12 +586,13 @@ class GradientAndAssemblyRobot extends Kilobot {
     let nn = this.getNearestNeighbor();
     if(nn == null) return;
 
-    let tooClose = nn.measuredDist/this.shapeScale < DESIRED_SHAPE_DIST;
+    let tooClose = nn.measuredDist/this.shapeScale < DESIRED_SHAPE_DIST; // this.desiredDistance;
     let gettingFarther = this.prevNearestNeighDist < nn.measuredDist;
     let noNewData = this.prevNearestNeighDist == nn.measuredDist;
     this.prevNearestNeighDist = nn.measuredDist;
 
     if(noNewData) {
+      // if(!this.slowDown && this.stats.motors) {
       if(this.stats.motors) {
         // if(this.counter % 2 == 0) {
           this.set_motors(this.stats.motors[0], this.stats.motors[1]);
@@ -676,15 +680,16 @@ class GradientAndAssemblyRobot extends Kilobot {
         }
 
 
-        let hgn = this.getHighestGradAndIDNeighbor();
-        if(hgn == null) return;
+        {
+          let hgn = this.getHighestGradAndIDNeighbor();
+          if(hgn == null) return;
 
-        if(this.myGradient > hgn.neighborGradient) {
-          this.switchToState(States.MoveWhileOutside, "my grad > my neighbors");
-        } else if(this.myGradient == hgn.neighborGradient) {
-          // if(this.kilo_uid > this.getHighestUIDInNeighbors().neighborUID) { // hgn.neighborUID) {
-          if(this.kilo_uid > hgn.neighborUID) {
-            this.switchToState(States.MoveWhileOutside, "equal grads, but my ID is larger");
+          if(this.myGradient > hgn.neighborGradient) {
+            this.switchToState(States.MoveWhileOutside, "my grad > my neighbors");
+          } else if(this.myGradient == hgn.neighborGradient) {
+            if(this.kilo_uid > hgn.neighborUID) {
+              this.switchToState(States.MoveWhileOutside, "equal grads, but my ID is larger");
+            }
           }
         }
         break;
@@ -708,30 +713,54 @@ class GradientAndAssemblyRobot extends Kilobot {
         this.doEdgeFollow();
         break;
       case States.MoveWhileInside:
+        // this.desiredDistance = DESIRED_SHAPE_DIST;
+        // this.desiredDistance = 2 * RADIUS/ShapeScale;
+        // this.slowDown = true;
+
         this.localize();
         this.gradientFormation();
-
-        if(!this.isInsideShape()) {
-          this.switchToState(States.JoinedShape, "went out");
-        }
-
-        {
-          let closestNeighbor = null;
-          forEachObj(this.neighbors, (neigh, nid) => {
-            if(closestNeighbor == null || neigh.measuredDist < closestNeighbor.measuredDist) {
-              closestNeighbor = neigh;
-            }
-          });
-
-          if(closestNeighbor != null && closestNeighbor.neighborGradient >= this.myGradient /*&& closestNeighbor.neighborGradient != 1*/) {
-            this.switchToState(States.JoinedShape, `my grad ${this.myGradient} >= closest neighbor ${closestNeighbor.neighborGradient }`);
-          }
-        }
-
         this.mark();
         this.isStationary = false;
         this.doEdgeFollow();
+
+        if(!this.isInsideShape()) {
+          this.switchToState(States.JoinedShape, "went out");
+          return;
+        }
+
+        {
+          let nn = this.getNearestNeighbor();
+          if(nn != null && nn.neighborGradient >= this.myGradient /*&& nn.neighborGradient != 1*/) {
+            this.switchToState(States.JoinedShape, `my grad ${this.myGradient} >= closest neighbor ${nn.neighborGradient }`);
+            // this.switchToState(States.MoveWhileInsideParking, `my grad ${this.myGradient} >= closest neighbor ${nn.neighborGradient }`);
+            return;
+          }
+        }
+
         break;
+        //  case States.MoveWhileInsideParking:
+        //    this.desiredDistance = 2 * RADIUS/ShapeScale;
+        
+        //    this.localize();
+        //    this.gradientFormation();
+        //    this.mark();
+        //    this.isStationary = false;
+        //    this.doEdgeFollow();
+        
+        //    if(!this.isInsideShape()) {
+        //      this.switchToState(States.JoinedShape, "went out");
+        //      return;
+        //    }
+        
+        //    {
+        //      let nn = this.getNearestNeighbor();
+        //      if(nn == null) {
+        //        this.switchToState(States.MoveWhileInside, "no neighbors");
+        //        return;
+        //      }
+        //    }
+        
+        //    break;
       case States.JoinedShape:
         this.unmark();
         this.isStationary = true;

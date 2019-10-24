@@ -43,15 +43,11 @@ const RootSeedPos = {
   y: SIZE.h/2,
 };
 
-const ShapeScale = 2*RADIUS;
+const ShapeScale = 6*RADIUS;
 const ShapeDesc = [
-  '#########',
-  '#########',
-  '#########',
-  '###      ',
-  '###      ',
-  '###      ',
-  '###      ',
+  '###',
+  '#  ',
+  '#  ',
 ];
 
 const MSG_PER_SEC = 2;

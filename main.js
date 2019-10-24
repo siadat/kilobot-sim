@@ -130,15 +130,27 @@ class Pitch {
           g.clear();
           if(!DRAW_SHAPE_DESCRIPTION) return;
 
+          let shapeMarks = {};
+
+          forEachObj(this.bodies, b => {
+            let p = b.body.GetPosition();
+            let i = Math.floor(+(p.get_x() - RootSeedPos.x)/ShapeScale);
+            let j = Math.floor(-(p.get_y() - RootSeedPos.y)/ShapeScale);
+            let key = `${ShapeDesc.length - j - 1}:${i}`;
+            shapeMarks[key] = (shapeMarks[key] || 0) + 1
+          });
+
           g.lineStyle(1, 0x000000);
           for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
             let row = ShapeDesc[rowi];
             for(let coli = 0; coli < row.length; coli++) {
-              if(row[coli] == '#') {
-                g.beginFill(0xffffff);
-              } else {
-                // g.beginFill(0x888888);
+              if(row[coli] != '#') {
                 continue;
+              }
+              if(shapeMarks[`${rowi}:${coli}`]) {
+                g.beginFill(0x008800);
+              } else {
+                g.beginFill(0x888888);
               }
               g.drawRect(
                 SCALE * (RootSeedPos.x + coli * ShapeScale),
@@ -333,7 +345,7 @@ class Pitch {
       //   shapePos.y += noise(0.2);
       // }
 
-      let b = this.physics.circle(shapePosToPhysPos(shapePos), Math.PI/2, RADIUS, uidCounter);
+      let b = this.physics.circle(shapePosToPhysPos(shapePos), Math.random() * 2*Math.PI /*Math.PI/2*/, RADIUS, uidCounter);
       b.robot = new GradientAndAssemblyRobot({
         shapeDesc: ShapeDesc,
         shapeScale: ShapeScale,
@@ -375,7 +387,7 @@ class Pitch {
         pos.y += noise(RADIUS * 0.2);
       }
 
-      let b = this.physics.circle(pos, Math.PI/2, RADIUS, uidCounter);
+      let b = this.physics.circle(pos, Math.random() * 2*Math.PI /*Math.PI/2*/, RADIUS, uidCounter);
 
       b.robot = new GradientAndAssemblyRobot({
         shapeDesc: ShapeDesc,
@@ -861,8 +873,8 @@ class Box2DPhysics {
 		let b2bodyDef = new Box2D.b2BodyDef();
     b2bodyDef.set_linearDamping(20.0);
 		b2bodyDef.set_angularDamping(20.0);
-    // b2bodyDef.set_type(Box2D.b2_dynamicBody);
-		b2bodyDef.set_type(Box2D.b2_staticBody);
+    b2bodyDef.set_type(Box2D.b2_dynamicBody);
+    // b2bodyDef.set_type(Box2D.b2_staticBody);
 
     let posVec = new Box2D.b2Vec2(pos.x, pos.y);
 		b2bodyDef.set_position(posVec);
