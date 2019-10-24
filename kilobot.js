@@ -84,7 +84,9 @@ class Kilobot {
       this._phys.SetAwake(true);
     }
 
-    let coef = 3 * 0.01 * (RADIUS*RADIUS*RADIUS) / 0.015625 / 0.0416666;
+    let newCoef = 1.0;
+
+    let coef = newCoef * 3 * 0.01 * (RADIUS*RADIUS*RADIUS) / 0.015625 / 0.0416666;
     
 
     let angle = Math.PI * this._phys.GetAngle() / 180.0;
@@ -93,8 +95,8 @@ class Kilobot {
     }
 
     let force = new this._Box2D.b2Vec2(
-      this._permanentSpeedErr * coef * Math.cos(angle),
-      this._permanentSpeedErr * coef * Math.sin(angle),
+      this._permanentSpeedErr * newCoef * coef * Math.sqrt(pow2(left) + pow2(right)) * 0.01 * Math.cos(angle),
+      this._permanentSpeedErr * newCoef * coef * Math.sqrt(pow2(left) + pow2(right)) * 0.01 * Math.sin(angle),
     );
 
     // The reason I am not using ApplyTorque or ApplyAngularImpulse is that no
@@ -102,7 +104,7 @@ class Kilobot {
     // Replace this SetTransform if you could get ApplyTorque to be fast enough.
     this._phys.SetTransform(
       this._phys.GetPosition(),
-      this._phys.GetAngle() + 2.5 * 0.5 * (right - left)/255.0,
+      this._phys.GetAngle() + 2 * newCoef * 2.5 * 0.5 * (right - left)/255.0,
     );
     this._phys.ApplyForce(force, this._phys.GetPosition());
     this._Box2D.destroy(force);

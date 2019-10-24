@@ -228,23 +228,25 @@ class Pitch {
             }
             */
 
-            g.endFill();
-            g.lineStyle(1, color);
-            g.drawCircle(posEstimated.x, posEstimated.y, SCALE * RADIUS);
+            if(false) {
+              g.endFill();
+              g.lineStyle(1, color);
+              g.drawCircle(posEstimated.x, posEstimated.y, SCALE * RADIUS);
 
-            {
-              let crossPoints = [posEstimated, posActual];
-              let fullSize = SCALE * RADIUS * 0.2;
-              for(let i = 0, len = crossPoints.length; i < len; i++) {
-                let p = crossPoints[i];
-                let r = fullSize; // * ((i+1)/len);
-                g.endFill();
-                g.lineStyle(thickness, i == 0 ? color : 0x000000, 1);
-                g.moveTo(p.x - r, p.y + 0);
-                g.lineTo(p.x + r, p.y + 0);
-                g.moveTo(p.x + 0,         p.y - r);
-                g.lineTo(p.x + 0,         p.y + r);
-              };
+              {
+                let crossPoints = [posEstimated, posActual];
+                let fullSize = SCALE * RADIUS * 0.2;
+                for(let i = 0, len = crossPoints.length; i < len; i++) {
+                  let p = crossPoints[i];
+                  let r = fullSize; // * ((i+1)/len);
+                  g.endFill();
+                  g.lineStyle(thickness, i == 0 ? color : 0x000000, 1);
+                  g.moveTo(p.x - r, p.y + 0);
+                  g.lineTo(p.x + r, p.y + 0);
+                  g.moveTo(p.x + 0,         p.y - r);
+                  g.lineTo(p.x + 0,         p.y + r);
+                };
+              }
             }
 
           })
@@ -417,16 +419,19 @@ class Pitch {
             tickFunc(frameCount+1);
           } else {
             let time0 = new Date();
-            // setTimeout(() => {
-            //   tickFunc(frameCount+1);
-            //   let dt = (new Date() - time0)/1000;
-            //   this.metaFPS = Math.floor(1.0/dt);
-            // }, 500);
-            window.requestAnimationFrame(() => {
-              tickFunc(frameCount+1);
-              let dt = (new Date() - time0)/1000;
-              this.metaFPS = Math.floor(1.0/dt);
-            });
+            if(FAST) {
+              setTimeout(() => {
+                tickFunc(frameCount+1);
+                let dt = (new Date() - time0)/1000;
+                this.metaFPS = Math.floor(1.0/dt);
+              }, 1);
+            } else {
+              window.requestAnimationFrame(() => {
+                tickFunc(frameCount+1);
+                let dt = (new Date() - time0)/1000;
+                this.metaFPS = Math.floor(1.0/dt);
+              });
+            }
           }
         }
 

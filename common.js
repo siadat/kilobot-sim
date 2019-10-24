@@ -27,10 +27,12 @@ let gSIZE = {
   h: SIZE.h * SCALE,
 }
 
-const COUNT = 4 + 8;
+const COUNT = 4 + 12;
 const PER_ROW = Math.floor(Math.sqrt((COUNT-4) * SIZE.w/SIZE.h*2));
 
-let RADIUS = SIZE.w / (2*(PER_ROW + 8)) / 1.0 /* = my scale */;
+const FAST = false;
+
+let RADIUS = SIZE.w / (2*(PER_ROW + 8)) * 1.0 /* = my scale */;
 let NEIGHBOUR_DISTANCE = 8 * RADIUS; // 4 * RADIUS + 2 * RADIUS * Math.sqrt(3);
 
 // const SQRT3 = Math.sqrt(3);
@@ -41,14 +43,21 @@ const RootSeedPos = {
 
 const ShapeScale = 1*RADIUS;
 const ShapeDesc = [
-  '     ####',
-  '     ####',
-  '     ####',
-  '  #######',
-  ' ########',
-  '#######  ',
-  '#####    ',
-  '#####    ',
+  '###          ',
+  '###          ',
+  '###          ',
+  '###          ',
+  '#############',
+  '#############',
+  '#############',
+  '###          ',
+  '###          ',
+  '###          ',
+  '###          ',
+  '###          ',
+  '###          ',
+  '###          ',
+  '###          ',
 ];
 
 const MSG_PER_SEC = 2;
