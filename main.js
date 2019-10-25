@@ -4,6 +4,10 @@ Box2D({
   // Box2D.destory(b2Vec2Instance).
   TOTAL_MEMORY: 1024 * 1024 * 32, // default value is 1024 * 1024 * 16.
 }).then(function(Box2D) {
+  // let imageEditor = new ImageEditor();
+  // setTimeout(() => { console.log(JSON.stringify(imageEditor.convert())); }, 500);
+  // return;
+
   window.box2D = Box2D;
 // create two boxes and a ground
 class Pitch {
@@ -123,10 +127,13 @@ class Pitch {
         let g = new PIXI.Graphics()
         g.zIndex = 1;
         g.alpha = 0.3;
+        // g.drawn = false;
         // g.beginFill(b.robot.led.toHexDark());
 
         this.pixiApp.stage.addChild(g);
         this.pixiApp.ticker.add(() => {
+          // if(g.drawn) return;
+          // g.drawn = true;
           g.clear();
           if(!DRAW_SHAPE_DESCRIPTION) return;
 

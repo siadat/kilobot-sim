@@ -510,8 +510,8 @@ class GradientAndAssemblyRobot extends Kilobot {
     if(this.shapePos == null) {
       // not starting from 0,0 because 0,0 is always inside the shape!
       this.shapePos = {
-        x: -1,
-        y: -1,
+        x: 0,
+        y: -10,
       };
     }
 
