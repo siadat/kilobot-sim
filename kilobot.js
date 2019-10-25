@@ -80,9 +80,8 @@ class Kilobot {
       return;
     }
 
-    if(!this._phys.IsAwake()) {
+    if(!this._phys.IsAwake())
       this._phys.SetAwake(true);
-    }
 
     let newCoef = 1.0;
 

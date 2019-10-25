@@ -2,7 +2,7 @@ Box2D({
   // I initially wanted to change it to delay the out of memory
   // error. However, I fixed the problem completely by doing
   // Box2D.destory(b2Vec2Instance).
-  TOTAL_MEMORY: 1024 * 1024 * 32, // default value is 1024 * 1024 * 16.
+  TOTAL_MEMORY: 1024 * 1024 * 64, // default value is 1024 * 1024 * 16.
 }).then(function(Box2D) {
   // let imageEditor = new ImageEditor();
   // setTimeout(() => { console.log(JSON.stringify(imageEditor.convert())); }, 500);
@@ -18,22 +18,24 @@ class Pitch {
     this.fastforward = fastforward;
     this.connections = [];
     this.deltaTime = 0.0;
+    this.displayedData = {};
 
     if(this.graphical) {
       PIXI.utils.skipHello();
       this.pixiApp = new PIXI.Application({
         backgroundColor: DARK_MODE ? 0x222222 : 0xdddddd,
         autoStart: true,
-        width: OFFSET.x + gSIZE.w,
-        height: OFFSET.y + gSIZE.h,
+        width: OFFSET.x + SIZE.w * SCALE,
+        height: OFFSET.y + SIZE.h * SCALE,
         antialias: !false,
       });
 
       {
-        // meta box:
+        // displayed data meta box:
         const g = new PIXI.Graphics()
         const opts = {
           fontSize: 12,
+          lineHeight: 12 + 2.5,
           top: 20,
           left: 20,
         };
@@ -43,22 +45,22 @@ class Pitch {
         } else {
           g.beginFill(0xffffff, 0.5);
         }
+        let lineCount = 4
         g.drawRect(
           0, 0,
-          2*opts.left + 110, opts.fontSize + 2*opts.top,
+          SIZE.w*SCALE, opts.lineHeight * lineCount + 2*opts.top,
         );
 
-        const t = new PIXI.Text('FPS', {
+        this.displayedDataPixiText = new PIXI.Text('FPS', {
           fontSize: opts.fontSize,
           align: 'left',
           fill: DARK_MODE ? 0xffffff : 0x000000
         });
-        // t.anchor.set(0.5);
-        t.position = {
+        this.displayedDataPixiText.position = {
           x: opts.left,
           y: opts.top,
         }
-        g.addChild(t);
+        g.addChild(this.displayedDataPixiText);
         this.pixiApp.stage.addChild(g);
 
         this.pixiApp.ticker.add(() => {
@@ -67,7 +69,8 @@ class Pitch {
           //   fpsLine += `${i}`;
           // }
           // t.text = `FPS: ${Math.floor(1/this.deltaTime)} (${this.metaFPS})`;
-          t.text = `FPS: ${Math.floor(1/this.deltaTime)}/s`;
+          this.setDisplayedData('FPS', `${Math.floor(1/this.deltaTime)}/s`);
+          // t.text = `FPS: ${Math.floor(1/this.deltaTime)}/s`;
         });
       }
 
@@ -207,6 +210,8 @@ class Pitch {
           g.clear();
           if(!DRAW_LOCALIZATION_ERROR) return;
 
+          // let errorMagnitude = 0;
+          let correctlyLocalizedCount = 0;
           forEachObj(this.bodies, b => {
             let shapePos = b.robot.shapePos;
             if(!shapePos) return;
@@ -226,6 +231,9 @@ class Pitch {
               x: RootSeedPos.x * SCALE + shapePos.x * ShapeScale * SCALE,
               y: RootSeedPos.y * SCALE - shapePos.y * ShapeScale * SCALE,
             }
+            let dist = calcDist(posActual, posEstimated);
+            // errorMagnitude += dist
+            if(dist < RADIUS) correctlyLocalizedCount++;
 
             const MAX = 100000;
             if(posEstimated.x > +MAX) posEstimated.x = +MAX;
@@ -271,6 +279,9 @@ class Pitch {
             }
 
           })
+          // let errMag = errorMagnitude/Object.keys(this.bodies).length/RADIUS;
+          // this.setDisplayedData('Avg localization err', `${Math.round(errMag * 10)/10} radius`);
+          this.setDisplayedData('Well localized', `${correctlyLocalizedCount}/${Object.keys(this.bodies).length} robots`);
         });
       }
 
@@ -321,6 +332,21 @@ class Pitch {
     // this.physics = new MatterPhysics();
     this.physics = new Box2DPhysics();
     this.destroyFuncs.push(() => this.physics.destroy());
+  }
+
+  setDisplayedData(key, value) {
+    if(this.displayedData[key] == value) {
+      return;
+    }
+    this.displayedData[key] = value;
+    let newText = ``;
+
+    let keys = Object.keys(this.displayedData).sort().forEach(key => {
+      newText += `${key}: ${this.displayedData[key]}`
+      newText += '\n';
+    });
+
+    this.displayedDataPixiText.text = newText;
   }
 
   destroy() {
@@ -428,6 +454,11 @@ class Pitch {
         }
 
         this.physics.update();
+        {
+          let totalSeconds = Math.floor(frameCount/60.0);
+          this.setDisplayedData('Duration (robot)', formatSeconds(totalSeconds, true));
+          this.setDisplayedData('Duration (render)', formatSeconds((new Date() - this.startDate)/1000, true));
+        }
 
         if(DRAW_TRAVERSED_PATH && frameCount % 30 == 0) {
           let max = 100;
@@ -455,14 +486,15 @@ class Pitch {
         }
 
         // ******
-        forEachObj(this.bodies, b => {
+        forEachObj(this.bodies, (b, uid, i) => {
           if(b.robot._started) {
             b.robot.loop();
             b.robot._internal_loop();
             return;
           }
 
-          if(Math.random() < 0.05) {
+          if(Math.random() < 0.1) {
+          // if(frameCount > i/200) {
             b.robot.setup();
             b.robot._started = true;
           }
@@ -481,84 +513,86 @@ class Pitch {
         */
 
         // ---
-        forEachObj(this.bodies, (b, i) => {
-          if(frameCount < b.lastMessageSentAt + 30) {
-            return;
-          }
-
-          b.lastMessageSentAt = frameCount;
-
-          let broadcastingBody = b;
-
-          if(!broadcastingBody) {
-            console.error("deleted robot fetched");
-            return;
-          }
-
-          if(!broadcastingBody.robot._started) {
-            return;
-          }
-          let pos = broadcastingBody.body.GetPosition();
-          let queryCallback = new Box2D.JSQueryCallback();
-
-          let message = broadcastingBody.robot.kilo_message_tx();
-          if(message == null) {
-            return;
-          }
-
-          const handleReceiver = (id) => {
-            let receiverBody = this.bodies[id];
-
-            if(!receiverBody) {
-              console.error(`body id not found id=${id}`);
+        if(true || !BENCHMARKING) {
+          forEachObj(this.bodies, b => {
+            if(frameCount < b.lastMessageSentAt + 60/MSG_PER_SEC) {
               return;
             }
 
-            if(receiverBody.body.GetUserData() == broadcastingBody.body.GetUserData()) {
-              // same body
+            b.lastMessageSentAt = frameCount;
+
+            let broadcastingBody = b;
+
+            if(!broadcastingBody) {
+              console.error("deleted robot fetched");
               return;
             }
 
-            if(!receiverBody.robot._started) {
+            if(!broadcastingBody.robot._started) {
               return;
             }
 
-            let p1 = broadcastingBody.body.GetPosition();
-            let p2 = receiverBody.body.GetPosition();
-            let distance = Math.sqrt(Math.pow(p1.get_x() - p2.get_x(), 2) + Math.pow(p1.get_y() - p2.get_y(), 2));
-
-            if(distance > NEIGHBOUR_DISTANCE) {
+            let message = broadcastingBody.robot.kilo_message_tx();
+            if(message == null) {
               return;
             }
 
-            receiverBody.robot.kilo_message_rx(message, distance);
-            this.connections.push({
-              from: broadcastingBody.body.GetUserData(),
-              to: receiverBody.body.GetUserData(),
-            });
-          };
+            const handleReceiver = (id) => {
+              let receiverBody = this.bodies[id];
 
-          queryCallback.ReportFixture = function(fixturePtr) {
-            var fixture = Box2D.wrapPointer(fixturePtr, Box2D.b2Fixture);
-            let id = fixture.GetBody().GetUserData();
-            if(id == BODY_ID_IGNORE) {
+              if(!receiverBody) {
+                console.error(`body id not found id=${id}`);
+                return;
+              }
+
+              if(receiverBody.body.GetUserData() == broadcastingBody.body.GetUserData()) {
+                // same body
+                return;
+              }
+
+              if(!receiverBody.robot._started) {
+                return;
+              }
+
+              let p1 = broadcastingBody.body.GetPosition();
+              let p2 = receiverBody.body.GetPosition();
+              let distance = Math.sqrt(Math.pow(p1.get_x() - p2.get_x(), 2) + Math.pow(p1.get_y() - p2.get_y(), 2));
+
+              if(distance > NEIGHBOUR_DISTANCE) {
+                return;
+              }
+
+              receiverBody.robot.kilo_message_rx(message, distance);
+              this.connections.push({
+                from: broadcastingBody.body.GetUserData(),
+                to: receiverBody.body.GetUserData(),
+              });
+            };
+
+            let queryCallback = new Box2D.JSQueryCallback();
+            queryCallback.ReportFixture = function(fixturePtr) {
+              var fixture = Box2D.wrapPointer(fixturePtr, Box2D.b2Fixture);
+              let id = fixture.GetBody().GetUserData();
+              if(id == BODY_ID_IGNORE) {
+                return ContinueQuery;
+              }
+              handleReceiver(id);
               return ContinueQuery;
             }
-            handleReceiver(id);
-            return ContinueQuery;
-          }
 
-          let aabb = new Box2D.b2AABB();
-          let lowerBound = new Box2D.b2Vec2(pos.get_x()-NEIGHBOUR_DISTANCE, pos.get_y()-NEIGHBOUR_DISTANCE);
-          let upperBound = new Box2D.b2Vec2(pos.get_x()+NEIGHBOUR_DISTANCE, pos.get_y()+NEIGHBOUR_DISTANCE);
-          aabb.set_lowerBound(lowerBound);
-          aabb.set_upperBound(upperBound);
-          Box2D.destroy(lowerBound);
-          Box2D.destroy(upperBound);
+            let pos = broadcastingBody.body.GetPosition();
+            let aabb = new Box2D.b2AABB();
+            let lowerBound = new Box2D.b2Vec2(pos.get_x()-NEIGHBOUR_DISTANCE, pos.get_y()-NEIGHBOUR_DISTANCE);
+            let upperBound = new Box2D.b2Vec2(pos.get_x()+NEIGHBOUR_DISTANCE, pos.get_y()+NEIGHBOUR_DISTANCE);
+            aabb.set_lowerBound(lowerBound);
+            aabb.set_upperBound(upperBound);
+            Box2D.destroy(lowerBound);
+            Box2D.destroy(upperBound);
 
-          this.physics.world.QueryAABB(queryCallback, aabb);
-          Box2D.destroy(aabb);
-        });
+            this.physics.world.QueryAABB(queryCallback, aabb);
+            Box2D.destroy(aabb);
+          });
+        }
 
         if(!recursive) {
           return;
@@ -598,22 +632,70 @@ class Pitch {
               } else {
                 this.deltaTime += (dt - this.deltaTime) * 0.2;
               }
+              // if(BENCHMARKING) {
+              //   console.log(`FPS: ${Math.floor(1/this.deltaTime)}/s`);
+              // }
             });
           }
         }
       }
 
+      this.startDate = new Date();
       tickFunc(0, true);
     });
   }
 
   createGraphics(b) {
+    // if(BENCHMARKING) return;
     if(!this.graphical) {
       return;
     }
     switch(b.label) {
       case "Circle Body":
         const g = new PIXI.Graphics();
+        if(false && BENCHMARKING) {
+          const agentGraphicsTick = (b) => {
+            let pos = b.position;
+            let angle = 0;
+            if(!b.position && b.getData) {
+              let data = b.getData();
+              pos = data.pos;
+              angle = data.angle;
+            }
+            g.x = pos.x * SCALE;
+            g.y = pos.y * SCALE;
+            g.angle = angle;
+            g.zIndex = 1;
+
+            if(!b.robot._graphics_must_update) {
+              return;
+            } else {
+              b.robot._updated_graphics();
+            }
+
+            g.clear();
+            g.removeChildren();
+
+
+            g.lineStyle(0);
+            if(b.robot.state == States.JoinedShape) {
+              g.beginFill(b.robot.led.toHex(), 1.0);
+            } else {
+              g.beginFill(b.robot.led.toHex(), 0.5);
+            }
+            g.drawCircle(0, 0, b.circleRadius * SCALE);
+
+            g.lineStyle(b.circleRadius*SCALE/2.0, 1.0);
+            g.moveTo(0, 0);
+            g.lineTo(b.circleRadius*SCALE, 0);
+          }
+
+
+          this.pixiApp.ticker.add(() => { agentGraphicsTick(b) });
+          this.pixiApp.stage.addChild(g);
+          return;
+        }
+
         g.interactive = true;
         g.buttonMode = true;
         g.on('pointerdown', () => {
@@ -872,7 +954,9 @@ class Box2DPhysics {
   }
 
   update() {
-    this.world.Step(1.0/60.0, 8, 3); // 8, 2
+    // if(!BENCHMARKING) {
+      this.world.Step(1.0/60.0, 8, 3); // 8, 2
+    // }
     this.currentFrame++;
   }
 
@@ -880,8 +964,11 @@ class Box2DPhysics {
 		let b2bodyDef = new Box2D.b2BodyDef();
     b2bodyDef.set_linearDamping(20.0);
 		b2bodyDef.set_angularDamping(20.0);
-    b2bodyDef.set_type(Box2D.b2_dynamicBody);
-    // b2bodyDef.set_type(Box2D.b2_staticBody);
+    // if(BENCHMARKING) {
+    //   b2bodyDef.set_type(Box2D.b2_staticBody);
+    // } else {
+      b2bodyDef.set_type(Box2D.b2_dynamicBody);
+    // }
 
     let posVec = new Box2D.b2Vec2(pos.x, pos.y);
 		b2bodyDef.set_position(posVec);

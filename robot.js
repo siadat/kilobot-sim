@@ -11,6 +11,28 @@ const GRADIENT_DIST = INITIAL_DIST + 1*RADIUS;
 const HESITATE_DURATION = 20 * 60 / MSG_PER_SEC;
 const NEIGHBOUR_EXPIRY = 2 * 60 / MSG_PER_SEC;
 const DESIRED_SHAPE_DIST = 3 * RADIUS/ShapeScale;
+const isTriangleRobust = (points) => {
+  let e = [null, null, null];
+  let a = [null, null, null];
+
+  e[0] = calcDist(points[1], points[2]);
+  e[1] = calcDist(points[0], points[2]);
+  e[2] = calcDist(points[0], points[1]);
+
+  a[0] = Math.acos((pow2(e[1]) + pow2(e[2]) - pow2(e[0])) / (2 * e[1] * e[2]));
+  a[1] = Math.acos((pow2(e[0]) + pow2(e[2]) - pow2(e[1])) / (2 * e[0] * e[2]));
+  a[2] = Math.acos((pow2(e[1]) + pow2(e[0]) - pow2(e[2])) / (2 * e[1] * e[0]));
+
+  let minAngle = Math.min(a[0], a[1], a[2]);
+  let minEdge  = Math.min(e[0], e[1], e[2]);
+
+  // let d = minEdge * pow2(Math.sin(minAngle));
+  // if(isNaN(d)) return false;
+  // return d > ? * this.shapeScale;
+
+  if(isNaN(minAngle)) return false;
+  return minAngle > Math.PI * 20 / 180;
+}
 
 const States = {
   Start                  : 'Start',
@@ -41,6 +63,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.events = [];
     this.edgeFollowingAge = 0;
     this.desiredDistance = DESIRED_SHAPE_DIST;
+    this.lastExpireCheck = -1;
     // this.slowDown = false;
 
     this.switchToState(States.Start);
@@ -55,6 +78,8 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     if(this.isSeed) {
       this.set_color(new RGB(3, 3, 3));
+    } else {
+      this.set_color(new RGB(2, 2, 2));
     }
   }
 
@@ -92,28 +117,6 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.set_color(COLORS[g % COLORS.length]);
   }
 
-  isTriangleRobust(points) {
-    let e = [null, null, null];
-    let a = [null, null, null];
-
-    e[0] = calcDist(points[1], points[2]);
-    e[1] = calcDist(points[0], points[2]);
-    e[2] = calcDist(points[0], points[1]);
-
-    a[0] = Math.acos((pow2(e[1]) + pow2(e[2]) - pow2(e[0])) / (2 * e[1] * e[2]));
-    a[1] = Math.acos((pow2(e[0]) + pow2(e[2]) - pow2(e[1])) / (2 * e[0] * e[2]));
-    a[2] = Math.acos((pow2(e[1]) + pow2(e[0]) - pow2(e[2])) / (2 * e[1] * e[0]));
-
-    let minAngle = Math.min(a[0], a[1], a[2]);
-    let minEdge  = Math.min(e[0], e[1], e[2]);
-
-    // let d = minEdge * pow2(Math.sin(minAngle));
-    // if(isNaN(d)) return false;
-    // return d > ? * this.shapeScale;
-
-    if(isNaN(minAngle)) return false;
-    return minAngle > Math.PI * 20 / 180;
-  }
 
   getFirstRobustTriangle() {
     let nIDs = Object.keys(this.neighbors);
@@ -149,7 +152,7 @@ class GradientAndAssemblyRobot extends Kilobot {
             this.neighbors[nIDs[j]].shapePos,
             this.neighbors[nIDs[k]].shapePos,
           ];
-          if(this.isTriangleRobust(triangle)) {
+          if(isTriangleRobust(triangle)) {
             return [
               this.neighbors[nIDs[i]],
               this.neighbors[nIDs[j]],
@@ -164,20 +167,25 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   getFirstRobustQuadrilateral() {
-    let nIDs = Object.keys(this.neighbors);
-    nIDs = nIDs.filter(nid => {
+    // if(this._cached_first_quad) {
+    //   return this._cached_first_quad;
+    // }
+    // let nIDs = Object.keys(this.neighbors);
+    let nIDs = this.getNeighborsUIDs().filter(nid => {
       let n = this.neighbors[nid];
       return (
            n.shapePos != null
         && n.isStationary
         && n.neighborGradient != null
-        && (n.neighborState == States.JoinedShape || n.neighborGradient <= this.myGradient)
+        && (n.neighborState == States.JoinedShape || n.neighborGradient < this.myGradient)
       );
-    });
-    // nIDs.sort((a, b) => this.neighbors[a].neighborGradient - this.neighbors[b].neighborGradient);
-    nIDs.sort((a, b) => this.neighbors[a].measuredDist - this.neighbors[b].measuredDist);
-    let ncount = nIDs.length;
+    }).sort((a, b) => {
+      return +(this.neighbors[a].measuredDist - this.neighbors[b].measuredDist);
+    }).slice(0, 10);
 
+    // this.currentFarthestLocalizingNeighborUID = nIDs[nIDs.length-1];
+
+    let ncount = nIDs.length;
     if(ncount < 4) {
       return null;
     }
@@ -191,29 +199,22 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     for(let i = 0; i < ncount; i++) {
       p[0] = this.neighbors[nIDs[i]].shapePos;
-      let n = this.neighbors[nIDs[i]];
       for(let j = i+1; j < ncount; j++) {
         p[1] = this.neighbors[nIDs[j]].shapePos;
-        let n = this.neighbors[nIDs[j]];
         for(let k = j+1; k < ncount; k++) {
           p[2] = this.neighbors[nIDs[k]].shapePos;
-          let n = this.neighbors[nIDs[k]];
           for(let l = k+1; l < ncount; l++) {
             p[3] = this.neighbors[nIDs[l]].shapePos;
-            let n = this.neighbors[nIDs[l]];
-
-            if(this.neighbors[nIDs[l]].neighborGradient == null) continue;
-            if(this.neighbors[nIDs[l]].neighborGradient > this.myGradient) continue;
 
             let robustTriangles = 0;
-            for(let ii = 0; ii < p.length; ii++) {
+            for(let skippedIdx = 0; skippedIdx < p.length; skippedIdx++) {
               let triangle = [];
-              for(let jj = 0; jj < p.length; jj++) {
-                if(jj != ii) {
-                  triangle.push(p[jj]);
+              for(let includedIdx = 0; includedIdx < p.length; includedIdx++) {
+                if(includedIdx != skippedIdx) {
+                  triangle.push(p[includedIdx]);
                 }
               }
-              if(this.isTriangleRobust(triangle)) {
+              if(isTriangleRobust(triangle)) {
                 robustTriangles++;
               } else {
                 break;
@@ -222,11 +223,18 @@ class GradientAndAssemblyRobot extends Kilobot {
 
             if(robustTriangles == 4) {
               return [
-                this.neighbors[nIDs[i]],
-                this.neighbors[nIDs[j]],
-                this.neighbors[nIDs[k]],
-                this.neighbors[nIDs[l]],
-              ];
+                nIDs[i],
+                nIDs[j],
+                nIDs[k],
+                nIDs[l],
+              ]
+              // this._cached_first_quad = [
+              //   nIDs[i],
+              //   nIDs[j],
+              //   nIDs[k],
+              //   nIDs[l],
+              // ]
+              // return this._cached_first_quad;
             }
           }
         }
@@ -306,19 +314,43 @@ class GradientAndAssemblyRobot extends Kilobot {
     // return closestNeighbours.slice(0, 3);
   }
 
+  getNeighborsUIDs() {
+    if(this._neighborsUIDs != null) {
+      return this._neighborsUIDs;
+    }
+    let nIDs = Object.keys(this.neighbors);
+    this._neighborsUIDs = nIDs.filter(nuid => this.counter - this.neighbors[nuid].seenAt < NEIGHBOUR_EXPIRY);
+    return this._neighborsUIDs;
+  }
+
+  getNeighbors() {
+    if(this._neighbors != null) {
+      return this._neighbors;
+    }
+    let nIDs = Object.keys(this.neighbors);
+    this._neighbors = nIDs.filter(nuid => this.counter - this.neighbors[nuid].seenAt < NEIGHBOUR_EXPIRY).map(nuid => this.neighbors[nuid]);
+    return this._neighbors;
+  }
+
   forEachNeighbor(f) {
-    forEachObj(this.neighbors, (info, uid) => {
-      // too old, delete it (even if not processed)
-      if(this.counter - info.seenAt > NEIGHBOUR_EXPIRY) {
-        delete(this.neighbors[uid]);
-        return;
+    forEachObj(this.neighbors, (neigh, uid) => {
+      if(this.lastExpireCheck != this.counter) {
+        // too old, delete it (even if not processed)
+        if(this.counter - neigh.seenAt > NEIGHBOUR_EXPIRY) {
+          delete(this.neighbors[uid]);
+          return;
+        }
       }
 
-      f(info, uid);
+      f(neigh, uid);
     });
+    // if(this.lastExpireCheck != this.counter) {
+    //   this.lastExpireCheck = this.counter;
+    // }
   }
 
   gradientFormation() {
+    // if(BENCHMARKING) return;
     if(this.myGradient == null) {
       this.hesitate("movement");
       this.isStationary = true;
@@ -335,27 +367,53 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     let grad = Infinity;
 
-    this.forEachNeighbor((info, uid) => {
-      if(info.measuredDist > GRADIENT_DIST)
+    this.getNeighborsUIDs().forEach(nuid => {
+      let neigh = this.neighbors[nuid];
+      if(neigh.measuredDist > GRADIENT_DIST)
         return;
 
-      if(info.message.grad == null)
+      if(neigh.message.grad == null)
         return;
 
-      if(!info.isStationary)
+      if(!neigh.isStationary)
         return;
 
-      if(info.message.grad < grad)
-        grad = info.message.grad; 
-
-      /*
-      this.updateMyGradientWithNeighbor(
-        info.message.grad,
-        info.message.robotUID,
-        info.message.consideringMovement,
-      );
-      */
+      if(neigh.message.grad < grad)
+        grad = neigh.message.grad; 
     });
+
+    /*
+    this.getNeighbors().forEach(neigh => {
+      // let neigh = this.neighbors[nuid];
+      if(neigh.measuredDist > GRADIENT_DIST)
+        return;
+
+      if(neigh.message.grad == null)
+        return;
+
+      if(!neigh.isStationary)
+        return;
+
+      if(neigh.message.grad < grad)
+        grad = neigh.message.grad; 
+    });
+    */
+
+    /*
+    this.forEachNeighbor((neigh, nuid) => {
+      if(neigh.measuredDist > GRADIENT_DIST)
+        return;
+
+      if(neigh.message.grad == null)
+        return;
+
+      if(!neigh.isStationary)
+        return;
+
+      if(neigh.message.grad < grad)
+        grad = neigh.message.grad; 
+    });
+    */
 
     if(grad < Infinity)
       this.setGradient(grad + 1);
@@ -364,7 +422,8 @@ class GradientAndAssemblyRobot extends Kilobot {
   getNearestNeighbor() {
     let ret = null;
 
-    this.forEachNeighbor((n, uid) => {
+    this.getNeighborsUIDs().forEach(nuid => {
+      let n = this.neighbors[nuid];
       if(ret == null) {
         ret = n;
         return;
@@ -376,13 +435,29 @@ class GradientAndAssemblyRobot extends Kilobot {
       }
     });
 
+    /*
+    this.forEachNeighbor((n, uid) => {
+      if(ret == null) {
+        ret = n;
+        return;
+      }
+
+      if(n.measuredDist < ret.measuredDist) {
+        ret = n
+        return;
+      }
+    });
+    */
+
     return ret;
   }
 
   getHighestUIDInNeighbors() {
     let ret = null;
 
-    this.forEachNeighbor((n, uid) => {
+    // this.forEachNeighbor((n, uid) => {
+    this.getNeighborsUIDs().forEach(nuid => {
+      let n = this.neighbors[nuid];
       if(ret == null) {
         ret = n;
         return;
@@ -404,7 +479,9 @@ class GradientAndAssemblyRobot extends Kilobot {
   getHighestGradAndIDNeighbor() {
     let ret = null;
 
-    this.forEachNeighbor((n, uid) => {
+    // this.forEachNeighbor((n, uid) => {
+    this.getNeighborsUIDs().forEach(nuid => {
+      let n = this.neighbors[nuid];
       if(n.measuredDist > GRADIENT_DIST)
         return;
 
@@ -510,19 +587,20 @@ class GradientAndAssemblyRobot extends Kilobot {
     if(this.shapePos == null) {
       // not starting from 0,0 because 0,0 is always inside the shape!
       this.shapePos = {
-        x: 0,
-        y: -10,
+        x: 0, // -Math.random() * PER_ROW*2*RADIUS/ShapeScale + MARGIN*2*RADIUS/ShapeScale,
+        y: -10, // -4*RADIUS/ShapeScale - Math.random() * PER_ROW*2*RADIUS/ShapeScale,
       };
     }
 
     // let closestNeighbours = this.getFirstRobustTriangle();
-    let closestNeighbours = this.getFirstRobustQuadrilateral();
+    let closestNeighbourIDs = this.getFirstRobustQuadrilateral();
 
-    if(!closestNeighbours || closestNeighbours.length < 3) {
+    if(!closestNeighbourIDs || closestNeighbourIDs.length < 3) {
       return;
     }
 
-    closestNeighbours.forEach(neigh => {
+    closestNeighbourIDs.forEach(nuid => {
+      let neigh = this.neighbors[nuid];
       let c = calcDist(this.shapePos, neigh.shapePos);
       let v = {x: 0, y: 0};
       if(c != 0) {
@@ -547,11 +625,13 @@ class GradientAndAssemblyRobot extends Kilobot {
 
   seenRecentMovingNeighbors() {
     let seen = false;
-    this.forEachNeighbor((info, uid) => {
+    // this.forEachNeighbor((info, uid) => {
+    this.getNeighborsUIDs().forEach(nuid => {
+      let n = this.neighbors[nuid];
       if(seen == true)
         return;
 
-      if(!info.isStationary && info.edgeFollowingAge >= this.edgeFollowingAge) {
+      if(!n.isStationary && n.edgeFollowingAge >= this.edgeFollowingAge) {
         seen = true;
       }
     });
@@ -647,6 +727,16 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   loop() {
+    this._neighbors = null;
+    this._neighborsUIDs = null;
+    // if(BENCHMARKING) {
+    //   // this.set_motors(
+    //   //   Math.random() > 0.5 ? this.kilo_straight_left : 0,
+    //   //   Math.random() > 0.5 ? this.kilo_straight_right: 0,
+    //   // );
+    //   this.gradientFormation();
+    //   return;
+    // }
     this.counter++;
 
     switch(this.state) {
@@ -790,6 +880,18 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   kilo_message_rx(message, distance) {
+    // let n = this.neighbors[message.robotUID]; 
+    // if(!n
+    //   || n.neighborGradient != message.grad
+    //   || (n.shapePos && (n.shapePos.x != message.shapePos.x || n.shapePos.y != message.shapePos.y))
+    //   || n.isStationary != message.isStationary
+    //   || n.measuredDist != distance
+    // ) {
+    //   this._cached_first_quad = null;
+    // }
+    // if(!this.neighbors[this.currentFarthestLocalizingNeighborUID] || this.neighbors[this.currentFarthestLocalizingNeighborUID].measuredDist >= distance) {
+    //   this._cached_first_quad = null;
+    // }
     this.neighbors[message.robotUID] = {
       neighborUID: message.robotUID,
       neighborGradient: message.grad,
