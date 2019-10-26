@@ -73,7 +73,7 @@ const RootSeedPos = {
 
 const MSG_PER_SEC = 2;
 const PERFECT = false;
-const LOOP_PER_SCOND = 30;
+const LOOP_PER_SECOND = 30;
 
 let DRAW_TRAVERSED_PATH = !false;
 let DRAW_CONNECTIONS = false;

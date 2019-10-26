@@ -453,13 +453,13 @@ class Pitch {
           resolve();
           return;
         }
-        let willCallLoop = frameCount % Math.floor(60/LOOP_PER_SCOND) == 0;
+        let willCallLoop = frameCount % Math.floor(60/LOOP_PER_SECOND) == 0;
 
         {
-          let virtualSeconds = Math.floor(frameCount/LOOP_PER_SCOND);
+          let virtualSeconds = Math.floor(frameCount/LOOP_PER_SECOND);
           let ourSeconds = (new Date() - this.startDate)/1000;
           // let speedX = Math.round(virtualSeconds/ourSeconds * 10)/10;
-          let speedX = Math.floor(this.tickBatchCount * (60/LOOP_PER_SCOND));
+          let speedX = Math.floor(this.tickBatchCount * (60/LOOP_PER_SECOND));
           this.setDisplayedData('Duration (robot)', `${formatSeconds(virtualSeconds, true)} (${speedX}x)`);
           this.setDisplayedData('Duration (render)', `${formatSeconds(ourSeconds, true)}`);
         }

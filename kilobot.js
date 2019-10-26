@@ -130,8 +130,8 @@ class Kilobot {
     //   25mm/s forward speed
     //   90°/s  turning speed
     let coef = 1.0; // should be 1.0
-    let degreePerTick = 90 * (1.0/LOOP_PER_SCOND) * coef;
-    let forwardSpeed = RADIUS * (25.0/16.0) * (1/LOOP_PER_SCOND) * coef;
+    let degreePerTick = 90 * (1.0/LOOP_PER_SECOND) * coef;
+    let forwardSpeed = RADIUS * (25.0/16.0) * (1/LOOP_PER_SECOND) * coef;
 
     if(left == right
       && left == this.kilo_straight_left

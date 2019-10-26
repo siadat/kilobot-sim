@@ -8,8 +8,8 @@ const COLORS = [
 ];
 
 const GRADIENT_DIST = INITIAL_DIST + 1*RADIUS;
-const HESITATE_DURATION = 20 * LOOP_PER_SCOND / MSG_PER_SEC;
-const NEIGHBOUR_EXPIRY = 2 * LOOP_PER_SCOND / MSG_PER_SEC;
+const HESITATE_DURATION = 20 * LOOP_PER_SECOND / MSG_PER_SEC;
+const NEIGHBOUR_EXPIRY = 2 * LOOP_PER_SECOND / MSG_PER_SEC;
 const DESIRED_SHAPE_DIST = 3*RADIUS/ShapeScale;
 const isTriangleRobust = (points) => {
   let e = [null, null, null];
@@ -594,7 +594,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     }
 
     // if(this.state == States.WaitToMove && this.isStationary && this.lastNeighborChangedAt < this.counter) {
-    //   if(this.counter % LOOP_PER_SCOND != 0) return;
+    //   if(this.counter % LOOP_PER_SECOND != 0) return;
     // }
 
     // let closestNeighbours = this.getFirstRobustTriangle();
