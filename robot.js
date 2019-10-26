@@ -8,9 +8,9 @@ const COLORS = [
 ];
 
 const GRADIENT_DIST = INITIAL_DIST + 1*RADIUS;
-const HESITATE_DURATION = 20 * 60 / MSG_PER_SEC;
-const NEIGHBOUR_EXPIRY = 2 * 60 / MSG_PER_SEC;
-const DESIRED_SHAPE_DIST = 3 * RADIUS/ShapeScale;
+const HESITATE_DURATION = 20 * LOOP_PER_SCOND / MSG_PER_SEC;
+const NEIGHBOUR_EXPIRY = 2 * LOOP_PER_SCOND / MSG_PER_SEC;
+const DESIRED_SHAPE_DIST = 3*RADIUS/ShapeScale;
 const isTriangleRobust = (points) => {
   let e = [null, null, null];
   let a = [null, null, null];
@@ -62,7 +62,6 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.stats = {};
     this.events = [];
     this.edgeFollowingAge = 0;
-    this.desiredDistance = DESIRED_SHAPE_DIST;
     this.lastExpireCheck = -1;
     // this.slowDown = false;
 
@@ -332,6 +331,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     return this._neighbors;
   }
 
+    /*
   forEachNeighbor(f) {
     forEachObj(this.neighbors, (neigh, uid) => {
       if(this.lastExpireCheck != this.counter) {
@@ -348,6 +348,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     //   this.lastExpireCheck = this.counter;
     // }
   }
+  */
 
   gradientFormation() {
     // if(BENCHMARKING) return;
@@ -592,6 +593,10 @@ class GradientAndAssemblyRobot extends Kilobot {
       };
     }
 
+    // if(this.state == States.WaitToMove && this.isStationary && this.lastNeighborChangedAt < this.counter) {
+    //   if(this.counter % LOOP_PER_SCOND != 0) return;
+    // }
+
     // let closestNeighbours = this.getFirstRobustTriangle();
     let closestNeighbourIDs = this.getFirstRobustQuadrilateral();
 
@@ -631,9 +636,11 @@ class GradientAndAssemblyRobot extends Kilobot {
       if(seen == true)
         return;
 
-      if(!n.isStationary && n.edgeFollowingAge >= this.edgeFollowingAge) {
-        seen = true;
-      }
+      if(n.isStationary) return;
+
+      if(n.edgeFollowingAge < this.edgeFollowingAge) return;
+
+      seen = true;
     });
 
     return seen;
@@ -757,6 +764,7 @@ class GradientAndAssemblyRobot extends Kilobot {
         this.isStationary = true;
         this.gradientFormation();
         this.localize();
+        // break; // <
 
         if(this.isHesitating("movement")) {
           return;
@@ -768,7 +776,6 @@ class GradientAndAssemblyRobot extends Kilobot {
           this.unmark();
           return;
         }
-
 
         {
           let hgn = this.getHighestGradAndIDNeighbor();
@@ -880,15 +887,18 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   kilo_message_rx(message, distance) {
-    // let n = this.neighbors[message.robotUID]; 
-    // if(!n
-    //   || n.neighborGradient != message.grad
-    //   || (n.shapePos && (n.shapePos.x != message.shapePos.x || n.shapePos.y != message.shapePos.y))
-    //   || n.isStationary != message.isStationary
-    //   || n.measuredDist != distance
-    // ) {
-    //   this._cached_first_quad = null;
-    // }
+    /*
+    let n = this.neighbors[message.robotUID]; 
+    if(!n
+      || n.neighborGradient != message.grad
+      || (n.shapePos && (n.shapePos.x != message.shapePos.x || n.shapePos.y != message.shapePos.y))
+      || n.isStationary != message.isStationary
+      || n.measuredDist != distance
+    ) {
+      // this._cached_first_quad = null;
+      this.lastNeighborChangedAt = this.counter;
+    }
+    */
     // if(!this.neighbors[this.currentFarthestLocalizingNeighborUID] || this.neighbors[this.currentFarthestLocalizingNeighborUID].measuredDist >= distance) {
     //   this._cached_first_quad = null;
     // }

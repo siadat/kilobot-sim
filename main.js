@@ -19,6 +19,7 @@ class Pitch {
     this.connections = [];
     this.deltaTime = 0.0;
     this.displayedData = {};
+    this.tickBatchCount = 1;
 
     if(this.graphical) {
       PIXI.utils.skipHello();
@@ -130,13 +131,12 @@ class Pitch {
         let g = new PIXI.Graphics()
         g.zIndex = 1;
         g.alpha = 0.3;
-        // g.drawn = false;
-        // g.beginFill(b.robot.led.toHexDark());
+        g.drawn = false;
 
         this.pixiApp.stage.addChild(g);
         this.pixiApp.ticker.add(() => {
-          // if(g.drawn) return;
-          // g.drawn = true;
+          if(g.drawn) return;
+          g.drawn = true;
           g.clear();
           if(!DRAW_SHAPE_DESCRIPTION) return;
 
@@ -222,7 +222,7 @@ class Pitch {
               pos = data.pos;
             }
 
-            let thickness = RADIUS*SCALE * 0.1; // 2
+            let thickness = RADIUS*SCALE * 0.2; // 2
             let posActual = {
               x: pos.x * SCALE,
               y: pos.y * SCALE,
@@ -233,7 +233,7 @@ class Pitch {
             }
             let dist = calcDist(posActual, posEstimated);
             // errorMagnitude += dist
-            if(dist < RADIUS) correctlyLocalizedCount++;
+            if(dist < RADIUS*SCALE) correctlyLocalizedCount++;
 
             const MAX = 100000;
             if(posEstimated.x > +MAX) posEstimated.x = +MAX;
@@ -242,7 +242,7 @@ class Pitch {
             if(posEstimated.y < -MAX) posEstimated.y = -MAX;
 
             g.endFill();
-            color = b.robot.led.toHexDark();
+            color = 0xff0000; // b.robot.led.toHexDark();
             g.lineStyle(thickness, color);
             g.moveTo(posActual.x, posActual.y);
             g.lineTo(posEstimated.x, posEstimated.y);
@@ -378,7 +378,7 @@ class Pitch {
       //   shapePos.y += noise(0.2);
       // }
 
-      let b = this.physics.circle(shapePosToPhysPos(shapePos), Math.random() * 2*Math.PI /*Math.PI/2*/, RADIUS, uidCounter);
+      let b = this.physics.circle(shapePosToPhysPos(shapePos), Math.random() * 2*Math.PI /* Math.PI/2*/, RADIUS, uidCounter);
       b.robot = new GradientAndAssemblyRobot({
         shapeDesc: ShapeDesc,
         shapeScale: ShapeScale,
@@ -396,7 +396,7 @@ class Pitch {
       this.createGraphics(b);
     });
 
-    let assemblyCount = COUNT - 4 - 1;
+    let assemblyCount = COUNT - Object.keys(this.bodies).length;
     for(let i = 0; i < assemblyCount; i++) {
       uidCounter++;
       let rowi = Math.floor(i/PER_ROW);
@@ -448,17 +448,24 @@ class Pitch {
 
     return new Promise((resolve, reject) => {
       const tickFunc = (frameCount, recursive) => {
+
         if(frameCount == FRAME_LIMIT || window._state_stop) {
           resolve();
           return;
         }
+        let willCallLoop = frameCount % Math.floor(60/LOOP_PER_SCOND) == 0;
 
-        this.physics.update();
         {
-          let totalSeconds = Math.floor(frameCount/60.0);
-          this.setDisplayedData('Duration (robot)', formatSeconds(totalSeconds, true));
-          this.setDisplayedData('Duration (render)', formatSeconds((new Date() - this.startDate)/1000, true));
+          let virtualSeconds = Math.floor(frameCount/LOOP_PER_SCOND);
+          let ourSeconds = (new Date() - this.startDate)/1000;
+          // let speedX = Math.round(virtualSeconds/ourSeconds * 10)/10;
+          let speedX = Math.floor(this.tickBatchCount * (60/LOOP_PER_SCOND));
+          this.setDisplayedData('Duration (robot)', `${formatSeconds(virtualSeconds, true)} (${speedX}x)`);
+          this.setDisplayedData('Duration (render)', `${formatSeconds(ourSeconds, true)}`);
         }
+
+        // if(willCallLoop)
+          this.physics.update();
 
         if(DRAW_TRAVERSED_PATH && frameCount % 30 == 0) {
           let max = 100;
@@ -486,19 +493,21 @@ class Pitch {
         }
 
         // ******
-        forEachObj(this.bodies, (b, uid, i) => {
-          if(b.robot._started) {
-            b.robot.loop();
-            b.robot._internal_loop();
-            return;
-          }
+        if(willCallLoop) {
+          forEachObj(this.bodies, (b, uid, i) => {
+            if(b.robot._started) {
+              b.robot.loop();
+              b.robot._internal_loop();
+              return;
+            }
 
-          if(Math.random() < 0.1) {
-          // if(frameCount > i/200) {
-            b.robot.setup();
-            b.robot._started = true;
-          }
-        });
+            if(Math.random() < 0.1) {
+              // if(frameCount > i/200)
+              b.robot.setup();
+              b.robot._started = true;
+            }
+          });
+        }
         // ******
 
         // this.bodies = this.bodies.filter(b => !b._to_be_removed);
@@ -601,7 +610,7 @@ class Pitch {
         // ******
         if(this.fastforward) {
           // setTimeout(() => tickFunc(frameCount+1), 1);
-          tickFunc(frameCount+1);
+          tickFunc(frameCount+1, true);
         } else {
           let time0 = new Date();
           if(false) {
@@ -618,13 +627,10 @@ class Pitch {
               }
             }, 1);
           } else {
-            if(FAST) {
-              for(let i = 0; i < 10; i++) {
-                tickFunc(++frameCount, false);
-              }
-            }
             window.requestAnimationFrame(() => {
-              tickFunc(++frameCount, true);
+              for(let i = 0; i < this.tickBatchCount; i++) {
+                tickFunc(++frameCount, i == this.tickBatchCount - 1);
+              }
               let dt = (new Date() - time0)/1000;
               // this.metaFPS = Math.floor(1.0/dt);
               if(frameCount == 1) {
@@ -632,6 +638,19 @@ class Pitch {
               } else {
                 this.deltaTime += (dt - this.deltaTime) * 0.2;
               }
+
+              let fps = 1/this.deltaTime;
+              if(fps > 55) {
+                this.tickBatchCount++;
+              } else {
+                this.tickBatchCount--;
+              }
+              if(this.tickBatchCount < 1) {
+                this.tickBatchCount = 1;
+              }
+              // this.tickBatchCount = 1;
+              this.setDisplayedData('Tick batch', this.tickBatchCount);
+
               // if(BENCHMARKING) {
               //   console.log(`FPS: ${Math.floor(1/this.deltaTime)}/s`);
               // }
@@ -782,7 +801,8 @@ class Pitch {
             g.filters = [];
           }
           */
-          g.lineStyle(b.circleRadius*SCALE/2.0);
+          g.endFill();
+          g.lineStyle(b.circleRadius*SCALE*0.25, b.robot.led.toHex(), 0.75);
           g.moveTo(0, 0);
           g.lineTo(b.circleRadius*SCALE, 0);
 
@@ -967,7 +987,12 @@ class Box2DPhysics {
     // if(BENCHMARKING) {
     //   b2bodyDef.set_type(Box2D.b2_staticBody);
     // } else {
+    ///if(id == 1 || id == 2 || id == 3 || id == 4) {
+    ///  b2bodyDef.set_type(Box2D.b2_staticBody);
+    ///} else {
       b2bodyDef.set_type(Box2D.b2_dynamicBody);
+    ///}
+    //   b2bodyDef.set_type(Box2D.b2_staticBody);
     // }
 
     let posVec = new Box2D.b2Vec2(pos.x, pos.y);
