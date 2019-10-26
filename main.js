@@ -17,7 +17,9 @@ class Pitch {
     this.graphical = graphical;
     this.fastforward = fastforward;
     this.connections = [];
-    this.deltaTime = 0.0;
+    this.deltaTime = null;
+    this.speedX = null;
+    this.fps = 60;
     this.displayedData = {};
     this.tickBatchCount = 1;
 
@@ -65,13 +67,7 @@ class Pitch {
         this.pixiApp.stage.addChild(g);
 
         this.pixiApp.ticker.add(() => {
-          // let fpsLine = '';
-          // for(let i = 0; i < this.metaFPS/10; i++) {
-          //   fpsLine += `${i}`;
-          // }
-          // t.text = `FPS: ${Math.floor(1/this.deltaTime)} (${this.metaFPS})`;
           this.setDisplayedData('FPS', `${Math.floor(1/this.deltaTime)}/s`);
-          // t.text = `FPS: ${Math.floor(1/this.deltaTime)}/s`;
         });
       }
 
@@ -453,14 +449,18 @@ class Pitch {
           resolve();
           return;
         }
-        let willCallLoop = frameCount % Math.floor(60/LOOP_PER_SECOND) == 0;
+        let willCallLoop = true; // frameCount % Math.floor(60/LOOP_PER_SECOND) == 0;
 
         {
           let virtualSeconds = Math.floor(frameCount/LOOP_PER_SECOND);
           let ourSeconds = (new Date() - this.startDate)/1000;
-          // let speedX = Math.round(virtualSeconds/ourSeconds * 10)/10;
-          let speedX = Math.floor(this.tickBatchCount * (60/LOOP_PER_SECOND));
-          this.setDisplayedData('Duration (robot)', `${formatSeconds(virtualSeconds, true)} (${speedX}x)`);
+          let s = this.tickBatchCount * (this.fps/LOOP_PER_SECOND);
+          if(this.speedX == null) {
+            this.speedX = s;
+          } else {
+            this.speedX += (s - this.speedX) * (1/120.0);
+          }
+          this.setDisplayedData('Duration (robot)', `${formatSeconds(virtualSeconds, true)} (${Math.floor(this.speedX)}x)`);
           this.setDisplayedData('Duration (render)', `${formatSeconds(ourSeconds, true)}`);
         }
 
@@ -620,7 +620,7 @@ class Pitch {
               tickFunc(++frameCount, true);
               let dt = (new Date() - time0)/1000;
               // this.metaFPS = Math.floor(1.0/dt);
-              if(frameCount == 1) {
+              if(this.deltaTime == null) {
                 this.deltaTime = dt;
               } else {
                 this.deltaTime += (dt - this.deltaTime) * 0.2;
@@ -633,14 +633,19 @@ class Pitch {
               }
               let dt = (new Date() - time0)/1000;
               // this.metaFPS = Math.floor(1.0/dt);
-              if(frameCount == 1) {
+              if(this.deltaTime == null) {
                 this.deltaTime = dt;
               } else {
                 this.deltaTime += (dt - this.deltaTime) * 0.2;
               }
 
-              let fps = 1/this.deltaTime;
-              if(fps > 55) {
+              if(this.deltaTime == 0 /* prevent divide by zero */ ) {
+                this.fps = 60;
+              } else {
+                this.fps = 1/this.deltaTime;
+              }
+
+              if(this.fps > 55) {
                 this.tickBatchCount++;
               } else {
                 this.tickBatchCount--;
@@ -648,7 +653,6 @@ class Pitch {
               if(this.tickBatchCount < 1) {
                 this.tickBatchCount = 1;
               }
-              // this.tickBatchCount = 1;
               this.setDisplayedData('Tick batch', this.tickBatchCount);
 
               // if(BENCHMARKING) {
