@@ -9,7 +9,7 @@ Box2D({
   // return;
 
   window.box2D = Box2D;
-// create two boxes and a ground
+  // create two boxes and a ground
 class Pitch {
   constructor(graphical, fastforward) {
     this.destroyFuncs = [];
@@ -38,8 +38,9 @@ class Pitch {
         const g = new PIXI.Graphics()
         const opts = {
           fontSize: 12,
-          lineHeight: 12 + 2.5,
+          lineHeight: 20,
           top: 20,
+          bottom: 20,
           left: 20,
         };
         g.zIndex = 3;
@@ -48,15 +49,16 @@ class Pitch {
         } else {
           g.beginFill(0xffffff, 0.5);
         }
-        let lineCount = 4
+        let lineCount = 10
         g.drawRect(
           0, 0,
-          SIZE.w*SCALE, opts.lineHeight * lineCount + 2*opts.top,
+          SIZE.w*0.5*SCALE, opts.lineHeight*lineCount + opts.top+opts.bottom,
         );
 
         this.displayedDataPixiText = new PIXI.Text('FPS', {
           fontSize: opts.fontSize,
           align: 'left',
+          lineHeight: opts.lineHeight,
           fill: DARK_MODE ? 0xffffff : 0x000000
         });
         this.displayedDataPixiText.position = {
@@ -282,16 +284,38 @@ class Pitch {
       }
 
       {
-        if(DRAW_CONNECTIONS) {
+        if(DRAW_CONNS_AND_BOUNDS) {
           let connGraphics = new PIXI.Graphics()
           connGraphics.zIndex = 2;
           connGraphics.alpha = 0.5;
           this.pixiApp.stage.addChild(connGraphics);
           this.pixiApp.ticker.add(() => {
+            // if(!DRAW_CONNS_AND_BOUNDS) return;
+            // if(connGraphics.drawn) return;
             connGraphics.clear();
-            if(!DRAW_CONNECTIONS) return;
+            connGraphics.drawn = true;
 
-            this.bounds.forEach(bound => {
+            let bounds = [];
+            for(let i = 0; i < this.bodyIDs.length; i++) {
+              if(this.selectedUID != null && this.selectedUID != this.bodyIDs[i]) {
+                continue;
+              }
+							let body = this.bodies[this.bodyIDs[i]].body;
+							let f = body.GetFixtureList();
+							let fp = Box2D.getPointer(f);
+							let j = 0;
+							while(fp) {
+							  j++;
+								bounds.push({
+									aabb: f.GetAABB(),
+									color: j%2==0 ? 0x00ff00 : 0x0000ff,
+								});
+								f = f.GetNext();
+								fp = Box2D.getPointer(f);
+							}
+            }
+
+            bounds.forEach(bound => {
               connGraphics.lineStyle(2, bound.color || 0x00ff00);
 
               connGraphics.drawRect(
@@ -303,6 +327,9 @@ class Pitch {
             });
 
             this.connections.forEach(conn => {
+              if(this.selectedUID != null && (this.selectedUID != conn.from /*&& this.selectedUID != conn.to*/)) {
+                return;
+              }
               let pos1 = this.bodies[conn.from].body.GetPosition();
               let pos2 = this.bodies[conn.to].body.GetPosition();
               connGraphics.lineStyle(SCALE * RADIUS/4, this.bodies[conn.from].robot.led.toHex());
@@ -369,10 +396,10 @@ class Pitch {
     ].forEach(shapePos => {
       uidCounter++;
 
-      // if(!PERFECT) {
-      //   shapePos.x += noise(0.2);
-      //   shapePos.y += noise(0.2);
-      // }
+      if(!PERFECT) {
+        // shapePos.x += noise(0.1 * RADIUS/ShapeScale);
+        // shapePos.y += noise(0.1 * RADIUS/ShapeScale);
+      }
 
       let b = this.physics.circle(shapePosToPhysPos(shapePos), Math.random() * 2*Math.PI /* Math.PI/2*/, RADIUS, uidCounter);
       b.robot = new GradientAndAssemblyRobot({
@@ -389,7 +416,7 @@ class Pitch {
 
       this.bodies[b.robot._uid] = b;
 
-      this.createGraphics(b);
+      this.createBodyGraphic(b);
     });
 
     let assemblyCount = COUNT - Object.keys(this.bodies).length;
@@ -412,35 +439,107 @@ class Pitch {
       pos.y += rowi * (INITIAL_DIST/2*Math.sqrt(3));
 
       if(!PERFECT) {
-        pos.x += noise(RADIUS * 0.2);
-        pos.y += noise(RADIUS * 0.2);
+        pos.x += noise(0.5 * RADIUS/ShapeScale);
+        pos.y += noise(0.5 * RADIUS/ShapeScale);
       }
 
       let b = this.physics.circle(pos, Math.random() * 2*Math.PI /*Math.PI/2*/, RADIUS, uidCounter);
-
       b.robot = new GradientAndAssemblyRobot({
         shapeDesc: ShapeDesc,
         shapeScale: ShapeScale,
         shapePos: null,
         isSeed: false,
       });
+
       b.robot._uid = uidCounter;
       b.robot._phys = b.body;
       b.robot._Box2D = Box2D;
 
       this.bodies[b.robot._uid] = b;
 
-      this.createGraphics(b);
+      this.createBodyGraphic(b);
     }
 
-    if(PERFECT) {
+    window.bodies = this.bodies;
+
+    {
+      let ids = Object.keys(this.bodies)
+      let idsBuf = new ArrayBuffer(ids.length * Int32Array.BYTES_PER_ELEMENT);
+      this.bodyIDs = new Int32Array(idsBuf);
+      for(let i = 0; i < ids.length; i++) {
+        this.bodyIDs[i] = ids[i];
+      }
+    }
+
+    {
+      let isStartedBuf = new ArrayBuffer(this.bodyIDs.length * Int8Array.BYTES_PER_ELEMENT);
+      this.bodyRobotIsStarted = new Int8Array(isStartedBuf);
+      for(let i = 0; i < this.bodyRobotIsStarted.length; i++) {
+        this.bodyRobotIsStarted[i] = 0;
+      }
+    }
+
+    {/*
+      this.robots = [];
+      for(let i = 0; i < this.bodyIDs.length; i++) {
+        let id = this.bodyIDs[i];
+        this.robots.push(this.bodies[id].robot);
+      }
+      */
+    }
+
+    // if(PERFECT) {
       forEachObj(this.bodies, b => {
         b.robot.setup();
         b.robot._started = true;
       });
+    // }
+
+    this.setDisplayedData('Count', `${COUNT}`);
+
+    {
+      /*
+      let listener = new Box2D.JSContactListener();
+      listener.PreSolve = function(contact) { }
+      listener.PostSolve = function(contact) { }
+      listener.EndContact = function(contact) { }
+
+      listener.BeginContact = (contactPtr) => {
+        let contact = Box2D.wrapPointer( contactPtr, Box2D.b2Contact );
+        let fixtureA = contact.GetFixtureA();
+        let fixtureB = contact.GetFixtureB();
+
+        if(!fixtureA.IsSensor() && !fixtureB.IsSensor()) {
+          return;
+        }
+
+        if(fixtureA.IsSensor() && fixtureB.IsSensor()) {
+          console.error("should not happen");
+          return;
+        }
+
+        let idB = fixtureB.GetBody().GetUserData();
+        let idA = fixtureA.GetBody().GetUserData();
+        if(idA == idB) {
+          console.error("equal ids", idA, idB);
+        }
+
+        if(fixtureA.IsSensor()) {
+          this.sensorContactCounter++;
+          // console.log(`BeginContact sensor=${idA} other=${idB}`);
+        }
+
+        if(fixtureB.IsSensor()) {
+          this.sensorContactCounter++;
+          // console.log(`BeginContact sensor=${idB} other=${idA}`);
+        }
+        return;
+      }
+      this.physics.world.SetContactListener(listener);
+      */
     }
 
-    window.bodies = this.bodies;
+
 
     return new Promise((resolve, reject) => {
       const tickFunc = (frameCount, recursive) => {
@@ -449,7 +548,9 @@ class Pitch {
           resolve();
           return;
         }
-        let willCallLoop = true; // frameCount % Math.floor(60/LOOP_PER_SECOND) == 0;
+
+        // this.setDisplayedData('sensorContactCounter', `${this.sensorContactCounter}`);
+        // this.sensorContactCounter = 0;
 
         {
           let virtualSeconds = Math.floor(frameCount/LOOP_PER_SECOND);
@@ -460,12 +561,11 @@ class Pitch {
           } else {
             this.speedX += (s - this.speedX) * (1/120.0);
           }
-          this.setDisplayedData('Duration (robot)', `${formatSeconds(virtualSeconds, true)} (${Math.floor(this.speedX)}x)`);
+          this.setDisplayedData('Duration (robot)', `${formatSeconds(virtualSeconds, true)} (${Math.floor(this.speedX*10)/10}x)`);
           this.setDisplayedData('Duration (render)', `${formatSeconds(ourSeconds, true)}`);
         }
 
-        // if(willCallLoop)
-          this.physics.update();
+        this.physics.update();
 
         if(DRAW_TRAVERSED_PATH && frameCount % 30 == 0) {
           let max = 100;
@@ -492,116 +592,230 @@ class Pitch {
           });
         }
 
-        // ******
-        if(willCallLoop) {
-          forEachObj(this.bodies, (b, uid, i) => {
-            if(b.robot._started) {
-              b.robot.loop();
-              b.robot._internal_loop();
-              return;
-            }
-
-            if(Math.random() < 0.1) {
-              // if(frameCount > i/200)
-              b.robot.setup();
-              b.robot._started = true;
-            }
-          });
+          /*
+          // testing how fast I can get all positions
+        let poses = [];
+        for(let i = 0; i < this.bodyIDs.length; i++) {
+          let body = this.bodies[this.bodyIDs[i]].body;
+          let pos = body.GetPosition();
+          poses.push({x: pos.get_x(), y: pos.get_y()});
         }
-        // ******
-
-        // this.bodies = this.bodies.filter(b => !b._to_be_removed);
-        this.connections = [];
-        this.bounds = [];
-
-        /*
-        this.bodies.forEach(b => {
-          let aabb = b.body.GetFixtureList().GetAABB();
-          this.bounds.push({aabb: aabb});
-        });
         */
 
+        // ******
+        if(true)
+        for(let i = 0; i < this.bodyIDs.length; i++) {
+          let r = this.bodies[this.bodyIDs[i]].robot;
+          // let r = this.robots[i];
+          if(r._started) {
+            r.loop();
+            r._internal_loop();
+            continue;
+          }
+
+          if(Math.random() < 0.1) {
+            // r.setup();
+            r._started = true;
+          }
+
+          /*
+          if(this.bodyRobotIsStarted[i] == 1) {
+            r.loop();
+            r._internal_loop();
+            continue;
+          }
+
+          if(Math.random() < 0.1) {
+            r.setup();
+            this.bodyRobotIsStarted[i] = 1;
+          }
+          */
+        }
+        // ******
+
+        this.connections = [];
+        let messageTxCount = 0;
+        let messageRxCount = 0;
+
+        const sendMessage = (broadcastingBody, receiverID, message) => {
+          if(receiverID == broadcastingBody.body.GetUserData()) {
+            // same body
+            return;
+          }
+
+          let receiverBody = this.bodies[receiverID];
+          if(!receiverBody) {
+            console.error(`body id not found id=${receiverID}`);
+            return;
+          }
+          if(!receiverBody.robot._started) {
+            return;
+          }
+
+          let p1 = broadcastingBody.body.GetPosition();
+          let p2 = receiverBody.body.GetPosition();
+          let distance = calcDistBox2D(p1, p2);
+
+          if(distance > NEIGHBOUR_DISTANCE) {
+            return;
+          }
+
+          messageRxCount++;
+          receiverBody.robot.kilo_message_rx(message, distance);
+
+          if(DRAW_CONNS_AND_BOUNDS) {
+            this.connections.push({
+              from: broadcastingBody.body.GetUserData(),
+              to: receiverBody.body.GetUserData(),
+            });
+          }
+        };
+
+        let queryCallback = new Box2D.JSQueryCallback();
+        queryCallback.ReportFixture = function(fixturePtr) {
+          let fixture = Box2D.wrapPointer(fixturePtr, Box2D.b2Fixture);
+          let id = fixture.GetBody().GetUserData();
+          if(id == BODY_ID_IGNORE) {
+            return ContinueQuery;
+          }
+          sendMessage(this.broadcastingBody, id, this.message);
+          return ContinueQuery;
+        }
+
         // ---
-        if(true || !BENCHMARKING) {
-          forEachObj(this.bodies, b => {
-            if(frameCount < b.lastMessageSentAt + 60/MSG_PER_SEC) {
-              return;
-            }
+        let aabb = new Box2D.b2AABB();
+        let lowerBound = new Box2D.b2Vec2(0, 0);
+        let upperBound = new Box2D.b2Vec2(0, 0);
 
-            b.lastMessageSentAt = frameCount;
-
-            let broadcastingBody = b;
-
-            if(!broadcastingBody) {
-              console.error("deleted robot fetched");
-              return;
-            }
-
-            if(!broadcastingBody.robot._started) {
-              return;
-            }
-
-            let message = broadcastingBody.robot.kilo_message_tx();
-            if(message == null) {
-              return;
-            }
-
-            const handleReceiver = (id) => {
-              let receiverBody = this.bodies[id];
-
-              if(!receiverBody) {
-                console.error(`body id not found id=${id}`);
-                return;
+        {
+          /*
+          if(frameCount % 2 == 0) {
+            for(let i = 0; i < this.bodyIDs.length; i++) {
+              let body = this.bodies[this.bodyIDs[i]].body;
+              let f = body.GetFixtureList();
+              let fp = Box2D.getPointer(f);
+              while(fp) {
+                if(f.IsSensor()) {
+                  let fd = f.GetFilterData();
+                  fd.set_maskBits(CATS.NONE)
+                  f.SetFilterData(fd);
+                  break;
+                }
+                f = f.GetNext();
+                fp = Box2D.getPointer(f);
               }
-
-              if(receiverBody.body.GetUserData() == broadcastingBody.body.GetUserData()) {
-                // same body
-                return;
-              }
-
-              if(!receiverBody.robot._started) {
-                return;
-              }
-
-              let p1 = broadcastingBody.body.GetPosition();
-              let p2 = receiverBody.body.GetPosition();
-              let distance = Math.sqrt(Math.pow(p1.get_x() - p2.get_x(), 2) + Math.pow(p1.get_y() - p2.get_y(), 2));
-
-              if(distance > NEIGHBOUR_DISTANCE) {
-                return;
-              }
-
-              receiverBody.robot.kilo_message_rx(message, distance);
-              this.connections.push({
-                from: broadcastingBody.body.GetUserData(),
-                to: receiverBody.body.GetUserData(),
-              });
-            };
-
-            let queryCallback = new Box2D.JSQueryCallback();
-            queryCallback.ReportFixture = function(fixturePtr) {
-              var fixture = Box2D.wrapPointer(fixturePtr, Box2D.b2Fixture);
-              let id = fixture.GetBody().GetUserData();
-              if(id == BODY_ID_IGNORE) {
-                return ContinueQuery;
-              }
-              handleReceiver(id);
-              return ContinueQuery;
             }
+          }
+          */
 
-            let pos = broadcastingBody.body.GetPosition();
-            let aabb = new Box2D.b2AABB();
-            let lowerBound = new Box2D.b2Vec2(pos.get_x()-NEIGHBOUR_DISTANCE, pos.get_y()-NEIGHBOUR_DISTANCE);
-            let upperBound = new Box2D.b2Vec2(pos.get_x()+NEIGHBOUR_DISTANCE, pos.get_y()+NEIGHBOUR_DISTANCE);
+          if(frameCount % 1 == 0) {
+            for(let i = 0; i < this.bodyIDs.length; i++) {
+              let body = this.bodies[this.bodyIDs[i]].body;
+              let f = body.GetFixtureList();
+              let fp = Box2D.getPointer(f);
+              while(fp) {
+                if(f.IsSensor()) {
+                  body.DestroyFixture(f);
+                  break;
+                }
+                f = f.GetNext();
+                fp = Box2D.getPointer(f);
+              }
+            }
+          }
+        }
+
+
+
+        if(true) // 88 -> 68
+        for(let i = 0; i < this.bodyIDs.length; i++) {
+          let b = this.bodies[this.bodyIDs[i]];
+          if(frameCount < b.lastMessageSentAt + TICKS_BETWEEN_MSGS) {
+            continue;
+          }
+          // if(frameCount > 60 * 5) { continue; }
+
+          b.lastMessageSentAt = frameCount;
+
+          let broadcastingBody = b;
+
+          if(!broadcastingBody) {
+            console.error("deleted robot fetched");
+            continue;
+          }
+
+          if(!broadcastingBody.robot._started) {
+            continue;
+          }
+
+          messageTxCount++;
+          let message = broadcastingBody.robot.kilo_message_tx();
+          if(message == null) {
+            continue;
+          }
+
+          {
+            /*
+          let f = broadcastingBody.body.GetFixtureList();
+          let fp = Box2D.getPointer(f);
+          let j = 0;
+          while(fp) {
+            j++;
+            if(f.IsSensor()) {
+              let fd = f.GetFilterData();
+              fd.set_maskBits(CATS.ROBOT)
+              f.SetFilterData(fd);
+              break;
+            }
+            f = f.GetNext();
+            fp = Box2D.getPointer(f);
+          }
+          */
+            /*
+            if(!this.filter2) {
+              console.log("should be called ONCE");
+            this.filter2 = new Box2D.b2Filter();
+            this.filter2.set_categoryBits(CATS.NEIGHBOR);
+            this.filter2.set_maskBits(CATS.ROBOT);
+            this.sensorCircleShape = new Box2D.b2CircleShape();
+            this.sensorCircleShape.set_m_radius(NEIGHBOUR_DISTANCE);
+            this.fixtureSensor = new Box2D.b2FixtureDef();
+            this.fixtureSensor.set_shape(this.sensorCircleShape);
+            this.fixtureSensor.set_isSensor(true);
+            this.fixtureSensor.set_filter(this.filter2);
+            }
+            broadcastingBody.body.CreateFixture(this.fixtureSensor);
+            // Box2D.destroy(filter2);
+            // Box2D.destroy(sensorCircleShape);
+            */
+          }
+
+          {
+            let pos_x = broadcastingBody.body.GetPosition().get_x();
+            let pos_y = broadcastingBody.body.GetPosition().get_y();
+
+            lowerBound.set_x(pos_x-NEIGHBOUR_DISTANCE);
+            lowerBound.set_y(pos_y-NEIGHBOUR_DISTANCE);
+
+            upperBound.set_x(pos_x+NEIGHBOUR_DISTANCE);
+            upperBound.set_y(pos_y+NEIGHBOUR_DISTANCE);
+
             aabb.set_lowerBound(lowerBound);
             aabb.set_upperBound(upperBound);
-            Box2D.destroy(lowerBound);
-            Box2D.destroy(upperBound);
 
+            queryCallback.message = message;
+            queryCallback.broadcastingBody = broadcastingBody;
             this.physics.world.QueryAABB(queryCallback, aabb);
-            Box2D.destroy(aabb);
-          });
+          }
         }
+
+        this.setDisplayedData('message_tx()', messageTxCount);
+        this.setDisplayedData('message_tx()/robot', Math.round(messageTxCount/COUNT * 100)/100);
+        this.setDisplayedData('message_rx()', messageRxCount);
+        this.setDisplayedData('message_rx()/robot', Math.round(messageRxCount/COUNT * 100)/100);
+        Box2D.destroy(lowerBound);
+        Box2D.destroy(upperBound);
+        Box2D.destroy(aabb);
 
         if(!recursive) {
           return;
@@ -628,9 +842,10 @@ class Pitch {
             }, 1);
           } else {
             window.requestAnimationFrame(() => {
-              for(let i = 0; i < this.tickBatchCount; i++) {
-                tickFunc(++frameCount, i == this.tickBatchCount - 1);
+              for(let i = 0; i < this.tickBatchCount - 1; i++) {
+                tickFunc(++frameCount, false);
               }
+              tickFunc(++frameCount, true);
               let dt = (new Date() - time0)/1000;
               // this.metaFPS = Math.floor(1.0/dt);
               if(this.deltaTime == null) {
@@ -646,14 +861,14 @@ class Pitch {
               }
 
               if(this.fps > 55) {
-                this.tickBatchCount++;
+                this.tickBatchCount += 0.2;
               } else {
-                this.tickBatchCount--;
+                this.tickBatchCount -= 1;
               }
               if(this.tickBatchCount < 1) {
                 this.tickBatchCount = 1;
               }
-              this.setDisplayedData('Tick batch', this.tickBatchCount);
+              this.setDisplayedData('Tick batch', Math.round(this.tickBatchCount));
 
               // if(BENCHMARKING) {
               //   console.log(`FPS: ${Math.floor(1/this.deltaTime)}/s`);
@@ -668,7 +883,7 @@ class Pitch {
     });
   }
 
-  createGraphics(b) {
+  createBodyGraphic(b) {
     // if(BENCHMARKING) return;
     if(!this.graphical) {
       return;
@@ -722,6 +937,7 @@ class Pitch {
         g.interactive = true;
         g.buttonMode = true;
         g.on('pointerdown', () => {
+          this.selectedUID = b.robot._uid;
           console.log('clicked', {
             uid: b.robot._uid,
             state: b.robot.state,
@@ -908,8 +1124,9 @@ class Box2DPhysics {
 		// Box2D-interfacing code
 		let gravity = new Box2D.b2Vec2(0, 0);
 		this.world = new Box2D.b2World(gravity);
+    window.world = this.world;
 
-    if(true /* edge/wall */) {
+    if(false /* edge/wall */) {
       this.edgeShape({x: 0, y: 0}, {x: SIZE.w, y: 0});
       this.edgeShape({x: 0, y: 0}, {x: 0,      y: SIZE.h});
 
@@ -917,42 +1134,14 @@ class Box2DPhysics {
       this.edgeShape({x: SIZE.w, y: SIZE.h}, {x: SIZE.w, y: 0});
     }
 
-    /*
-		let listener = new Box2D.JSContactListener();
-		listener.PreSolve = function(contact) {
-      // console.log('PreSolve', arguments);
-      return;
-    }
-		listener.PostSolve = function(contact) {
-      // console.log('PreSolve', arguments);
-      return;
-    }
-		listener.BeginContact = function(contact) {
-      // console.log('BeginContact', contact.GetFixtureA().GetBody().GetUserData());
-      // console.log('BeginContact', contact);
-      return;
-			div = document.getElementById("textUI");
-			div.innerHTML = "Come "+contact.GetFixtureA().GetBody();
-			defaultCarSpeed = defaultCarSpeed/2;
-		}
 
-		listener.EndContact = function(contact) {
-      // console.log('EndContact', contact.GetFixtureA().GetBody().GetUserData());
-      // console.log('EndContact', contact);
-      return;
-      div = document.getElementById("textUI");
-			div.innerHTML = "Go "+contact.GetFixtureA().GetBody();
-			defaultCarSpeed = defaultCarSpeed*2;
-		}
-		this.world.SetContactListener(listener);
-    */
 	}
 
 	edgeShape(from, to) {
 		let bd_ground = new Box2D.b2BodyDef();
 		bd_ground.set_type(Box2D.b2_staticBody);
 		let ground = this.world.CreateBody(bd_ground);
-    ground .SetUserData(BODY_ID_IGNORE);
+    ground.SetUserData(BODY_ID_IGNORE);
 		let shape0 = new Box2D.b2EdgeShape();
 		shape0.Set(new Box2D.b2Vec2(from.x, from.y), new Box2D.b2Vec2(to.x, to.y));
 		ground.CreateFixture(shape0, 0.0);
@@ -1006,8 +1195,8 @@ class Box2DPhysics {
     b2bodyDef.set_bullet(false);
 
     let filter1 = new Box2D.b2Filter();
-    filter1.set_categoryBits(0x0001);
-    filter1.set_maskBits(0x0001);
+    filter1.set_categoryBits(CATS.ROBOT);
+    filter1.set_maskBits(CATS.ROBOT | CATS.NEIGHBOR);
 
     if(!this.circleShape) {
       this.circleShape = new Box2D.b2CircleShape();
@@ -1025,8 +1214,22 @@ class Box2DPhysics {
 
 		let body = this.world.CreateBody(b2bodyDef);
     body.CreateFixture(fixtureDef);
-    // body.CreateFixture(fixtureSensor);
-    // Box2D.destroy(b2bodyDef);
+    // ---
+    /*
+    let filter2 = new Box2D.b2Filter();
+    filter2.set_categoryBits(CATS.NEIGHBOR);
+    filter2.set_maskBits(CATS.NONE);
+    let sensorCircleShape = new Box2D.b2CircleShape();
+    sensorCircleShape.set_m_radius(NEIGHBOUR_DISTANCE);
+    let fixtureSensor = new Box2D.b2FixtureDef();
+    fixtureSensor.set_shape(sensorCircleShape);
+    fixtureSensor.set_isSensor(true);
+    fixtureSensor.set_filter(filter2);
+    body.CreateFixture(fixtureSensor);
+    Box2D.destroy(filter2);
+    Box2D.destroy(sensorCircleShape);
+    */
+		// ---
 
     body.SetUserData(id);
 
