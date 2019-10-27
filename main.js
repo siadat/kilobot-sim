@@ -43,7 +43,7 @@ class Pitch {
           bottom: 20,
           left: 20,
         };
-        g.zIndex = 3;
+        g.zIndex = 4;
         if(DARK_MODE) {
           g.beginFill(0x000000, 0.5);
         } else {
@@ -211,6 +211,9 @@ class Pitch {
           // let errorMagnitude = 0;
           let correctlyLocalizedCount = 0;
           forEachObj(this.bodies, b => {
+            if(this.selectedUID && this.selectedUID != b.robot._uid)
+              return;
+
             let shapePos = b.robot.shapePos;
             if(!shapePos) return;
 
@@ -284,6 +287,46 @@ class Pitch {
       }
 
       {
+        let g = new PIXI.Graphics()
+        g.zIndex = 3;
+        g.alpha = 0.5;
+        this.pixiApp.stage.addChild(g);
+        this.pixiApp.ticker.add(() => {
+          g.clear();
+          if(!this.selectedUID) return;
+
+          let b = this.bodies[this.selectedUID];
+          let quadlateral = b.robot.getFirstRobustQuadrilateral();
+          if(!quadlateral) {
+            return;
+          }
+
+          let bodyPositions = quadlateral.map(id => this.bodies[id].body.GetPosition());
+          g.lineStyle(V.ZOOM * RADIUS/4, 0xffffff);
+
+          [
+            [1, 2],
+            [1, 3],
+            [1, 4],
+            [2, 3],
+            [2, 4],
+            [3, 4],
+          ].forEach(indexes => {
+            let p1 = bodyPositions[indexes[0]-1];
+            let p2 = bodyPositions[indexes[1]-1];
+            g.moveTo(
+              V.PAN.x + p1.get_x()*V.ZOOM,
+              V.PAN.y + p1.get_y()*V.ZOOM,
+            );
+            g.lineTo(
+              V.PAN.x + p2.get_x()*V.ZOOM,
+              V.PAN.y + p2.get_y()*V.ZOOM,
+            );
+          });
+        });
+      }
+
+      {
         if(DRAW_CONNS_AND_BOUNDS) {
           let connGraphics = new PIXI.Graphics()
           connGraphics.zIndex = 2;
@@ -339,14 +382,13 @@ class Pitch {
         }
       }
 
-
       this.pixiApp.stage.sortableChildren = true;
 
       document.body.appendChild(this.pixiApp.view);
       this.pixiApp.view.addEventListener('mousewheel', ev => {
         V.ZOOM *= 1 + ev.wheelDelta/1000.0;
         if(V.ZOOM < 6) V.ZOOM = 6;
-        if(V.ZOOM > 100) V.ZOOM = 100;
+        if(V.ZOOM > 40) V.ZOOM = 40;
         // TODO: this._graphics_must_update = true;
       });
 
@@ -979,15 +1021,7 @@ class Pitch {
             robot: b.robot,
             events: b.robot.events,
           });
-          /*
-          b._to_be_removed = true;
-          b.robot._graphics_must_update = true;
-          b.robot._phys.GetWorld().DestroyBody(b.robot._phys);
-          delete(this.bodies[b.robot._uid]);
-          this.pixiApp.stage.removeChild(g);
-          */
-
-          // this.physics.world.DestroyBody(b.robot._phys);
+          return true;
         });
 
         const agentGraphicsTick = (b) => {
@@ -1010,8 +1044,8 @@ class Pitch {
               b.robot._updated_graphics();
             }
           }
-          g.lastView = copyView(V);
 
+          g.lastView = copyView(V);
 
           g.clear();
           g.removeChildren();
@@ -1134,10 +1168,6 @@ class Pitch {
         };
         this.pixiApp.ticker.add(() => {
           if(!agentGraphicsTick) {
-            return;
-          }
-          if(b._to_be_removed) {
-            this.pixiApp.stage.removeChild(g);
             return;
           }
           agentGraphicsTick(b);
@@ -1324,7 +1354,6 @@ function _runPitch(botProg, graphical, fastforward) {
 
   window.deleteBody = function(id) {
     let b = this.bodies[id];
-    b._to_be_removed = true;
     b.robot._graphics_must_update = true;
     b.robot._phys.GetWorld().DestroyBody(b.robot._phys);
     delete(this.bodies[b.robot._uid]);
