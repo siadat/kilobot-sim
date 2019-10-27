@@ -2,7 +2,7 @@ Box2D({
   // I initially wanted to change it to delay the out of memory
   // error. However, I fixed the problem completely by doing
   // Box2D.destory(b2Vec2Instance).
-  TOTAL_MEMORY: 1024 * 1024 * 64, // default value is 1024 * 1024 * 16.
+  TOTAL_MEMORY: 1024 * 1024 * 32, // default value is 1024 * 1024 * 16.
 }).then(function(Box2D) {
   // let imageEditor = new ImageEditor();
   // setTimeout(() => { console.log(JSON.stringify(imageEditor.convert())); }, 500);
@@ -28,8 +28,8 @@ class Pitch {
       this.pixiApp = new PIXI.Application({
         backgroundColor: DARK_MODE ? 0x222222 : 0xdddddd,
         autoStart: true,
-        width: OFFSET.x + SIZE.w * SCALE,
-        height: OFFSET.y + SIZE.h * SCALE,
+        width: SIZE.w,
+        height: SIZE.h,
         antialias: !false,
       });
 
@@ -52,7 +52,7 @@ class Pitch {
         let lineCount = 10
         g.drawRect(
           0, 0,
-          SIZE.w*0.5*SCALE, opts.lineHeight*lineCount + opts.top+opts.bottom,
+          SIZE.w*0.5, opts.lineHeight*lineCount + opts.top+opts.bottom,
         );
 
         this.displayedDataPixiText = new PIXI.Text('FPS', {
@@ -93,32 +93,32 @@ class Pitch {
             b.posHistory.forEach(p => {
               if(lastPos == null) {
                 lastPos = p;
-                g.moveTo(p.x * SCALE, p.y * SCALE);
+                g.moveTo(V.PAN.x + p.x * V.ZOOM, V.PAN.y + p.y * V.ZOOM);
                 return;
               }
-              // g.drawCircle(p.x * SCALE, p.y * SCALE, 2);
+              // g.drawCircle(V.PAN.x + p.x * V.ZOOM, V.PAN.y + p.y * V.ZOOM, 2);
               g.lineStyle(2, p.color);
-              g.moveTo(lastPos.x * SCALE, lastPos.y * SCALE);
-              g.lineTo(p.x * SCALE, p.y * SCALE);
+              g.moveTo(V.PAN.x + lastPos.x * V.ZOOM, V.PAN.y + lastPos.y * V.ZOOM);
+              g.lineTo(V.PAN.x + p.x * V.ZOOM, V.PAN.y + p.y * V.ZOOM);
 
               {
                 g.moveTo(
-                  p.x * SCALE - Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * SCALE * 0.1,
-                  p.y * SCALE - Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * SCALE * 0.1,
+                  V.PAN.x + p.x * V.ZOOM - Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
+                  V.PAN.y + p.y * V.ZOOM - Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
                 );
                 g.lineTo(
-                  p.x * SCALE + Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * SCALE * 0.1,
-                  p.y * SCALE + Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * SCALE * 0.1,
+                  V.PAN.x + p.x * V.ZOOM + Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
+                  V.PAN.y + p.y * V.ZOOM + Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
                 );
               }
 
-              g.moveTo(p.x * SCALE, p.y * SCALE);
+              g.moveTo(V.PAN.x + p.x * V.ZOOM, V.PAN.y + p.y * V.ZOOM);
               lastPos = p;
             });
 
             if(lastPos != null) {
               g.lineStyle(2, b.robot.led.toHex());
-              g.lineTo(b.body.GetPosition().get_x() * SCALE, b.body.GetPosition().get_y() * SCALE);
+              g.lineTo(V.PAN.x + b.body.GetPosition().get_x() * V.ZOOM, V.PAN.y + b.body.GetPosition().get_y() * V.ZOOM);
             }
           });
         });
@@ -133,8 +133,8 @@ class Pitch {
 
         this.pixiApp.stage.addChild(g);
         this.pixiApp.ticker.add(() => {
-          if(g.drawn) return;
-          g.drawn = true;
+          // if(g.drawn) return;
+          // g.drawn = true;
           g.clear();
           if(!DRAW_SHAPE_DESCRIPTION) return;
 
@@ -142,8 +142,8 @@ class Pitch {
 
           forEachObj(this.bodies, b => {
             let p = b.body.GetPosition();
-            let i = Math.floor(+(p.get_x() - RootSeedPos.x)/ShapeScale);
-            let j = Math.floor(-(p.get_y() - RootSeedPos.y)/ShapeScale);
+            let i = Math.floor(+(p.get_x() - RootSeedGraphicsPos.x)/ShapeScale);
+            let j = Math.floor(-(p.get_y() - RootSeedGraphicsPos.y)/ShapeScale);
             let key = `${ShapeDesc.length - j - 1}:${i}`;
             shapeMarks[key] = (shapeMarks[key] || 0) + 1
           });
@@ -161,10 +161,10 @@ class Pitch {
                 g.beginFill(0x888888);
               }
               g.drawRect(
-                SCALE * (RootSeedPos.x + coli * ShapeScale),
-                SCALE * (RootSeedPos.y - (ShapeDesc.length - rowi - 1) * ShapeScale),
-                SCALE * (ShapeScale),
-                -SCALE * (ShapeScale),
+                V.PAN.x + V.ZOOM * (RootSeedGraphicsPos.x + coli * ShapeScale),
+                V.PAN.y + V.ZOOM * (RootSeedGraphicsPos.y - (ShapeDesc.length - rowi - 1) * ShapeScale),
+                V.ZOOM * (ShapeScale),
+                -V.ZOOM * (ShapeScale),
               );
             }
           }
@@ -186,12 +186,12 @@ class Pitch {
           forEachObj(this.bodies, b => {
 
             let shadowOffset = {
-              x: (b.body.GetPosition().get_x() + b.circleRadius*0.25) * SCALE,
-              y: (b.body.GetPosition().get_y() + b.circleRadius*0.25) * SCALE,
+              x: V.PAN.x + (b.body.GetPosition().get_x() + b.circleRadius*0.25) * V.ZOOM,
+              y: V.PAN.y + (b.body.GetPosition().get_y() + b.circleRadius*0.25) * V.ZOOM,
             }
 
             g.beginFill(0x000000)
-            g.drawCircle(shadowOffset.x, shadowOffset.y, b.circleRadius * SCALE);
+            g.drawCircle(shadowOffset.x, shadowOffset.y, b.circleRadius * V.ZOOM);
           });
         });
       }
@@ -220,18 +220,18 @@ class Pitch {
               pos = data.pos;
             }
 
-            let thickness = RADIUS*SCALE * 0.2; // 2
+            let thickness = RADIUS*V.ZOOM * 0.2; // 2
             let posActual = {
-              x: pos.x * SCALE,
-              y: pos.y * SCALE,
+              x: V.PAN.x + pos.x * V.ZOOM,
+              y: V.PAN.y + pos.y * V.ZOOM,
             }
             let posEstimated = {
-              x: RootSeedPos.x * SCALE + shapePos.x * ShapeScale * SCALE,
-              y: RootSeedPos.y * SCALE - shapePos.y * ShapeScale * SCALE,
+              x: V.PAN.x + RootSeedGraphicsPos.x * V.ZOOM + shapePos.x * ShapeScale * V.ZOOM,
+              y: V.PAN.y + RootSeedGraphicsPos.y * V.ZOOM - shapePos.y * ShapeScale * V.ZOOM,
             }
             let dist = calcDist(posActual, posEstimated);
             // errorMagnitude += dist
-            if(dist < RADIUS*SCALE) correctlyLocalizedCount++;
+            if(dist < RADIUS*V.ZOOM) correctlyLocalizedCount++;
 
             const MAX = 100000;
             if(posEstimated.x > +MAX) posEstimated.x = +MAX;
@@ -258,11 +258,11 @@ class Pitch {
             if(false) {
               g.endFill();
               g.lineStyle(1, color);
-              g.drawCircle(posEstimated.x, posEstimated.y, SCALE * RADIUS);
+              g.drawCircle(posEstimated.x, posEstimated.y, V.ZOOM * RADIUS);
 
               {
                 let crossPoints = [posEstimated, posActual];
-                let fullSize = SCALE * RADIUS * 0.2;
+                let fullSize = V.ZOOM * RADIUS * 0.2;
                 for(let i = 0, len = crossPoints.length; i < len; i++) {
                   let p = crossPoints[i];
                   let r = fullSize; // * ((i+1)/len);
@@ -319,10 +319,10 @@ class Pitch {
               connGraphics.lineStyle(2, bound.color || 0x00ff00);
 
               connGraphics.drawRect(
-                SCALE * (bound.aabb.get_lowerBound().get_x()),
-                SCALE * (bound.aabb.get_lowerBound().get_y()),
-                SCALE * (bound.aabb.get_upperBound().get_x() - bound.aabb.get_lowerBound().get_x()),
-                SCALE * (bound.aabb.get_upperBound().get_y() - bound.aabb.get_lowerBound().get_y()),
+                V.PAN.x + V.ZOOM * (bound.aabb.get_lowerBound().get_x()),
+                V.PAN.y + V.ZOOM * (bound.aabb.get_lowerBound().get_y()),
+                V.ZOOM * (bound.aabb.get_upperBound().get_x() - bound.aabb.get_lowerBound().get_x()),
+                V.ZOOM * (bound.aabb.get_upperBound().get_y() - bound.aabb.get_lowerBound().get_y()),
               );
             });
 
@@ -332,9 +332,9 @@ class Pitch {
               }
               let pos1 = this.bodies[conn.from].body.GetPosition();
               let pos2 = this.bodies[conn.to].body.GetPosition();
-              connGraphics.lineStyle(SCALE * RADIUS/4, this.bodies[conn.from].robot.led.toHex());
-              connGraphics.moveTo(pos1.get_x() * SCALE, pos1.get_y() * SCALE);
-              connGraphics.lineTo(pos2.get_x() * SCALE, pos2.get_y() * SCALE);
+              connGraphics.lineStyle(V.ZOOM * RADIUS/4, this.bodies[conn.from].robot.led.toHex());
+              connGraphics.moveTo(V.PAN.x + pos1.get_x() * V.ZOOM, V.PAN.y + pos1.get_y() * V.ZOOM);
+              connGraphics.lineTo(V.PAN.x + pos2.get_x() * V.ZOOM, V.PAN.y + pos2.get_y() * V.ZOOM);
             });
 
           });
@@ -345,6 +345,30 @@ class Pitch {
       this.pixiApp.stage.sortableChildren = true;
 
       document.body.appendChild(this.pixiApp.view);
+      this.pixiApp.view.addEventListener('mousewheel', ev => {
+        V.ZOOM += ev.wheelDelta/1000.0;
+        // TODO: this._graphics_must_update = true;
+      });
+
+      this.pixiApp.view.addEventListener('pointerdown', ev => {
+        this.dragStart = {
+          x: ev.x,
+          y: ev.y,
+          panX: V.PAN.x,
+          panY: V.PAN.y,
+        }
+      });
+
+      this.pixiApp.view.addEventListener('pointerup', ev => {
+        this.dragStart = null
+      });
+
+      this.pixiApp.view.addEventListener('pointermove', ev => {
+        if(!this.dragStart) return;
+        V.PAN.x = this.dragStart.panX + (ev.x - this.dragStart.x);
+        V.PAN.y = this.dragStart.panY + (ev.y - this.dragStart.y);
+        console.log("dragging");
+      });
 
       // update at least once:
       this.destroyFuncs.push(() => this.pixiApp.ticker.update());
@@ -382,8 +406,8 @@ class Pitch {
 
     const shapePosToPhysPos = (shapePos) => {
       return {
-        x: RootSeedPos.x + ShapeScale*shapePos.x,
-        y: RootSeedPos.y - ShapeScale*shapePos.y, // y-axis in shape goes up, in physics goes down
+        x: RootSeedGraphicsPos.x + ShapeScale*shapePos.x,
+        y: RootSeedGraphicsPos.y - ShapeScale*shapePos.y, // y-axis in shape goes up, in physics goes down
       };
     }
 
@@ -426,12 +450,12 @@ class Pitch {
       let coli = i % PER_ROW;
 
       let pos = {
-        x: RootSeedPos.x + RADIUS,
-        y: RootSeedPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS, // + 2*RADIUS,
+        x: RootSeedGraphicsPos.x + RADIUS,
+        y: RootSeedGraphicsPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS, // + 2*RADIUS,
       };
 
       if(PER_ROW % 2 == 0) {
-        pos.y = RootSeedPos.y + Math.sqrt(3) * RADIUS + Math.sqrt(3)*RADIUS;
+        pos.y = RootSeedGraphicsPos.y + Math.sqrt(3) * RADIUS + Math.sqrt(3)*RADIUS;
       }
 
       let firstToLastCentersInOneRow = (PER_ROW-1)*INITIAL_DIST;
@@ -891,6 +915,7 @@ class Pitch {
     switch(b.label) {
       case "Circle Body":
         const g = new PIXI.Graphics();
+        // SIMPLIFIED GRAPHICS
         if(false && BENCHMARKING) {
           const agentGraphicsTick = (b) => {
             let pos = b.position;
@@ -900,8 +925,8 @@ class Pitch {
               pos = data.pos;
               angle = data.angle;
             }
-            g.x = pos.x * SCALE;
-            g.y = pos.y * SCALE;
+            g.x = V.PAN.x + pos.x * V.ZOOM;
+            g.y = V.PAN.y + pos.y * V.ZOOM;
             g.angle = angle;
             g.zIndex = 1;
 
@@ -921,11 +946,11 @@ class Pitch {
             } else {
               g.beginFill(b.robot.led.toHex(), 0.5);
             }
-            g.drawCircle(0, 0, b.circleRadius * SCALE);
+            g.drawCircle(0, 0, b.circleRadius * V.ZOOM);
 
-            g.lineStyle(b.circleRadius*SCALE/2.0, 1.0);
+            g.lineStyle(b.circleRadius*V.ZOOM/2.0, 1.0);
             g.moveTo(0, 0);
-            g.lineTo(b.circleRadius*SCALE, 0);
+            g.lineTo(b.circleRadius*V.ZOOM, 0);
           }
 
 
@@ -970,8 +995,8 @@ class Pitch {
             pos = data.pos;
             angle = data.angle;
           }
-          g.x = pos.x * SCALE;
-          g.y = pos.y * SCALE;
+          g.x = V.PAN.x + pos.x * V.ZOOM;
+          g.y = V.PAN.y + pos.y * V.ZOOM;
           g.angle = angle;
           g.zIndex = 1;
 
@@ -989,7 +1014,7 @@ class Pitch {
           if(false && b.robot._uid == 504) {
             g.lineStyle(1, 0x000000);
             g.beginFill(0x000000, 0.1);
-            g.drawCircle(0, 0, NEIGHBOUR_DISTANCE * SCALE);
+            g.drawCircle(0, 0, NEIGHBOUR_DISTANCE * V.ZOOM);
           }
 
           if(DARK_MODE) {
@@ -1000,7 +1025,7 @@ class Pitch {
           }
 
           g.lineStyle(thickness, 0x000000);
-          g.drawCircle(0, 0, b.circleRadius * SCALE - thickness/2);
+          g.drawCircle(0, 0, b.circleRadius * V.ZOOM - thickness/2);
 
           let ledRadius = b.circleRadius * 0.4;
 
@@ -1010,7 +1035,7 @@ class Pitch {
           } else {
             g.beginFill(b.robot.led.toHex(), 0.2);
           }
-          g.drawCircle(0, 0, b.circleRadius * SCALE - thickness/2);
+          g.drawCircle(0, 0, b.circleRadius * V.ZOOM - thickness/2);
 
           /*
           if(b.robot.led.toHex() != 0x000000) {
@@ -1022,16 +1047,16 @@ class Pitch {
           }
           */
           g.endFill();
-          g.lineStyle(b.circleRadius*SCALE*0.25, b.robot.led.toHex(), 0.75);
+          g.lineStyle(b.circleRadius*V.ZOOM*0.25, b.robot.led.toHex(), 0.75);
           g.moveTo(0, 0);
-          g.lineTo(b.circleRadius*SCALE, 0);
+          g.lineTo(b.circleRadius*V.ZOOM, 0);
 
           g.lineStyle(thickness);
           g.beginFill(b.robot.led.toHex());
           g.drawCircle(
             0,
             0,
-            ledRadius * SCALE,
+            ledRadius * V.ZOOM,
           );
 
           if(b.robot._mark) {
@@ -1040,7 +1065,7 @@ class Pitch {
             g.drawCircle(
               0,
               0,
-              ledRadius * SCALE * 0.5,
+              ledRadius * V.ZOOM * 0.5,
             );
           }
 
@@ -1064,15 +1089,15 @@ class Pitch {
             switch(b.robot.stats.action) {
               case 'stright':
                 g.moveTo(0, 0);
-                g.lineTo(SCALE * RADIUS, 0);
+                g.lineTo(V.ZOOM * RADIUS, 0);
                 break;
               case 'left-get-farther':
                 g.moveTo(0, 0);
-                g.lineTo(0, -SCALE * RADIUS);
+                g.lineTo(0, -V.ZOOM * RADIUS);
                 break;
               case 'right-get-close':
                 g.moveTo(0, 0);
-                g.lineTo(0, +SCALE * RADIUS);
+                g.lineTo(0, +V.ZOOM * RADIUS);
                 break;
             }
           }
