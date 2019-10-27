@@ -410,12 +410,14 @@ class Pitch {
       };
     }
 
+    let extraCount = 0;
     [
       {isSeed: true, isRoot: true,  x: 0*RADIUS/ShapeScale, y: RADIUS/ShapeScale * 0},
       {isSeed: true, isRoot: false, x: 2*RADIUS/ShapeScale, y: RADIUS/ShapeScale * 0},
       {isSeed: true, isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * +Math.sqrt(3)},
       {isSeed: true, isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * -Math.sqrt(3)},
-      // {isSeed: false,isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * -Math.sqrt(3) - 2 * RADIUS/ShapeScale},
+      // {isSeed: false,isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * -Math.sqrt(3) - 1*INITIAL_DIST/ShapeScale},
+      // {isSeed: false,isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * -Math.sqrt(3) - 2*INITIAL_DIST/ShapeScale},
     ].forEach(shapePos => {
       uidCounter++;
 
@@ -424,7 +426,7 @@ class Pitch {
         // shapePos.y += noise(0.1 * RADIUS/ShapeScale);
       }
 
-      let b = this.physics.circle(shapePosToPhysPos(shapePos), Math.random() * 2*Math.PI /* Math.PI/2*/, RADIUS, uidCounter);
+      let b = this.physics.circle(shapePosToPhysPos(shapePos), /*Math.random() * 2*Math.PI*/ Math.PI/2, RADIUS, uidCounter);
       b.robot = new GradientAndAssemblyRobot({
         shapeDesc: ShapeDesc,
         shapeScale: ShapeScale,
@@ -450,11 +452,11 @@ class Pitch {
 
       let pos = {
         x: RootSeedGraphicsPos.x + RADIUS,
-        y: RootSeedGraphicsPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS, // + 2*RADIUS,
+        y: RootSeedGraphicsPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS + extraCount*INITIAL_DIST ,
       };
 
       if(PER_ROW % 2 == 0) {
-        pos.y = RootSeedGraphicsPos.y + Math.sqrt(3) * RADIUS + Math.sqrt(3)*RADIUS;
+        pos.y = RootSeedGraphicsPos.y + Math.sqrt(3) * RADIUS + Math.sqrt(3)*INITIAL_DIST/2 + extraCount*INITIAL_DIST;
       }
 
       let firstToLastCentersInOneRow = (PER_ROW-1)*INITIAL_DIST;
@@ -466,7 +468,7 @@ class Pitch {
         pos.y += noise(0.1 * RADIUS/ShapeScale);
       }
 
-      let b = this.physics.circle(pos, Math.random() * 2*Math.PI /*Math.PI/2*/, RADIUS, uidCounter);
+      let b = this.physics.circle(pos, /*Math.random() * 2*Math.PI*/ Math.PI/2, RADIUS, uidCounter);
       b.robot = new GradientAndAssemblyRobot({
         shapeDesc: ShapeDesc,
         shapeScale: ShapeScale,
@@ -1210,11 +1212,11 @@ class Box2DPhysics {
     // if(BENCHMARKING) {
     //   b2bodyDef.set_type(Box2D.b2_staticBody);
     // } else {
-    ///if(id == 1 || id == 2 || id == 3 || id == 4) {
-    ///  b2bodyDef.set_type(Box2D.b2_staticBody);
-    ///} else {
+    if(id == 1 || id == 2 || id == 3 || id == 4) {
+      b2bodyDef.set_type(Box2D.b2_staticBody);
+    } else {
       b2bodyDef.set_type(Box2D.b2_dynamicBody);
-    ///}
+    }
     //   b2bodyDef.set_type(Box2D.b2_staticBody);
     // }
 

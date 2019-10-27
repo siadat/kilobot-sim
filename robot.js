@@ -1,7 +1,7 @@
 const GRADIENT_DIST = INITIAL_DIST + 1*RADIUS;
 const HESITATE_DURATION = 20 * TICKS_BETWEEN_MSGS;
 const NEIGHBOUR_EXPIRY = 2 * TICKS_BETWEEN_MSGS;
-const DESIRED_SHAPE_DIST = 3*RADIUS/ShapeScale;
+const DESIRED_SHAPE_DIST = 3.5*RADIUS/ShapeScale;
 const calculateDistance = function(pos1, pos2) {
   return Math.sqrt(
     Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
@@ -120,7 +120,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     let nIDs = Object.keys(this.neighbors);
     nIDs = nIDs.filter(nid => this.neighbors[nid].shapePos != null && this.neighbors[nid].isStationary);
     // nIDs.sort((a, b) => this.neighbors[a].neighborGradient - this.neighbors[b].neighborGradient);
-    nIDs.sort((a, b) => this.neighbors[a].measuredDist - this.neighbors[b].measuredDist);
+    nIDs.sort((a, b) => -(this.neighbors[a].measuredDist - this.neighbors[b].measuredDist));
     let ncount = nIDs.length;
 
     if(ncount < 3) {
