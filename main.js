@@ -129,12 +129,13 @@ class Pitch {
         let g = new PIXI.Graphics()
         g.zIndex = 1;
         g.alpha = 0.3;
-        g.drawn = false;
+        g.lastView = null;
 
         this.pixiApp.stage.addChild(g);
         this.pixiApp.ticker.add(() => {
-          // if(g.drawn) return;
-          // g.drawn = true;
+          if(equalViews(g.lastView, V)) return;
+          g.lastView = copyView(V);
+
           g.clear();
           if(!DRAW_SHAPE_DESCRIPTION) return;
 
@@ -148,23 +149,23 @@ class Pitch {
             shapeMarks[key] = (shapeMarks[key] || 0) + 1
           });
 
-          g.lineStyle(1, 0x000000);
+          g.lineStyle(0, 0x000000);
+          g.beginFill(0x888888);
+
           for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
             let row = ShapeDesc[rowi];
             for(let coli = 0; coli < row.length; coli++) {
               if(row[coli] != '#') {
                 continue;
               }
-              if(shapeMarks[`${rowi}:${coli}`]) {
-                g.beginFill(0x008800);
-              } else {
-                g.beginFill(0x888888);
-              }
+              // if(shapeMarks[`${rowi}:${coli}`]) {
+              //   g.beginFill(0x008800);
+              // }
               g.drawRect(
                 V.PAN.x + V.ZOOM * (RootSeedGraphicsPos.x + coli * ShapeScale),
                 V.PAN.y + V.ZOOM * (RootSeedGraphicsPos.y - (ShapeDesc.length - rowi - 1) * ShapeScale),
-                V.ZOOM * (ShapeScale),
-                -V.ZOOM * (ShapeScale),
+                V.ZOOM * (ShapeScale) - 1,
+                -(V.ZOOM * (ShapeScale) - 1),
               );
             }
           }
@@ -175,8 +176,7 @@ class Pitch {
         // position vectors
         let g = new PIXI.Graphics()
         g.zIndex = 1;
-        g.alpha = 0.5;
-        // g.beginFill(b.robot.led.toHexDark());
+        g.alpha = 0.25;
 
         this.pixiApp.stage.addChild(g);
         this.pixiApp.ticker.add(() => {
@@ -290,10 +290,8 @@ class Pitch {
           connGraphics.alpha = 0.5;
           this.pixiApp.stage.addChild(connGraphics);
           this.pixiApp.ticker.add(() => {
-            // if(!DRAW_CONNS_AND_BOUNDS) return;
-            // if(connGraphics.drawn) return;
             connGraphics.clear();
-            connGraphics.drawn = true;
+            if(!DRAW_CONNS_AND_BOUNDS) return;
 
             let bounds = [];
             for(let i = 0; i < this.bodyIDs.length; i++) {
@@ -346,7 +344,9 @@ class Pitch {
 
       document.body.appendChild(this.pixiApp.view);
       this.pixiApp.view.addEventListener('mousewheel', ev => {
-        V.ZOOM += ev.wheelDelta/1000.0;
+        V.ZOOM *= 1 + ev.wheelDelta/1000.0;
+        if(V.ZOOM < 6) V.ZOOM = 6;
+        if(V.ZOOM > 100) V.ZOOM = 100;
         // TODO: this._graphics_must_update = true;
       });
 
@@ -367,7 +367,6 @@ class Pitch {
         if(!this.dragStart) return;
         V.PAN.x = this.dragStart.panX + (ev.x - this.dragStart.x);
         V.PAN.y = this.dragStart.panY + (ev.y - this.dragStart.y);
-        console.log("dragging");
       });
 
       // update at least once:
@@ -463,8 +462,8 @@ class Pitch {
       pos.y += rowi * (INITIAL_DIST/2*Math.sqrt(3));
 
       if(!PERFECT) {
-        pos.x += noise(0.5 * RADIUS/ShapeScale);
-        pos.y += noise(0.5 * RADIUS/ShapeScale);
+        pos.x += noise(0.1 * RADIUS/ShapeScale);
+        pos.y += noise(0.1 * RADIUS/ShapeScale);
       }
 
       let b = this.physics.circle(pos, Math.random() * 2*Math.PI /*Math.PI/2*/, RADIUS, uidCounter);
@@ -915,6 +914,8 @@ class Pitch {
     switch(b.label) {
       case "Circle Body":
         const g = new PIXI.Graphics();
+        g.lastView = null;
+
         // SIMPLIFIED GRAPHICS
         if(false && BENCHMARKING) {
           const agentGraphicsTick = (b) => {
@@ -1000,11 +1001,15 @@ class Pitch {
           g.angle = angle;
           g.zIndex = 1;
 
-          if(!b.robot._graphics_must_update) {
-            return;
-          } else {
-            b.robot._updated_graphics();
+          if(equalViews(g.lastView, V)) {
+            if(!b.robot._graphics_must_update) {
+              return;
+            } else {
+              b.robot._updated_graphics();
+            }
           }
+          g.lastView = copyView(V);
+
 
           g.clear();
           g.removeChildren();
