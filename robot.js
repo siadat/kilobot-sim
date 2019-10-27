@@ -1,12 +1,3 @@
-const COLORS = [
-  new RGB(3, 0, 0), // red
-  new RGB(3, 0, 3), // magenta
-  new RGB(0, 0, 3), // blue
-  new RGB(0, 3, 3), // cyan
-  new RGB(0, 3, 0), // green
-  new RGB(3, 3, 0), // yellow
-];
-
 const GRADIENT_DIST = INITIAL_DIST + 1*RADIUS;
 const HESITATE_DURATION = 20 * TICKS_BETWEEN_MSGS;
 const NEIGHBOUR_EXPIRY = 2 * TICKS_BETWEEN_MSGS;
@@ -66,6 +57,15 @@ class GradientAndAssemblyRobot extends Kilobot {
     // this.slowDown = false;
 
     this.switchToState(States.Start);
+    this.COLORS = [
+      this.RGB(3, 0, 0), // red
+      this.RGB(3, 0, 3), // magenta
+      this.RGB(0, 0, 3), // blue
+      this.RGB(0, 3, 3), // cyan
+      this.RGB(0, 3, 0), // green
+      this.RGB(3, 3, 0), // yellow
+    ];
+
   }
 
   setup() {
@@ -76,15 +76,15 @@ class GradientAndAssemblyRobot extends Kilobot {
     // this.localizeCounter = 0;
 
     if(this.isSeed) {
-      this.set_color(new RGB(3, 3, 3));
+      this.set_color(this.RGB(3, 3, 3));
     } else {
-      this.set_color(new RGB(2, 2, 2));
+      this.set_color(this.RGB(2, 2, 2));
     }
   }
 
   smoothColor(x, b) {
     // Usage::
-    //   this.set_color(new RGB(
+    //   this.set_color(this.RGB(
     //     this.smoothColor(Math.floor(c / (4*4)), 4),
     //     this.smoothColor(Math.floor(c / (4)), 4),
     //     this.smoothColor(c, 4),
@@ -113,7 +113,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     if(g == null) {
       return;
     }
-    this.set_color(COLORS[g % COLORS.length]);
+    this.set_color(this.COLORS[g % this.COLORS.length]);
   }
 
 

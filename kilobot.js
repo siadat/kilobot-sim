@@ -1,6 +1,6 @@
 class Kilobot {
   constructor() {
-    this.led = new RGB(0, 0, 0);
+    this.led = new RGBClass(0, 0, 0);
     this._graphics_must_update = true;
     this._uid = -1;
     this._seed = 0;
@@ -86,7 +86,7 @@ class Kilobot {
     let newCoef = 1.0;
 
     let coef = newCoef * 3 * 0.01 * (RADIUS*RADIUS*RADIUS) / 0.015625 / 0.0416666;
-    
+
 
     let angle = Math.PI * this._phys.GetAngle() / 180.0;
     if(!PERFECT) {
@@ -199,18 +199,27 @@ class Kilobot {
     this._graphics_must_update = true;
   }
 
+  RGB(r, g, b) {
+    return (r<<4) | (g<<2) | (b<<0);
+  }
+
   set_color(rgb) {
-    if(  rgb.r == this.led.r
-      && rgb.g == this.led.g 
-      && rgb.b == this.led.b) {
+    let r = (0b000011 & rgb) >> 0;
+    let g = (0b001100 & rgb) >> 2;
+    let b = (0b110000 & rgb) >> 4;
+
+    if(  r == this.led.r
+      && g == this.led.g
+      && b == this.led.b) {
       return;
     }
-    this.led = rgb;
+    this.led = new RGBClass(r, g, b);
     this._graphics_must_update = true;
   }
 }
 
-class RGB {
+
+class RGBClass {
   constructor(r, g, b) {
     if(r < 0 || r > 3) {
       console.error("r must be between 0 and 3", r);
