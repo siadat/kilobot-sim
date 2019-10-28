@@ -749,11 +749,6 @@ class Pitch {
           return ContinueQuery;
         }
 
-        // ---
-        let aabb = new Box2D.b2AABB();
-        let lowerBound = new Box2D.b2Vec2(0, 0);
-        let upperBound = new Box2D.b2Vec2(0, 0);
-
         {
           /*
           if(frameCount % 2 == 0) {
@@ -775,6 +770,7 @@ class Pitch {
           }
           */
 
+          /*
           if(frameCount % 1 == 0) {
             for(let i = 0; i < this.bodyIDs.length; i++) {
               let body = this.bodies[this.bodyIDs[i]].body;
@@ -790,9 +786,14 @@ class Pitch {
               }
             }
           }
+          */
         }
 
 
+        // ---
+        let aabb = new Box2D.b2AABB();
+        let lowerBound = new Box2D.b2Vec2(0, 0);
+        let upperBound = new Box2D.b2Vec2(0, 0);
 
         if(true) // 88 -> 68
         for(let i = 0; i < this.bodyIDs.length; i++) {
@@ -880,9 +881,11 @@ class Pitch {
         this.setDisplayedData('message_tx()/robot', Math.round(messageTxCount/COUNT * 100)/100);
         this.setDisplayedData('message_rx()', messageRxCount);
         this.setDisplayedData('message_rx()/robot', Math.round(messageRxCount/COUNT * 100)/100);
+
         Box2D.destroy(lowerBound);
         Box2D.destroy(upperBound);
         Box2D.destroy(aabb);
+        Box2D.destroy(queryCallback);
 
         if(!recursive) {
           return;
