@@ -530,24 +530,109 @@ class Pitch {
       this.createBodyGraphic(b);
     });
 
+    let grid = {};
+    let gridCursor = {
+      x: 0,
+      y: -1,
+    };
+    // Constraints while choosing one of the 6 neighbors:
+    // - y > 0
+    // - dist to shape > 3 * RADIUS
+    // - dist to seeds > 3 * RADIUS
+    // - always choose the closest
+
     let assemblyCount = COUNT - Object.keys(this.bodies).length;
+    let gridPosToPhysPos = (gridPos) => {
+      let pos = {
+        x: (RootSeedPos.x + RADIUS),
+        y: (RootSeedPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS),
+      };
+
+      pos.x += gridPos.x * INITIAL_DIST + (gridPos.y%2==0 ? -INITIAL_DIST/2 : 0);
+      pos.y += gridPos.y * INITIAL_DIST * Math.sqrt(3)/2;
+      return pos;
+    }
+
     for(let i = 0; i < assemblyCount; i++) {
+
+      let best = [
+                    [0,-1],    [+1,-1],
+        [-1, 0],    /*cursor*/ [+1, 0],
+                    [0,+1],    [+1,+1],
+      ].map(adjacentPoint => {
+        let check = {
+          x: gridCursor.x + adjacentPoint[0],
+          y: gridCursor.y + adjacentPoint[1],
+        }
+
+        if(grid[`${check.x}:${check.y}`])
+          return null;
+
+        if(check.y < 0) return null;
+
+        /*
+        if(check.x >= -10 && check.x <= 10 && check.y >= 0) {
+        } else {
+          for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
+            let row = ShapeDesc[rowi];
+            for(let coli = 0; coli < row.length; coli++) {
+              if(row[coli] != '#')
+                continue;
+              let p = {
+                x: ShapePosOffset.x + coli*_ShapeScale,
+                y: ShapePosOffset.y - (ShapeDesc.length-1 - rowi)*_ShapeScale,
+              }
+              if(calcDist(gridPosToPhysPos(check), p) < 4*INITIAL_DIST) {
+                return null;
+              }
+            }
+          }
+        }
+        */
+
+
+        let distToOrigin = calcDist(gridPosToPhysPos(check), gridPosToPhysPos({x: 0, y: 0}));
+
+        // if(i > 2)
+        // if(distToOrigin < 2*INITIAL_DIST) return null;
+
+        return {
+          x: check.x,
+          y: check.y,
+          dist: distToOrigin,
+        };
+      }).filter(x => x != null).sort((a, b) => a.dist - b.dist)[0];
+
+      if(best == null) {
+        console.error("'best' should not be null");
+        return;
+      }
+
+      grid[`${best.x}:${best.y}`] = true;
+
+      let pos = gridPosToPhysPos(best);
+
+      gridCursor.x = best.x;
+      gridCursor.y = best.y;
+
+      uidCounter++;
+      /*
       uidCounter++;
       let rowi = Math.floor(i/PER_ROW);
       let coli = i % PER_ROW;
 
       let pos = {
         x: RootSeedPos.x + RADIUS,
-        y: RootSeedPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS + extraCount*INITIAL_DIST ,
+        y: RootSeedPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS + extraCount*INITIAL_DIST,
       };
 
       if(PER_ROW % 2 == 0) {
         pos.y = RootSeedPos.y + Math.sqrt(3) * RADIUS + Math.sqrt(3)*INITIAL_DIST/2 + extraCount*INITIAL_DIST;
-      }
-
+      } 
       let firstToLastCentersInOneRow = (PER_ROW-1)*INITIAL_DIST;
       pos.x += coli * INITIAL_DIST - firstToLastCentersInOneRow/2 + (INITIAL_DIST/2)*(rowi%2);
       pos.y += rowi * (INITIAL_DIST/2*Math.sqrt(3));
+      */
 
       if(!PERFECT) {
         pos.x += noise(0.1 * RADIUS);
@@ -1276,7 +1361,7 @@ class Box2DPhysics {
 
   update() {
     // if(!BENCHMARKING) {
-      this.world.Step(1.0/60.0, 8, 3); // 8, 2
+    this.world.Step(1.0/60.0, 8, 3); // 8, 2
     // }
     this.currentFrame++;
   }

@@ -1,4 +1,4 @@
-const GRADIENT_DIST = INITIAL_DIST + 1*RADIUS;
+const GRADIENT_DIST = 1.5*INITIAL_DIST;
 const HESITATE_DURATION = 20 * TICKS_BETWEEN_MSGS;
 const NEIGHBOUR_EXPIRY = 2 * TICKS_BETWEEN_MSGS;
 const DESIRED_SHAPE_DIST = 3.5*RADIUS;
@@ -171,7 +171,7 @@ class GradientAndAssemblyRobot extends Kilobot {
            n.shapePos != null
         && n.isStationary
         && n.neighborGradient != null
-        && (n.neighborState == States.JoinedShape || n.neighborGradient < this.myGradient)
+        && (/*n.neighborState == States.JoinedShape ||*/ n.neighborGradient < this.myGradient)
       );
     }).sort((a, b) => {
       return +(this.neighbors[a].measuredDist - this.neighbors[b].measuredDist);
