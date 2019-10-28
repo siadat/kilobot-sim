@@ -420,10 +420,25 @@ class Pitch {
 
       document.body.appendChild(this.pixiApp.view);
       this.pixiApp.view.addEventListener('mousewheel', ev => {
-        V.ZOOM *= 1 + ev.wheelDelta/1000.0;
-        if(V.ZOOM < 6) V.ZOOM = 6;
-        if(V.ZOOM > 40) V.ZOOM = 40;
-        // TODO: this._graphics_must_update = true;
+        let nextZoom = V.ZOOM * (1 + ev.wheelDelta/1000.0);
+        if(nextZoom < 2) nextZoom = 2;
+        if(nextZoom > 40) nextZoom = 40;
+
+        let centerWithoutZoom = {
+          // x: (V.PAN.x-SIZE.w/2)/V.ZOOM,
+          // y: (V.PAN.y-SIZE.h/2)/V.ZOOM,
+          x: (V.PAN.x - ev.clientX)/V.ZOOM,
+          y: (V.PAN.y - ev.clientY)/V.ZOOM,
+        }
+
+        V.PAN.x += (centerWithoutZoom.x * nextZoom - centerWithoutZoom.x * V.ZOOM);
+        V.PAN.y += (centerWithoutZoom.y * nextZoom - centerWithoutZoom.y * V.ZOOM);
+
+        V.ZOOM = nextZoom;
+
+        localStorage.setItem('V.ZOOM', V.ZOOM);
+        localStorage.setItem('V.PAN.x', V.PAN.x);
+        localStorage.setItem('V.PAN.y', V.PAN.y);
       });
 
       this.pixiApp.view.addEventListener('pointerdown', ev => {
@@ -443,6 +458,8 @@ class Pitch {
         if(!this.dragStart) return;
         V.PAN.x = this.dragStart.panX + (ev.x - this.dragStart.x);
         V.PAN.y = this.dragStart.panY + (ev.y - this.dragStart.y);
+        localStorage.setItem('V.PAN.x', V.PAN.x);
+        localStorage.setItem('V.PAN.y', V.PAN.y);
       });
 
       // update at least once:
@@ -1062,9 +1079,11 @@ class Pitch {
               } else {
                 this.tickBatchCount -= 1;
               }
-              if(this.tickBatchCount < 1) {
-                this.tickBatchCount = 1;
-              }
+
+              // this.tickBatchCount = 1;
+              if(this.tickBatchCount < 1) this.tickBatchCount = 1;
+              //if(this.tickBatchCount > 3) this.tickBatchCount = 3;
+
               this.setDisplayedData('Tick batch', Math.round(this.tickBatchCount));
 
               // if(BENCHMARKING) {
@@ -1218,7 +1237,7 @@ class Pitch {
           }
           */
           g.endFill();
-          g.lineStyle(b.circleRadius*V.ZOOM*0.25, b.robot.led.toHex(), 0.75);
+          g.lineStyle(b.circleRadius*V.ZOOM*0.25, 0x000000 /*b.robot.led.toHex()*/, 0.75);
           g.moveTo(0, 0);
           g.lineTo(b.circleRadius*V.ZOOM, 0);
 

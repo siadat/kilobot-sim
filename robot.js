@@ -2,6 +2,7 @@ const GRADIENT_DIST = 1.5*INITIAL_DIST;
 const HESITATE_DURATION = 20 * TICKS_BETWEEN_MSGS;
 const NEIGHBOUR_EXPIRY = 2 * TICKS_BETWEEN_MSGS;
 const DESIRED_SHAPE_DIST = 3.5*RADIUS;
+const NEARBY_MOVING_DISTANCE = 4*DESIRED_SHAPE_DIST;
 const calculateDistance = function(pos1, pos2) {
   return Math.sqrt(
     Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
@@ -50,6 +51,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.edgeFollowingAge = 0;
     this.lastExpireCheck = -1;
     this.isInsideShape = opts.isInsideShape;
+    this.edgeFollowingStartedAt = null;
 
     this.switchToState(States.Start);
     this.COLORS = [
@@ -469,7 +471,8 @@ class GradientAndAssemblyRobot extends Kilobot {
         return;
 
       if(n.isStationary) return;
-
+      if(n.measuredDist > NEARBY_MOVING_DISTANCE) return;
+      // if(n.neighborUID < this.kilo_uid) return;
       if(n.edgeFollowingAge < this.edgeFollowingAge) return;
 
       seen = true;
@@ -491,6 +494,9 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   doEdgeFollow() {
+    if(this.edgeFollowingStartedAt == null) {
+      this.edgeFollowingStartedAt = this.counter;
+    }
     this.edgeFollowingAge++;
     let nn = this.getNearestNeighbor();
     if(nn == null) return;
@@ -649,7 +655,7 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   hesitate(what) {
-    this.hesitateData[what] = this.counter;
+    this.hesitateData[what] = this.counter + HESITATE_DURATION*(MathRandom()*0.2);
   }
 
   isHesitating(what) {
