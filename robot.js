@@ -430,7 +430,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       // because 0,0 is always inside the shape!
       this.shapePos = {
         x: 0,
-        y: 10*RADIUS,
+        y: 10*INITIAL_DIST,
       };
     }
 

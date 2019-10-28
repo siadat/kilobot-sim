@@ -499,10 +499,10 @@ class Pitch {
 
     let extraCount = 0;
     [
-      {isSeed: true, isRoot: true,  x: 0*RADIUS, y: RADIUS * 0},
-      {isSeed: true, isRoot: false, x: 2*RADIUS, y: RADIUS * 0},
-      {isSeed: true, isRoot: false, x: 1*RADIUS, y: RADIUS * +Math.sqrt(3)},
-      {isSeed: true, isRoot: false, x: 1*RADIUS, y: RADIUS * -Math.sqrt(3)},
+      {isSeed: true, isRoot: true,  x: 0*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
+      {isSeed: true, isRoot: false, x: 2*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
+      {isSeed: true, isRoot: false, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * +Math.sqrt(3)},
+      {isSeed: true, isRoot: false, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * -Math.sqrt(3)},
       // {isSeed: false,isRoot: false, x: 1*RADIUS, y: RADIUS * -Math.sqrt(3) - 1*INITIAL_DIST},
       // {isSeed: false,isRoot: false, x: 1*RADIUS, y: RADIUS * -Math.sqrt(3) - 2*INITIAL_DIST},
     ].forEach(shapePos => {
@@ -544,8 +544,8 @@ class Pitch {
     let assemblyCount = COUNT - Object.keys(this.bodies).length;
     let gridPosToPhysPos = (gridPos) => {
       let pos = {
-        x: (RootSeedPos.x + RADIUS),
-        y: (RootSeedPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS),
+        x: (RootSeedPos.x + INITIAL_DIST/2),
+        y: (RootSeedPos.y + Math.sqrt(3) * INITIAL_DIST/2 + 2*INITIAL_DIST/2),
       };
 
       pos.x += gridPos.x * INITIAL_DIST + (gridPos.y%2==0 ? -INITIAL_DIST/2 : 0);
@@ -568,27 +568,27 @@ class Pitch {
         if(grid[`${check.x}:${check.y}`])
           return null;
 
-        if(check.y < 0) return null;
 
-        /*
-        if(check.x >= -10 && check.x <= 10 && check.y >= 0) {
+        if(true) {
+          if(check.y < 0) return null;
         } else {
-          for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
-            let row = ShapeDesc[rowi];
-            for(let coli = 0; coli < row.length; coli++) {
-              if(row[coli] != '#')
-                continue;
-              let p = {
-                x: ShapePosOffset.x + coli*_ShapeScale,
-                y: ShapePosOffset.y - (ShapeDesc.length-1 - rowi)*_ShapeScale,
-              }
-              if(calcDist(gridPosToPhysPos(check), p) < 4*INITIAL_DIST) {
-                return null;
+          if(!(check.x >= -10 && check.x <= 10 && check.y >= 0)) {
+            for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
+              let row = ShapeDesc[rowi];
+              for(let coli = 0; coli < row.length; coli++) {
+                if(row[coli] != '#')
+                  continue;
+                let p = {
+                  x: ShapePosOffset.x + coli*_ShapeScale,
+                  y: ShapePosOffset.y - (ShapeDesc.length-1 - rowi)*_ShapeScale,
+                }
+                if(calcDist(gridPosToPhysPos(check), p) < 4*INITIAL_DIST) {
+                  return null;
+                }
               }
             }
           }
         }
-        */
 
 
         let distToOrigin = calcDist(gridPosToPhysPos(check), gridPosToPhysPos({x: 0, y: 0}));
@@ -617,7 +617,6 @@ class Pitch {
 
       uidCounter++;
       /*
-      uidCounter++;
       let rowi = Math.floor(i/PER_ROW);
       let coli = i % PER_ROW;
 
