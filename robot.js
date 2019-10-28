@@ -1,7 +1,7 @@
 const GRADIENT_DIST = INITIAL_DIST + 1*RADIUS;
 const HESITATE_DURATION = 20 * TICKS_BETWEEN_MSGS;
 const NEIGHBOUR_EXPIRY = 2 * TICKS_BETWEEN_MSGS;
-const DESIRED_SHAPE_DIST = 3.5*RADIUS/ShapeScale;
+const DESIRED_SHAPE_DIST = 3.5*RADIUS;
 const calculateDistance = function(pos1, pos2) {
   return Math.sqrt(
     Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
@@ -22,10 +22,6 @@ const isTriangleRobust = (points) => {
   let minAngle = Math.min(a[0], a[1], a[2]);
   let minEdge  = Math.min(e[0], e[1], e[2]);
 
-  // let d = minEdge * pow2(Math.sin(minAngle));
-  // if(isNaN(d)) return false;
-  // return d > ? * this.shapeScale;
-
   if(isNaN(minAngle)) return false;
   return minAngle > Math.PI * 20 / 180;
 }
@@ -42,7 +38,6 @@ const States = {
 class GradientAndAssemblyRobot extends Kilobot {
   constructor(opts) {
     super();
-    this.shapeScale = opts.shapeScale;
     this.shapeDesc = opts.shapeDesc;
     this.isSeed = opts.isSeed;
     this.isGradientSeed = opts.isGradientSeed;
@@ -284,7 +279,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       let y3 = closestNeighbours[2].shapePos.y;
 
       let area = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2);
-      if(Math.abs(area) > Math.sqrt(3) * pow2(RADIUS/this.shapeScale)) {
+      if(Math.abs(area) > Math.sqrt(3) * pow2(RADIUS)) {
         break;
       }
 
@@ -434,7 +429,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       // because 0,0 is always inside the shape!
       this.shapePos = {
         x: 0,
-        y: -10,
+        y: 10*RADIUS,
       };
     }
 
@@ -455,8 +450,8 @@ class GradientAndAssemblyRobot extends Kilobot {
         };
       }
       let n = {
-        x: neigh.shapePos.x + (neigh.measuredDist/this.shapeScale) * v.x,
-        y: neigh.shapePos.y + (neigh.measuredDist/this.shapeScale) * v.y,
+        x: neigh.shapePos.x + (neigh.measuredDist) * v.x,
+        y: neigh.shapePos.y + (neigh.measuredDist) * v.y,
       }
       this.shapePos = {
         x: this.shapePos.x + (n.x - this.shapePos.x)/4,
@@ -498,10 +493,11 @@ class GradientAndAssemblyRobot extends Kilobot {
     if(this.shapePos == null)
       return false;
 
-    let x = Math.floor(this.shapePos.x);
-    let y = this.shapeDesc.length - Math.floor(this.shapePos.y) - 1;
+    let i = Math.floor(+(this.shapePos.x-ShapePosOffset.x)/_ShapeScale);
+    let j = Math.floor(-(this.shapePos.y-ShapePosOffset.y)/_ShapeScale);
+    j = this.shapeDesc.length - 1 - j;
 
-    return this.shapeDesc[y] && this.shapeDesc[y][x] == '#';
+    return this.shapeDesc[j] && this.shapeDesc[j][i] == '#';
   }
 
   doEdgeFollow() {
@@ -509,7 +505,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     let nn = this.getNearestNeighbor();
     if(nn == null) return;
 
-    let tooClose = nn.measuredDist/this.shapeScale < DESIRED_SHAPE_DIST;
+    let tooClose = nn.measuredDist < DESIRED_SHAPE_DIST;
     let gettingFarther = this.prevNearestNeighDist < nn.measuredDist;
     let noNewData = this.prevNearestNeighDist == nn.measuredDist;
     this.prevNearestNeighDist = nn.measuredDist;

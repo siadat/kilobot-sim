@@ -139,15 +139,19 @@ class Pitch {
           g.clear();
           if(!DRAW_SHAPE_DESCRIPTION) return;
 
-          let shapeMarks = {};
+          let highlightJoined = false;
 
-          forEachObj(this.bodies, b => {
-            let p = b.body.GetPosition();
-            let i = Math.floor(+(p.get_x() - RootSeedGraphicsPos.x)/ShapeScale);
-            let j = Math.floor(-(p.get_y() - RootSeedGraphicsPos.y)/ShapeScale);
-            let key = `${ShapeDesc.length - j - 1}:${i}`;
-            shapeMarks[key] = (shapeMarks[key] || 0) + 1
-          });
+          let shapeMarks = {};
+          if(highlightJoined) {
+            forEachObj(this.bodies, b => {
+              // if(b.robot._uid != 1) return;
+              let p = b.body.GetPosition();
+              let i = Math.floor(+(p.get_x() - ShapePosOffset.x)/_ShapeScale);
+              let j = Math.floor(-(p.get_y() - ShapePosOffset.y)/_ShapeScale);
+              let key = `${ShapeDesc.length - 1 - j}:${i}`;
+              shapeMarks[key] = (shapeMarks[key] || 0) + 1
+            });
+          }
 
           g.lineStyle(0, 0x000000);
           g.beginFill(0x888888);
@@ -158,19 +162,49 @@ class Pitch {
               if(row[coli] != '#') {
                 continue;
               }
-              // if(shapeMarks[`${rowi}:${coli}`]) {
-              //   g.beginFill(0x008800);
-              // }
+              if(highlightJoined) {
+                if(shapeMarks[`${rowi}:${coli}`]) {
+                  g.beginFill(0x008800);
+                } else {
+                  g.beginFill(0x888888);
+                }
+              }
+
+              let x = ShapePosOffset.x + coli*_ShapeScale;
+              let y = ShapePosOffset.y - (ShapeDesc.length-1 - rowi)*_ShapeScale;
               g.drawRect(
-                V.PAN.x + V.ZOOM * (RootSeedGraphicsPos.x + coli * ShapeScale),
-                V.PAN.y + V.ZOOM * (RootSeedGraphicsPos.y - (ShapeDesc.length - rowi - 1) * ShapeScale),
-                V.ZOOM * (ShapeScale) - 1,
-                -(V.ZOOM * (ShapeScale) - 1),
+                V.PAN.x + V.ZOOM * x,
+                V.PAN.y + V.ZOOM * y,
+                +(V.ZOOM * _ShapeScale - 1),
+                -(V.ZOOM * _ShapeScale - 1),
               );
             }
           }
         });
       }
+
+      if(false) { // origin grid
+        let g = new PIXI.Graphics()
+        g.zIndex = 1;
+        g.alpha = 0.5;
+        g.lastView = null;
+
+        this.pixiApp.stage.addChild(g);
+        this.pixiApp.ticker.add(() => {
+          if(equalViews(g.lastView, V)) return;
+          g.clear();
+          g.lineStyle(4, 0x000000);
+          g.endFill();
+
+          let s = 10 * _ShapeScale;
+          g.moveTo(V.PAN.x - s * V.ZOOM, V.PAN.y + 0 * V.ZOOM);
+          g.lineTo(V.PAN.x + s * V.ZOOM, V.PAN.y + 0 * V.ZOOM)
+
+          g.moveTo(V.PAN.x + 0 * V.ZOOM, V.PAN.y - s * V.ZOOM);
+          g.lineTo(V.PAN.x + 0 * V.ZOOM, V.PAN.y + s * V.ZOOM);
+        });
+      }
+
 
       if(DRAW_SHADOW) {
         // position vectors
@@ -229,8 +263,8 @@ class Pitch {
               y: V.PAN.y + pos.y * V.ZOOM,
             }
             let posEstimated = {
-              x: V.PAN.x + RootSeedGraphicsPos.x * V.ZOOM + shapePos.x * ShapeScale * V.ZOOM,
-              y: V.PAN.y + RootSeedGraphicsPos.y * V.ZOOM - shapePos.y * ShapeScale * V.ZOOM,
+              x: V.PAN.x + (RootSeedPos.x + shapePos.x) * V.ZOOM,
+              y: V.PAN.y + (RootSeedPos.y + shapePos.y) * V.ZOOM,
             }
             let dist = calcDist(posActual, posEstimated);
             // errorMagnitude += dist
@@ -447,31 +481,30 @@ class Pitch {
 
     const shapePosToPhysPos = (shapePos) => {
       return {
-        x: RootSeedGraphicsPos.x + ShapeScale*shapePos.x,
-        y: RootSeedGraphicsPos.y - ShapeScale*shapePos.y, // y-axis in shape goes up, in physics goes down
+        x: RootSeedPos.x + shapePos.x,
+        y: RootSeedPos.y + shapePos.y,
       };
     }
 
     let extraCount = 0;
     [
-      {isSeed: true, isRoot: true,  x: 0*RADIUS/ShapeScale, y: RADIUS/ShapeScale * 0},
-      {isSeed: true, isRoot: false, x: 2*RADIUS/ShapeScale, y: RADIUS/ShapeScale * 0},
-      {isSeed: true, isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * +Math.sqrt(3)},
-      {isSeed: true, isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * -Math.sqrt(3)},
-      // {isSeed: false,isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * -Math.sqrt(3) - 1*INITIAL_DIST/ShapeScale},
-      // {isSeed: false,isRoot: false, x: 1*RADIUS/ShapeScale, y: RADIUS/ShapeScale * -Math.sqrt(3) - 2*INITIAL_DIST/ShapeScale},
+      {isSeed: true, isRoot: true,  x: 0*RADIUS, y: RADIUS * 0},
+      {isSeed: true, isRoot: false, x: 2*RADIUS, y: RADIUS * 0},
+      {isSeed: true, isRoot: false, x: 1*RADIUS, y: RADIUS * +Math.sqrt(3)},
+      {isSeed: true, isRoot: false, x: 1*RADIUS, y: RADIUS * -Math.sqrt(3)},
+      // {isSeed: false,isRoot: false, x: 1*RADIUS, y: RADIUS * -Math.sqrt(3) - 1*INITIAL_DIST},
+      // {isSeed: false,isRoot: false, x: 1*RADIUS, y: RADIUS * -Math.sqrt(3) - 2*INITIAL_DIST},
     ].forEach(shapePos => {
       uidCounter++;
 
       if(!PERFECT) {
-        // shapePos.x += noise(0.1 * RADIUS/ShapeScale);
-        // shapePos.y += noise(0.1 * RADIUS/ShapeScale);
+        // shapePos.x += noise(0.1 * RADIUS);
+        // shapePos.y += noise(0.1 * RADIUS);
       }
 
       let b = this.physics.circle(shapePosToPhysPos(shapePos), /*Math.random() * 2*Math.PI*/ Math.PI/2, RADIUS, uidCounter);
       b.robot = new GradientAndAssemblyRobot({
         shapeDesc: ShapeDesc,
-        shapeScale: ShapeScale,
         shapePos: shapePos.isSeed ? {x: shapePos.x, y: shapePos.y} : null,
         isGradientSeed: shapePos.isSeed && shapePos.isRoot,
         isSeed: shapePos.isSeed,
@@ -493,12 +526,12 @@ class Pitch {
       let coli = i % PER_ROW;
 
       let pos = {
-        x: RootSeedGraphicsPos.x + RADIUS,
-        y: RootSeedGraphicsPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS + extraCount*INITIAL_DIST ,
+        x: RootSeedPos.x + RADIUS,
+        y: RootSeedPos.y + Math.sqrt(3) * RADIUS + 2*RADIUS + extraCount*INITIAL_DIST ,
       };
 
       if(PER_ROW % 2 == 0) {
-        pos.y = RootSeedGraphicsPos.y + Math.sqrt(3) * RADIUS + Math.sqrt(3)*INITIAL_DIST/2 + extraCount*INITIAL_DIST;
+        pos.y = RootSeedPos.y + Math.sqrt(3) * RADIUS + Math.sqrt(3)*INITIAL_DIST/2 + extraCount*INITIAL_DIST;
       }
 
       let firstToLastCentersInOneRow = (PER_ROW-1)*INITIAL_DIST;
@@ -506,14 +539,13 @@ class Pitch {
       pos.y += rowi * (INITIAL_DIST/2*Math.sqrt(3));
 
       if(!PERFECT) {
-        pos.x += noise(0.1 * RADIUS/ShapeScale);
-        pos.y += noise(0.1 * RADIUS/ShapeScale);
+        pos.x += noise(0.1 * RADIUS);
+        pos.y += noise(0.1 * RADIUS);
       }
 
       let b = this.physics.circle(pos, /*Math.random() * 2*Math.PI*/ Math.PI/2, RADIUS, uidCounter);
       b.robot = new GradientAndAssemblyRobot({
         shapeDesc: ShapeDesc,
-        shapeScale: ShapeScale,
         shapePos: null,
         isSeed: false,
       });
