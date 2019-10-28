@@ -267,7 +267,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     */
 
     // closestNeighbours.sort((a, b) => {
-    //   return Math.random() - 0.5;
+    //   return MathRandom() - 0.5;
     // });
 
     while(closestNeighbours.length >= 3) {
@@ -292,7 +292,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       //   break;
       // }
       closestNeighbours.splice(2, 1);
-      // closestNeighbours.splice(Math.floor(Math.random() * 3), 1);
+      // closestNeighbours.splice(Math.floor(MathRandom() * 3), 1);
       // let d = Math.sqrt(pow2(slopeA) + pow2(slopeB) + pow2(slopeC));
       // if(d > 5.0) {
       //   break;
@@ -572,6 +572,7 @@ class GradientAndAssemblyRobot extends Kilobot {
         }
 
         if(this.seenRecentMovingNeighbors()) {
+          // this.edgeFollowingAge = this._uid;
           this.hesitate("movement");
           this.isStationary = true;
           this.unmark();
@@ -601,6 +602,8 @@ class GradientAndAssemblyRobot extends Kilobot {
         }
 
         if(this.seenRecentMovingNeighbors()) {
+          // this.edgeFollowingAge = this._uid;
+          this.hesitate("movement");
           this.isStationary = true;
           this.unmark();
           return;

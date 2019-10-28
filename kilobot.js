@@ -35,11 +35,11 @@ class Kilobot {
   }
 
   rand_soft() {
-    return Math.floor(256 * Math.random());
+    return Math.floor(256 * MathRandom());
   }
 
   rand_hard() {
-    return Math.floor(256 * Math.random());
+    return Math.floor(256 * MathRandom());
   }
 
   rand_seed(seed) {

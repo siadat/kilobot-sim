@@ -66,8 +66,8 @@ class MatterPhysics {
       let b = randomItem(this.movingBodies);
       const coef = 0.00000001;
       let force = {
-        x: coef * (Math.random()-0.5),
-        y: coef * (Math.random()-0.5),
+        x: coef * (MathRandom()-0.5),
+        y: coef * (MathRandom()-0.5),
       };
       Matter.Body.applyForce(b, b.position, force);
     }

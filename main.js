@@ -513,7 +513,7 @@ class Pitch {
         // shapePos.y += noise(0.1 * RADIUS);
       }
 
-      let b = this.physics.circle(shapePosToPhysPos(shapePos), /*Math.random() * 2*Math.PI*/ Math.PI/2, RADIUS, uidCounter);
+      let b = this.physics.circle(shapePosToPhysPos(shapePos), RADIUS, uidCounter);
       b.robot = new GradientAndAssemblyRobot({
         isInsideShape: isInsideShape,
         shapePos: shapePos.isSeed ? {x: shapePos.x, y: shapePos.y} : null,
@@ -638,7 +638,7 @@ class Pitch {
         pos.y += noise(0.1 * RADIUS);
       }
 
-      let b = this.physics.circle(pos, /*Math.random() * 2*Math.PI*/ Math.PI/2, RADIUS, uidCounter);
+      let b = this.physics.circle(pos, RADIUS, uidCounter);
       b.robot = new GradientAndAssemblyRobot({
         isInsideShape: isInsideShape,
         shapePos: null,
@@ -762,7 +762,7 @@ class Pitch {
         this.physics.update();
 
         if(DRAW_TRAVERSED_PATH && frameCount % 30 == 0) {
-          let max = 100;
+          let max = 5;
           forEachObj(this.bodies, b => {
             let pos = b.body.GetPosition();
             let lastPos = b.posHistory[b.posHistory.length-1];
@@ -807,8 +807,8 @@ class Pitch {
             continue;
           }
 
-          if(Math.random() < 0.1) {
-            // r.setup();
+          if(MathRandom() < 0.1) {
+            r.setup();
             r._started = true;
           }
 
@@ -819,7 +819,7 @@ class Pitch {
             continue;
           }
 
-          if(Math.random() < 0.1) {
+          if(MathRandom() < 0.1) {
             r.setup();
             this.bodyRobotIsStarted[i] = 1;
           }
@@ -1365,7 +1365,7 @@ class Box2DPhysics {
     this.currentFrame++;
   }
 
-	circle(pos, angle, radius, id) {
+	circle(pos, radius, id) {
 		let b2bodyDef = new Box2D.b2BodyDef();
     b2bodyDef.set_linearDamping(20.0);
 		b2bodyDef.set_angularDamping(20.0);
@@ -1424,7 +1424,7 @@ class Box2DPhysics {
 		// ---
 
     body.SetUserData(id);
-
+    let angle = MathRandom() * 2*Math.PI /*Math.PI/2*/;
     body.SetTransform(
       body.GetPosition(),
       180 * angle / Math.PI,
@@ -1448,7 +1448,7 @@ class Body {
     this.label = 'Circle Body';
     this.circleRadius = radius;
     this.posHistory = [];
-    this.lastMessageSentAt = Math.floor(Math.random() * 60);
+    this.lastMessageSentAt = Math.floor(MathRandom() * 60);
   }
 
   getData () {
