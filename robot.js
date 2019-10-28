@@ -49,6 +49,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.events = [];
     this.edgeFollowingAge = 0;
     this.lastExpireCheck = -1;
+    this.isInsideShape = opts.isInsideShape;
 
     this.switchToState(States.Start);
     this.COLORS = [
@@ -489,17 +490,6 @@ class GradientAndAssemblyRobot extends Kilobot {
     }
   }
 
-  isInsideShape() {
-    if(this.shapePos == null)
-      return false;
-
-    let i = Math.floor(+(this.shapePos.x-ShapePosOffset.x)/_ShapeScale);
-    let j = Math.floor(-(this.shapePos.y-ShapePosOffset.y)/_ShapeScale);
-    j = this.shapeDesc.length - 1 - j;
-
-    return this.shapeDesc[j] && this.shapeDesc[j][i] == '#';
-  }
-
   doEdgeFollow() {
     this.edgeFollowingAge++;
     let nn = this.getNearestNeighbor();
@@ -605,7 +595,7 @@ class GradientAndAssemblyRobot extends Kilobot {
         this.localize();
         this.gradientFormation();
 
-        if(this.isInsideShape()) {
+        if(this.isInsideShape(this.shapePos)) {
           // this.myGradient = null;
           this.switchToState(States.MoveWhileInside, "inside shape");
         }
@@ -627,7 +617,7 @@ class GradientAndAssemblyRobot extends Kilobot {
         this.isStationary = false;
         this.doEdgeFollow();
 
-        if(!this.isInsideShape()) {
+        if(!this.isInsideShape(this.shapePos)) {
           this.switchToState(States.JoinedShape, "went out");
           return;
         }

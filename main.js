@@ -486,6 +486,17 @@ class Pitch {
       };
     }
 
+    const isInsideShape = (pos) => {
+      if(pos == null)
+        return false;
+
+      let i = Math.floor(+(pos.x-ShapePosOffset.x)/_ShapeScale);
+      let j = Math.floor(-(pos.y-ShapePosOffset.y)/_ShapeScale);
+      j = ShapeDesc.length - 1 - j;
+
+      return ShapeDesc[j] && ShapeDesc[j][i] == '#';
+    }
+
     let extraCount = 0;
     [
       {isSeed: true, isRoot: true,  x: 0*RADIUS, y: RADIUS * 0},
@@ -504,7 +515,7 @@ class Pitch {
 
       let b = this.physics.circle(shapePosToPhysPos(shapePos), /*Math.random() * 2*Math.PI*/ Math.PI/2, RADIUS, uidCounter);
       b.robot = new GradientAndAssemblyRobot({
-        shapeDesc: ShapeDesc,
+        isInsideShape: isInsideShape,
         shapePos: shapePos.isSeed ? {x: shapePos.x, y: shapePos.y} : null,
         isGradientSeed: shapePos.isSeed && shapePos.isRoot,
         isSeed: shapePos.isSeed,
@@ -545,7 +556,7 @@ class Pitch {
 
       let b = this.physics.circle(pos, /*Math.random() * 2*Math.PI*/ Math.PI/2, RADIUS, uidCounter);
       b.robot = new GradientAndAssemblyRobot({
-        shapeDesc: ShapeDesc,
+        isInsideShape: isInsideShape,
         shapePos: null,
         isSeed: false,
       });
