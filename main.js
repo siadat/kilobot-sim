@@ -684,8 +684,8 @@ class Pitch {
       */
 
       if(!PERFECT) {
-        pos.x += noise(0.75 * RADIUS);
-        pos.y += noise(0.75 * RADIUS);
+        pos.x += noise(0.2 * RADIUS);
+        pos.y += noise(0.2 * RADIUS);
       }
 
       let b = this.physics.circle(pos, RADIUS, uidCounter);
@@ -1176,7 +1176,7 @@ class Pitch {
 
 
             g.lineStyle(0);
-            if(b.robot.state == States.JoinedShape) {
+            if(false && b.robot.state == States.JoinedShape) {
               g.beginFill(b.robot.led.toHex(), 1.0);
             } else {
               g.beginFill(b.robot.led.toHex(), 0.5);
@@ -1259,7 +1259,7 @@ class Pitch {
           g.drawCircle(0, 0, b.circleRadius * V.ZOOM - thickness/2);
 
           g.lineStyle(0);
-          if(b.robot.state == States.JoinedShape) {
+          if(false && b.robot.state == States.JoinedShape) {
             g.beginFill(b.robot.led.toHex(), 0.9);
           } else {
             g.beginFill(b.robot.led.toHex(), 0.2);

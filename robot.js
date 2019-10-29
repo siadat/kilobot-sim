@@ -54,6 +54,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.edgeFollowingStartedAt = null;
 
     this.switchToState(States.Start);
+
     this.COLORS = [
       this.RGB(3, 0, 0), // red
       this.RGB(3, 0, 3), // magenta
@@ -62,6 +63,15 @@ class GradientAndAssemblyRobot extends Kilobot {
       this.RGB(0, 3, 0), // green
       this.RGB(3, 3, 0), // yellow
     ];
+
+    // this.COLORS_INTENSE = [
+    //   this.RGB(3, 0, 0), // red
+    //   this.RGB(3, 0, 3), // magenta
+    //   this.RGB(0, 0, 3), // blue
+    //   this.RGB(0, 3, 3), // cyan
+    //   this.RGB(0, 3, 0), // green
+    //   this.RGB(3, 3, 0), // yellow
+    // ];
 
   }
 
@@ -670,6 +680,11 @@ class GradientAndAssemblyRobot extends Kilobot {
         this.unmark();
         this.isStationary = true;
         this.localize();
+
+        // if(!this.isSeed) {
+        //   this.set_color(this.COLORS_INTENSE[this.myGradient % this.COLORS_INTENSE.length]);
+        // }
+
         if(this.isSeed)
           this.gradientFormation();
         break;
