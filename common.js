@@ -1,5 +1,6 @@
 const COUNT = 4 + 204;
-var MathRandom = new Math.seedrandom('sina'); // = Math.random;
+let RANDOM_SEED = 1234;
+let MathRandom = new Math.seedrandom(RANDOM_SEED); // = Math.random;
 
 let RADIUS = 1; // best performance
 
@@ -8,6 +9,15 @@ let CATS = {
   ROBOT: 0b01,
   NEIGHBOR: 0b10,
 }
+
+const DEV = false;
+
+const MetaOpts = {
+  fontSize: 12,
+  lineHeight: 20,
+  padding: 20,
+  margin: 20,
+};
 
 
 const _ShapeScale = 1.5*RADIUS; // 1.5*RADIUS
@@ -101,11 +111,11 @@ const formatSeconds = (totalSeconds, full) => {
   if(m < 10) m = `0${m}`;
   if(h < 10) h = `0${h}`;
   if(full) {
-    return `${h}h:${m}m:${s}s`;
+    return `${h}:${m}:${s}`;
   }
 
   if(h > 0) {
-    return `${h}h:${m}m:${s}s`;
+    return `${h}:${m}:${s}`;
   } else if(m > 0) {
     return `${m}m:${s}s`;
   } else {
@@ -129,7 +139,7 @@ const Order = [
 ]
 
 let INITIAL_DIST = 3 * RADIUS;
-let NEIGHBOUR_DISTANCE = 11 * RADIUS; // 4 * RADIUS + 2 * RADIUS * Math.sqrt(3);
+let NEIGHBOUR_DISTANCE = INITIAL_DIST/3*11; // 11 * RADIUS; // 4 * RADIUS + 2 * RADIUS * Math.sqrt(3);
 
 // const SQRT3 = Math.sqrt(3);
 

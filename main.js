@@ -22,7 +22,7 @@ class Pitch {
     this.deltaTime = null;
     this.speedX = null;
     this.fps = 60;
-    this.displayedData = {};
+    this.metaData = {};
     this.tickBatchCount = 1;
 
     if(this.graphical) {
@@ -37,41 +37,25 @@ class Pitch {
 
       {
         // displayed data meta box:
-        const g = new PIXI.Graphics()
-        const opts = {
-          fontSize: 12,
-          lineHeight: 20,
-          top: 20,
-          bottom: 20,
-          left: 20,
-        };
-        g.zIndex = zIndexOf('MetaData');
-        if(DARK_MODE) {
-          g.beginFill(0x000000, 0.5);
-        } else {
-          g.beginFill(0xffffff, 0.5);
-        }
-        let lineCount = 10
-        g.drawRect(
-          0, 0,
-          250, opts.lineHeight*lineCount + opts.top+opts.bottom,
-        );
+        this.metaPixiGraphics = new PIXI.Graphics()
+        this.metaPixiGraphics.zIndex = zIndexOf('MetaData');
 
-        this.displayedDataPixiText = new PIXI.Text('FPS', {
-          fontSize: opts.fontSize,
+        this.metaPixiText = new PIXI.Text('', {
+          // fontFamily: 'Arial',
+          fontSize: MetaOpts.fontSize,
           align: 'left',
-          lineHeight: opts.lineHeight,
+          lineHeight: MetaOpts.lineHeight,
           fill: DARK_MODE ? 0xffffff : 0x000000
         });
-        this.displayedDataPixiText.position = {
-          x: opts.left,
-          y: opts.top,
+        this.metaPixiText.position = {
+          x: MetaOpts.margin + MetaOpts.padding,
+          y: MetaOpts.margin + MetaOpts.padding,
         }
-        g.addChild(this.displayedDataPixiText);
-        this.pixiApp.stage.addChild(g);
+        this.metaPixiGraphics.addChild(this.metaPixiText);
+        this.pixiApp.stage.addChild(this.metaPixiGraphics);
 
         this.pixiApp.ticker.add(() => {
-          this.setDisplayedData('FPS', `${Math.floor(1/this.deltaTime)}/s`);
+          this.setDisplayedData('Renderer frames/second', `${Math.floor(1/this.deltaTime)}/s`);
         });
       }
 
@@ -156,7 +140,12 @@ class Pitch {
           }
 
           g.lineStyle(0, 0x000000);
-          g.beginFill(0x888888);
+
+          if(DARK_MODE) {
+            g.beginFill(0x000000);
+          } else {
+            g.beginFill(0x888888);
+          }
 
           for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
             let row = ShapeDesc[rowi];
@@ -212,7 +201,7 @@ class Pitch {
         // position vectors
         let g = new PIXI.Graphics()
         g.zIndex = zIndexOf('Shadow');
-        g.alpha = 0.25;
+        g.alpha = 0.3;
 
         this.pixiApp.stage.addChild(g);
         this.pixiApp.ticker.add(() => {
@@ -489,18 +478,46 @@ class Pitch {
   }
 
   setDisplayedData(key, value) {
-    if(this.displayedData[key] == value) {
+    if(this.metaData[key] == value) {
       return;
     }
-    this.displayedData[key] = value;
-    let newText = ``;
 
-    let keys = Object.keys(this.displayedData).sort().forEach(key => {
-      newText += `${key}: ${this.displayedData[key]}`
-      newText += '\n';
-    });
+    this.metaData[key] = value;
+    let newText = Object
+      .keys(this.metaData)
+      .sort((a, b) => a.length - b.length)
+      .map(key => `${key}: ${this.metaData[key]}`)
+      .join('\n');
 
-    this.displayedDataPixiText.text = newText;
+    if(this.metaPixiText.text == newText) {
+      return;
+    }
+
+    let textMetricsOld = new PIXI.TextMetrics.measureText(
+      this.metaPixiText.text,
+      this.metaPixiText.style,
+    );
+
+    let textMetricsNew = new PIXI.TextMetrics.measureText(
+      newText,
+      this.metaPixiText.style,
+    );
+
+    if(textMetricsOld.lines.length != textMetricsNew.lines.length) {
+      let lineCount = textMetricsNew.lines.length;
+      this.metaPixiGraphics.clear();
+      if(DARK_MODE) {
+        this.metaPixiGraphics.beginFill(0x000000, 0.75);
+      } else {
+        this.metaPixiGraphics.beginFill(0xffffff, 0.75);
+      }
+      this.metaPixiGraphics.drawRect(
+        MetaOpts.margin, MetaOpts.margin,
+        textMetricsNew.width + 2*MetaOpts.padding, MetaOpts.lineHeight*lineCount + 2*MetaOpts.padding,
+      );
+    }
+
+    this.metaPixiText.text = newText;
   }
 
   destroy() {
@@ -604,7 +621,7 @@ class Pitch {
         if(!true) {
           if(check.y < 0) return null;
         } else {
-          let seedAreaWidth = 6;
+          let seedAreaWidth = Math.floor(NEIGHBOUR_DISTANCE/INITIAL_DIST) * 2;
           if(check.x < -seedAreaWidth/2 || check.x > +seedAreaWidth/2 || check.y < 0) {
             for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
               let row = ShapeDesc[rowi];
@@ -667,8 +684,8 @@ class Pitch {
       */
 
       if(!PERFECT) {
-        pos.x += noise(0.1 * RADIUS);
-        pos.y += noise(0.1 * RADIUS);
+        pos.x += noise(0.75 * RADIUS);
+        pos.y += noise(0.75 * RADIUS);
       }
 
       let b = this.physics.circle(pos, RADIUS, uidCounter);
@@ -722,7 +739,9 @@ class Pitch {
       });
     // }
 
-    this.setDisplayedData('Count', `${COUNT}`);
+    this.setDisplayedData('Count', `${COUNT} ${COUNT == 1 ? 'robot' : 'robots'}`);
+    this.setDisplayedData('Random seed', `${RANDOM_SEED}`);
+    this.setDisplayedData('Version', `${VERSION.substr(0, 8)}`);
 
     {
       /*
@@ -788,8 +807,11 @@ class Pitch {
           } else {
             this.speedX += (s - this.speedX) * (1/120.0);
           }
-          this.setDisplayedData('Duration (robot)', `${formatSeconds(virtualSeconds, true)} (${Math.floor(this.speedX*10)/10}x)`);
-          this.setDisplayedData('Duration (render)', `${formatSeconds(ourSeconds, true)}`);
+          this.setDisplayedData('Duration', `${formatSeconds(virtualSeconds, true)}`);
+          if(DEV) {
+            this.setDisplayedData('Duration (render)', `${formatSeconds(ourSeconds, true)}`);
+          }
+          this.setDisplayedData('Simulation speed', `${Math.round(this.speedX*10)/10}x`);
         }
 
         this.physics.update();
@@ -1037,10 +1059,12 @@ class Pitch {
           }
         }
 
-        this.setDisplayedData('message_tx()', messageTxCount);
-        this.setDisplayedData('message_tx()/robot', Math.round(messageTxCount/COUNT * 100)/100);
-        this.setDisplayedData('message_rx()', messageRxCount);
-        this.setDisplayedData('message_rx()/robot', Math.round(messageRxCount/COUNT * 100)/100);
+        if(DEV) {
+          this.setDisplayedData('message_tx()', messageTxCount);
+          this.setDisplayedData('message_tx()/robot', Math.round(messageTxCount/COUNT * 100)/100);
+          this.setDisplayedData('message_rx()', messageRxCount);
+          this.setDisplayedData('message_rx()/robot', Math.round(messageRxCount/COUNT * 100)/100);
+        }
 
         Box2D.destroy(lowerBound);
         Box2D.destroy(upperBound);
@@ -1096,11 +1120,12 @@ class Pitch {
                 this.tickBatchCount -= 1;
               }
 
-              // this.tickBatchCount = 1;
               if(this.tickBatchCount < 1) this.tickBatchCount = 1;
               //if(this.tickBatchCount > 3) this.tickBatchCount = 3;
 
-              this.setDisplayedData('Tick batch', Math.round(this.tickBatchCount));
+              if(DEV) {
+                this.setDisplayedData('Tick batch', Math.round(this.tickBatchCount));
+              }
 
               // if(BENCHMARKING) {
               //   console.log(`FPS: ${Math.floor(1/this.deltaTime)}/s`);
@@ -1227,13 +1252,11 @@ class Pitch {
             g.beginFill(0x000000);
           } else {
             thickness = 1;
+            g.lineStyle(thickness, 0x000000, 0.6); // b.robot.led.toHexDark());
             g.beginFill(0xffffff);
           }
 
-          g.lineStyle(thickness, 0x000000);
           g.drawCircle(0, 0, b.circleRadius * V.ZOOM - thickness/2);
-
-          let ledRadius = b.circleRadius * 0.4;
 
           g.lineStyle(0);
           if(b.robot.state == States.JoinedShape) {
@@ -1252,26 +1275,47 @@ class Pitch {
             g.filters = [];
           }
           */
-          g.endFill();
-          g.lineStyle(b.circleRadius*V.ZOOM*0.25, 0x000000 /*b.robot.led.toHex()*/, 0.75);
-          g.moveTo(0, 0);
-          g.lineTo(b.circleRadius*V.ZOOM, 0);
 
-          g.lineStyle(thickness);
-          g.beginFill(b.robot.led.toHex());
-          g.drawCircle(
-            0,
-            0,
-            ledRadius * V.ZOOM,
-          );
+          if(V.ZOOM * b.circleRadius > 10) { // line direction indicator
+            g.endFill();
+            g.lineStyle(b.circleRadius*V.ZOOM*0.25, 0x000000, 0.4);
+            // g.lineStyle(b.circleRadius*V.ZOOM*0.25, b.robot.led.toHex(), 1);
+            g.moveTo(0, 0);
+            g.lineTo(b.circleRadius*V.ZOOM - thickness, 0);
+          }
 
-          if(b.robot._mark) {
+
+          // legs direction indicator
+          if(V.ZOOM * b.circleRadius > 10) {
+            g.beginFill(0x000000, 0.4);
+            g.lineStyle(0);
+            let r = b.circleRadius*V.ZOOM*0.1;
+            let R = b.circleRadius*V.ZOOM - r;
+            [0, 2/3*Math.PI, 4/3*Math.PI].forEach(a => {
+              g.drawCircle(R * Math.cos(a), R * Math.sin(a), r);
+            });
+          }
+
+
+          if(true) { // led
+            // g.lineStyle(thickness);
+            // g.lineStyle(0);
+            g.lineStyle(1, 0x000000, 0.5);
+            g.beginFill(b.robot.led.toHex());
+            g.drawCircle(
+              0,
+              0,
+              b.circleRadius * 0.4 * V.ZOOM,
+            );
+          }
+
+          if(false && b.robot._mark) {
             g.endFill();
             g.lineStyle(2, 0x000000);
             g.drawCircle(
               0,
               0,
-              ledRadius * V.ZOOM * 0.5,
+              b.circleRadius * 0.4 * V.ZOOM * 0.5,
             );
           }
 
