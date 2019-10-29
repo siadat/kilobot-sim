@@ -130,7 +130,7 @@ class Pitch {
           // if(g.drawn) return;
           // else g.drawn = true;
 
-          if(equalViews(g.lastView, V)) return;
+          if(equalZooms(g.lastView, V)) return;
           g.lastView = copyView(V);
 
           g.clear();
@@ -193,7 +193,7 @@ class Pitch {
 
         this.tableGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
-          if(equalViews(g.lastView, V)) return;
+          if(equalZooms(g.lastView, V)) return;
           g.clear();
           g.lineStyle(4, 0x000000);
           g.endFill();
@@ -1240,7 +1240,7 @@ class Pitch {
           g.angle = angle;
           g.zIndex = zIndexOf('Robots');
 
-          if(equalViews(g.lastView, V)) {
+          if(equalZooms(g.lastView, V)) {
             if(!b.robot._graphics_must_update) {
               return;
             } else {

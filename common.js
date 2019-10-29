@@ -91,6 +91,13 @@ const equalViews = (v1, v2) => {
     return false;
 }
 
+const equalZooms = (v1, v2) => {
+  if(v1 == null || v2 == null)
+    return false;
+
+  return v1.ZOOM == v2.ZOOM;
+}
+
 const copyView = (v) =>{
   return {
     PAN: {
