@@ -4,9 +4,11 @@ Box2D({
   // Box2D.destory(b2Vec2Instance).
   TOTAL_MEMORY: 1024 * 1024 * 32, // default value is 1024 * 1024 * 16.
 }).then(function(Box2D) {
-  // let imageEditor = new ImageEditor();
-  // setTimeout(() => { console.log(JSON.stringify(imageEditor.convert())); }, 500);
-  // return;
+	if(false) {
+		let imageEditor = new ImageEditor();
+		setTimeout(() => { console.log(JSON.stringify(imageEditor.convert())); }, 500);
+		return;
+	}
 
   window.box2D = Box2D;
   // create two boxes and a ground
@@ -52,7 +54,7 @@ class Pitch {
         let lineCount = 10
         g.drawRect(
           0, 0,
-          SIZE.w*0.5, opts.lineHeight*lineCount + opts.top+opts.bottom,
+          250, opts.lineHeight*lineCount + opts.top+opts.bottom,
         );
 
         this.displayedDataPixiText = new PIXI.Text('FPS', {
@@ -586,10 +588,11 @@ class Pitch {
           return null;
 
 
-        if(true) {
+        if(!true) {
           if(check.y < 0) return null;
         } else {
-          if(!(check.x >= -10 && check.x <= 10 && check.y >= 0)) {
+          let seedAreaWidth = 6;
+          if(check.x < -seedAreaWidth/2 || check.x > +seedAreaWidth/2 || check.y < 0) {
             for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
               let row = ShapeDesc[rowi];
               for(let coli = 0; coli < row.length; coli++) {

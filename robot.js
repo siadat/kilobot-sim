@@ -463,6 +463,29 @@ class GradientAndAssemblyRobot extends Kilobot {
     });
   }
 
+  seenRecentMovingOrPausedNeighbors() {
+    let seen = false;
+    this.getNeighborsUIDs().forEach(nuid => {
+      let n = this.neighbors[nuid];
+      if(seen == true)
+        return;
+
+      if(n.state == States.WaitToMove && n.edgeFollowingAge > 0) {
+        seen = true;
+        return;
+      }
+
+      if(n.isStationary) return;
+      if(n.measuredDist > NEARBY_MOVING_DISTANCE) return;
+      // if(n.neighborUID < this.kilo_uid) return;
+      if(n.edgeFollowingAge < this.edgeFollowingAge) return;
+
+      seen = true;
+    });
+
+    return seen;
+  }
+
   seenRecentMovingNeighbors() {
     let seen = false;
     this.getNeighborsUIDs().forEach(nuid => {
@@ -577,7 +600,8 @@ class GradientAndAssemblyRobot extends Kilobot {
           return;
         }
 
-        if(this.seenRecentMovingNeighbors()) {
+        if(this.seenRecentMovingOrPausedNeighbors()) {
+          // if(this.seenRecentMovingNeighbors()) {
           // this.edgeFollowingAge = this._uid;
           this.hesitate("movement");
           this.isStationary = true;
@@ -607,6 +631,7 @@ class GradientAndAssemblyRobot extends Kilobot {
           this.switchToState(States.MoveWhileInside, "inside shape");
         }
 
+          /*
         if(this.seenRecentMovingNeighbors()) {
           // this.edgeFollowingAge = this._uid;
           this.hesitate("movement");
@@ -614,6 +639,7 @@ class GradientAndAssemblyRobot extends Kilobot {
           this.unmark();
           return;
         }
+      */
 
         this.mark();
         this.isStationary = false;

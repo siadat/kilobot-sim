@@ -82,9 +82,10 @@ class ImageEditor {
     let asciiShape = [];
     let root = {row: 0, col: 0};
 
-    for(let y = 0; y < this.sprite.height; y+=unit) {
+    let offset = {x: 0, y: unit/2};
+    for(let y = offset.y; y < this.sprite.height; y+=unit) {
       let row = [];
-      for(let x = 0; x < this.sprite.width; x+=unit) {
+      for(let x = offset.x; x < this.sprite.width; x+=unit) {
 
         let k = y*this.sprite.width*4 + x*4;
         let pixel = {
