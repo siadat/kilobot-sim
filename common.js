@@ -116,6 +116,18 @@ const formatSeconds = (totalSeconds, full) => {
 
 const FAST = !false;
 
+const Order = [
+  'Shape',
+  'OriginGrid',
+  'Shadow',
+  'TraversedPath',
+  'RobustQuadlateral',
+  'ConnsAndBouns',
+  'Robots',
+  'LocalizationError',
+  'MetaData',
+]
+
 let INITIAL_DIST = 3 * RADIUS;
 let NEIGHBOUR_DISTANCE = 11 * RADIUS; // 4 * RADIUS + 2 * RADIUS * Math.sqrt(3);
 
@@ -176,6 +188,14 @@ const clampVector = function(v) {
   }
 
   return v;
+}
+
+const zIndexOf = (name) => {
+  let zIndex = Order.indexOf(name);
+  if(zIndex == -1) {
+    console.error(`name=${name} not found in order list`);
+  }
+  return zIndex;
 }
 
 const forEachObj = function(obj, f) {

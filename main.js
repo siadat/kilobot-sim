@@ -45,7 +45,7 @@ class Pitch {
           bottom: 20,
           left: 20,
         };
-        g.zIndex = 4;
+        g.zIndex = zIndexOf('MetaData');
         if(DARK_MODE) {
           g.beginFill(0x000000, 0.5);
         } else {
@@ -79,7 +79,7 @@ class Pitch {
       if(DRAW_TRAVERSED_PATH) {
         // position vectors
         let g = new PIXI.Graphics()
-        g.zIndex = 1;
+        g.zIndex = zIndexOf('TraversedPath');
         g.alpha = 0.5;
         // g.beginFill(b.robot.led.toHexDark());
         g.endFill();
@@ -129,7 +129,7 @@ class Pitch {
       if(DRAW_SHAPE_DESCRIPTION) {
         // position vectors
         let g = new PIXI.Graphics()
-        g.zIndex = 1;
+        g.zIndex = zIndexOf('Shape');
         g.alpha = 0.3;
         g.lastView = null;
 
@@ -187,7 +187,7 @@ class Pitch {
 
       if(false) { // origin grid
         let g = new PIXI.Graphics()
-        g.zIndex = 1;
+        g.zIndex = zIndexOf('OriginGrid');
         g.alpha = 0.5;
         g.lastView = null;
 
@@ -211,7 +211,7 @@ class Pitch {
       if(DRAW_SHADOW) {
         // position vectors
         let g = new PIXI.Graphics()
-        g.zIndex = 1;
+        g.zIndex = zIndexOf('Shadow');
         g.alpha = 0.25;
 
         this.pixiApp.stage.addChild(g);
@@ -235,7 +235,7 @@ class Pitch {
       if(DRAW_LOCALIZATION_ERROR) {
         // position vectors
         let g = new PIXI.Graphics()
-        g.zIndex = 2;
+        g.zIndex = zIndexOf('LocalizationError');
         g.alpha = 0.75; // 0.25;
         let color = 0x008400; // 0xff0000
 
@@ -247,9 +247,6 @@ class Pitch {
           // let errorMagnitude = 0;
           let correctlyLocalizedCount = 0;
           forEachObj(this.bodies, b => {
-            if(this.selectedUID && this.selectedUID != b.robot._uid)
-              return;
-
             let shapePos = b.robot.shapePos;
             if(!shapePos) return;
 
@@ -259,7 +256,6 @@ class Pitch {
               pos = data.pos;
             }
 
-            let thickness = RADIUS*V.ZOOM * 0.2; // 2
             let posActual = {
               x: V.PAN.x + pos.x * V.ZOOM,
               y: V.PAN.y + pos.y * V.ZOOM,
@@ -272,14 +268,18 @@ class Pitch {
             // errorMagnitude += dist
             if(dist < RADIUS*V.ZOOM) correctlyLocalizedCount++;
 
+            if(this.selectedUID && this.selectedUID != b.robot._uid)
+              return;
+
             const MAX = 100000;
             if(posEstimated.x > +MAX) posEstimated.x = +MAX;
             if(posEstimated.x < -MAX) posEstimated.x = -MAX;
             if(posEstimated.y > +MAX) posEstimated.y = +MAX;
             if(posEstimated.y < -MAX) posEstimated.y = -MAX;
 
-            g.endFill();
+            let thickness = RADIUS*V.ZOOM * 0.2; // 2
             color = 0xff0000; // b.robot.led.toHexDark();
+            g.endFill();
             g.lineStyle(thickness, color);
             g.moveTo(posActual.x, posActual.y);
             g.lineTo(posEstimated.x, posEstimated.y);
@@ -322,10 +322,10 @@ class Pitch {
         });
       }
 
-      {
+      { // robus quadlateral
         let g = new PIXI.Graphics()
-        g.zIndex = 3;
-        g.alpha = 0.5;
+        g.zIndex = zIndexOf('RobustQuadlateral');
+        g.alpha = 1;
         this.pixiApp.stage.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
@@ -338,8 +338,21 @@ class Pitch {
           }
 
           let bodyPositions = quadlateral.map(id => this.bodies[id].body.GetPosition());
-          g.lineStyle(V.ZOOM * RADIUS/4, 0xffffff);
 
+          g.lineStyle(V.ZOOM * RADIUS/4/4, 0xffffff);
+          bodyPositions.forEach(p => {
+            g.moveTo(
+              V.PAN.x + b.body.GetPosition().get_x()*V.ZOOM,
+              V.PAN.y + b.body.GetPosition().get_y()*V.ZOOM,
+            );
+            g.lineTo(
+              V.PAN.x + p.get_x()*V.ZOOM,
+              V.PAN.y + p.get_y()*V.ZOOM,
+            );
+          });
+
+
+          g.lineStyle(V.ZOOM * RADIUS/4, 0xffffff);
           [
             [1, 2],
             [1, 3],
@@ -365,7 +378,7 @@ class Pitch {
       {
         if(DRAW_CONNS_AND_BOUNDS) {
           let connGraphics = new PIXI.Graphics()
-          connGraphics.zIndex = 2;
+          connGraphics.zIndex = zIndexOf('ConnsAndBouns');
           connGraphics.alpha = 0.5;
           this.pixiApp.stage.addChild(connGraphics);
           this.pixiApp.ticker.add(() => {
@@ -1125,7 +1138,7 @@ class Pitch {
             g.x = V.PAN.x + pos.x * V.ZOOM;
             g.y = V.PAN.y + pos.y * V.ZOOM;
             g.angle = angle;
-            g.zIndex = 1;
+            g.zIndex = zIndexOf('Robots');
 
             if(!b.robot._graphics_must_update) {
               return;
@@ -1187,7 +1200,7 @@ class Pitch {
           g.x = V.PAN.x + pos.x * V.ZOOM;
           g.y = V.PAN.y + pos.y * V.ZOOM;
           g.angle = angle;
-          g.zIndex = 1;
+          g.zIndex = zIndexOf('Robots');
 
           if(equalViews(g.lastView, V)) {
             if(!b.robot._graphics_must_update) {
