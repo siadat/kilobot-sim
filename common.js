@@ -142,7 +142,6 @@ const Order = [
   'ConnsAndBouns',
   'Robots',
   'LocalizationError',
-  // 'MetaData',
 ]
 
 let INITIAL_DIST = 3 * RADIUS;

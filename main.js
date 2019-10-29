@@ -34,18 +34,21 @@ class Pitch {
         height: SIZE.h,
         antialias: !false,
       });
+      this.pixiApp.sortableChildren = true;
       window.pixiApp = this.pixiApp;
 
       {
-        this.tableGraphics = new PIXI.Container();
-        this.tableGraphics.position = V.PAN;
-        this.pixiApp.stage.addChild(this.tableGraphics);
+        this.platformGraphics = new PIXI.Container();
+        this.platformGraphics.zIndex = 1;
+        this.platformGraphics.position = V.PAN;
+        this.platformGraphics.sortableChildren = true;
+        this.pixiApp.stage.addChild(this.platformGraphics);
       }
 
       {
         // displayed data meta box:
         this.metaPixiGraphics = new PIXI.Graphics()
-        // this.metaPixiGraphics.zIndex = zIndexOf('MetaData');
+        this.metaPixiGraphics.zIndex = 2;
 
         this.metaPixiText = new PIXI.Text('', {
           // fontFamily: 'Arial',
@@ -75,7 +78,7 @@ class Pitch {
         // g.beginFill(b.robot.led.toHexDark());
         g.endFill();
 
-        this.tableGraphics.addChild(g);
+        this.platformGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
           if(!DRAW_TRAVERSED_PATH) return;
@@ -125,7 +128,7 @@ class Pitch {
         // g.drawn = false;
         g.lastView = null;
 
-        this.tableGraphics.addChild(g);
+        this.platformGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           // if(g.drawn) return;
           // else g.drawn = true;
@@ -191,7 +194,7 @@ class Pitch {
         g.alpha = 0.5;
         g.lastView = null;
 
-        this.tableGraphics.addChild(g);
+        this.platformGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           if(equalZooms(g.lastView, V)) return;
           g.clear();
@@ -214,7 +217,7 @@ class Pitch {
         g.zIndex = zIndexOf('Shadow');
         g.alpha = 0.3;
 
-        this.tableGraphics.addChild(g);
+        this.platformGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
           if(!DRAW_SHADOW) return;
@@ -239,7 +242,7 @@ class Pitch {
         g.alpha = 0.75; // 0.25;
         let color = 0x008400; // 0xff0000
 
-        this.tableGraphics.addChild(g);
+        this.platformGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
           if(!DRAW_LOCALIZATION_ERROR) return;
@@ -326,7 +329,7 @@ class Pitch {
         let g = new PIXI.Graphics()
         g.zIndex = zIndexOf('RobustQuadlateral');
         g.alpha = 1;
-        this.tableGraphics.addChild(g);
+        this.platformGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
           if(!this.selectedUID) return;
@@ -380,7 +383,7 @@ class Pitch {
           let connGraphics = new PIXI.Graphics()
           connGraphics.zIndex = zIndexOf('ConnsAndBouns');
           connGraphics.alpha = 0.5;
-          this.tableGraphics.addChild(connGraphics);
+          this.platformGraphics.addChild(connGraphics);
           this.pixiApp.ticker.add(() => {
             connGraphics.clear();
             if(!DRAW_CONNS_AND_BOUNDS) return;
@@ -431,8 +434,6 @@ class Pitch {
         }
       }
 
-      this.tableGraphics.sortableChildren = true;
-
       document.body.appendChild(this.pixiApp.view);
       this.pixiApp.view.addEventListener('mousewheel', ev => {
         let nextZoom = V.ZOOM * (1 + ev.wheelDelta/1000.0);
@@ -448,7 +449,7 @@ class Pitch {
 
         V.PAN.x += (centerWithoutZoom.x * nextZoom - centerWithoutZoom.x * V.ZOOM);
         V.PAN.y += (centerWithoutZoom.y * nextZoom - centerWithoutZoom.y * V.ZOOM);
-        this.tableGraphics.position = V.PAN;
+        this.platformGraphics.position = V.PAN;
 
         V.ZOOM = nextZoom;
 
@@ -476,7 +477,7 @@ class Pitch {
         V.PAN.y = this.dragStart.panY + (ev.y - this.dragStart.y);
         localStorage.setItem('V.PAN.x', V.PAN.x);
         localStorage.setItem('V.PAN.y', V.PAN.y);
-        this.tableGraphics.position = V.PAN;
+        this.platformGraphics.position = V.PAN;
       });
 
       // update at least once:
@@ -1203,7 +1204,7 @@ class Pitch {
 
 
           this.pixiApp.ticker.add(() => { agentGraphicsTick(b) });
-          this.tableGraphics.addChild(g);
+          this.platformGraphics.addChild(g);
           return;
         }
 
@@ -1394,7 +1395,7 @@ class Pitch {
           }
           agentGraphicsTick(b);
         });
-        this.tableGraphics.addChild(g);
+        this.platformGraphics.addChild(g);
         break;
     }
   }
@@ -1579,7 +1580,7 @@ function _runPitch(botProg, graphical, fastforward) {
     b.robot._graphics_must_update = true;
     b.robot._phys.GetWorld().DestroyBody(b.robot._phys);
     delete(this.bodies[b.robot._uid]);
-    // window.pitch.tableGraphics.removeChild(g);
+    // window.pitch.platformGraphics.removeChild(g);
   }
 
   console.log("Loaded.");
