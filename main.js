@@ -35,13 +35,78 @@ class Pitch {
         antialias: !false,
       });
       this.pixiApp.sortableChildren = true;
+      // this.pixiApp.interactive = true;
       window.pixiApp = this.pixiApp;
+      document.body.appendChild(this.pixiApp.view);
+
+      this.pixiApp.view.addEventListener('mousewheel', ev => {
+        let nextZoom = V.ZOOM * (1 + ev.wheelDelta/1000.0);
+        if(nextZoom < 2) nextZoom = 2;
+        if(nextZoom > 20) nextZoom = 20;
+
+        let centerWithoutZoom = {
+          // x: (V.PAN.x-SIZE.w/2)/V.ZOOM,
+          // y: (V.PAN.y-SIZE.h/2)/V.ZOOM,
+          x: (V.PAN.x - ev.clientX)/V.ZOOM,
+          y: (V.PAN.y - ev.clientY)/V.ZOOM,
+        }
+
+        V.PAN.x += (centerWithoutZoom.x * nextZoom - centerWithoutZoom.x * V.ZOOM);
+        V.PAN.y += (centerWithoutZoom.y * nextZoom - centerWithoutZoom.y * V.ZOOM);
+        this.platformGraphics.position = V.PAN;
+
+        V.ZOOM = nextZoom;
+
+        localStorage.setItem('V.ZOOM', V.ZOOM);
+        localStorage.setItem('V.PAN.x', V.PAN.x);
+        localStorage.setItem('V.PAN.y', V.PAN.y);
+      });
+
+
+      {
+        this.clickArea = new PIXI.Container();
+        this.clickArea.interactive = true;
+        this.clickArea.cursor = 'grab';
+        this.clickArea.hitArea = new PIXI.Rectangle(0, 0, SIZE.w, SIZE.h);
+        this.pixiApp.stage.addChild(this.clickArea);
+
+        this.clickArea.on('pointerdown', ev => {
+          this.clickArea.cursor = 'grabbing';
+          this.selectedUID = null;
+          this.dragStart = {
+            x: ev.data.global.x,
+            y: ev.data.global.y,
+            panX: V.PAN.x,
+            panY: V.PAN.y,
+          };
+          ev.stopPropagation();
+        });
+
+        this.clickArea.on('pointerup', ev => {
+          this.clickArea.cursor = 'grab';
+          this.dragStart = null;
+        });
+
+        this.clickArea.on('pointermove', ev => {
+          if(!this.dragStart) return;
+          V.PAN.x = this.dragStart.panX + (ev.data.global.x - this.dragStart.x);
+          V.PAN.y = this.dragStart.panY + (ev.data.global.y - this.dragStart.y);
+          localStorage.setItem('V.PAN.x', V.PAN.x);
+          localStorage.setItem('V.PAN.y', V.PAN.y);
+          this.platformGraphics.position = V.PAN;
+        });
+      }
 
       {
         this.platformGraphics = new PIXI.Container();
         this.platformGraphics.zIndex = 1;
+        // this.platformGraphics.interactive = true;
         this.platformGraphics.position = V.PAN;
         this.platformGraphics.sortableChildren = true;
+
+        // this.platformGraphics.interactive = true;
+        // this.platformGraphics.hitArea = new PIXI.Rectangle(0, 0, SIZE.w, SIZE.h);
+
         this.pixiApp.stage.addChild(this.platformGraphics);
       }
 
@@ -128,6 +193,7 @@ class Pitch {
         // g.drawn = false;
         g.lastView = null;
 
+
         this.platformGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           // if(g.drawn) return;
@@ -178,10 +244,10 @@ class Pitch {
               let x = ShapePosOffset.x + coli*_ShapeScale;
               let y = ShapePosOffset.y - (ShapeDesc.length-1 - rowi)*_ShapeScale;
               g.drawRect(
-                + V.ZOOM * x,
-                + V.ZOOM * y,
+                +V.ZOOM * x,
+                +V.ZOOM * y - V.ZOOM * _ShapeScale,
                 +(V.ZOOM * _ShapeScale - 1),
-                -(V.ZOOM * _ShapeScale - 1),
+                +(V.ZOOM * _ShapeScale - 1),
               );
             }
           }
@@ -325,7 +391,7 @@ class Pitch {
         });
       }
 
-      { // robus quadlateral
+      { // robust quadlateral
         let g = new PIXI.Graphics()
         g.zIndex = zIndexOf('RobustQuadlateral');
         g.alpha = 1;
@@ -433,52 +499,6 @@ class Pitch {
           });
         }
       }
-
-      document.body.appendChild(this.pixiApp.view);
-      this.pixiApp.view.addEventListener('mousewheel', ev => {
-        let nextZoom = V.ZOOM * (1 + ev.wheelDelta/1000.0);
-        if(nextZoom < 2) nextZoom = 2;
-        if(nextZoom > 40) nextZoom = 40;
-
-        let centerWithoutZoom = {
-          // x: (V.PAN.x-SIZE.w/2)/V.ZOOM,
-          // y: (V.PAN.y-SIZE.h/2)/V.ZOOM,
-          x: (V.PAN.x - ev.clientX)/V.ZOOM,
-          y: (V.PAN.y - ev.clientY)/V.ZOOM,
-        }
-
-        V.PAN.x += (centerWithoutZoom.x * nextZoom - centerWithoutZoom.x * V.ZOOM);
-        V.PAN.y += (centerWithoutZoom.y * nextZoom - centerWithoutZoom.y * V.ZOOM);
-        this.platformGraphics.position = V.PAN;
-
-        V.ZOOM = nextZoom;
-
-        localStorage.setItem('V.ZOOM', V.ZOOM);
-        localStorage.setItem('V.PAN.x', V.PAN.x);
-        localStorage.setItem('V.PAN.y', V.PAN.y);
-      });
-
-      this.pixiApp.view.addEventListener('pointerdown', ev => {
-        this.dragStart = {
-          x: ev.x,
-          y: ev.y,
-          panX: V.PAN.x,
-          panY: V.PAN.y,
-        }
-      });
-
-      this.pixiApp.view.addEventListener('pointerup', ev => {
-        this.dragStart = null
-      });
-
-      this.pixiApp.view.addEventListener('pointermove', ev => {
-        if(!this.dragStart) return;
-        V.PAN.x = this.dragStart.panX + (ev.x - this.dragStart.x);
-        V.PAN.y = this.dragStart.panY + (ev.y - this.dragStart.y);
-        localStorage.setItem('V.PAN.x', V.PAN.x);
-        localStorage.setItem('V.PAN.y', V.PAN.y);
-        this.platformGraphics.position = V.PAN;
-      });
 
       // update at least once:
       this.destroyFuncs.push(() => this.pixiApp.ticker.update());
@@ -1210,9 +1230,9 @@ class Pitch {
 
         g.interactive = true;
         g.buttonMode = true;
-        g.on('pointerdown', () => {
+        g.on('pointerdown', (ev) => {
           this.selectedUID = b.robot._uid;
-          console.log('clicked', {
+          console.log('robot clicked', ev, {
             uid: b.robot._uid,
             state: b.robot.state,
             grad: b.robot.myGradient,
@@ -1225,7 +1245,7 @@ class Pitch {
             robot: b.robot,
             events: b.robot.events,
           });
-          return true;
+          ev.stopPropagation();
         });
 
         const agentGraphicsTick = (b) => {

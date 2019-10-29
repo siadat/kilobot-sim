@@ -157,14 +157,13 @@ const LOOP_PER_SECOND = 30;
 let DRAW_TRAVERSED_PATH = !false;
 let DRAW_CONNS_AND_BOUNDS = !false;
 let DRAW_LOCALIZATION_ERROR = !false;
-let DRAW_SHADOW = !false;
+let DRAW_SHADOW = false;
 let DRAW_SHAPE_DESCRIPTION = true;
 
 let BENCHMARKING = true;
 if(BENCHMARKING) {
   DRAW_TRAVERSED_PATH = false;
   // DRAW_SHAPE_DESCRIPTION = false;
-  // DRAW_SHADOW = false;
   // DRAW_LOCALIZATION_ERROR = false;
   DRAW_CONNS_AND_BOUNDS = false;
 }
