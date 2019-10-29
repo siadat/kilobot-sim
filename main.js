@@ -34,11 +34,18 @@ class Pitch {
         height: SIZE.h,
         antialias: !false,
       });
+      window.pixiApp = this.pixiApp;
+
+      {
+        this.tableGraphics = new PIXI.Container();
+        this.tableGraphics.position = V.PAN;
+        this.pixiApp.stage.addChild(this.tableGraphics);
+      }
 
       {
         // displayed data meta box:
         this.metaPixiGraphics = new PIXI.Graphics()
-        this.metaPixiGraphics.zIndex = zIndexOf('MetaData');
+        // this.metaPixiGraphics.zIndex = zIndexOf('MetaData');
 
         this.metaPixiText = new PIXI.Text('', {
           // fontFamily: 'Arial',
@@ -68,7 +75,7 @@ class Pitch {
         // g.beginFill(b.robot.led.toHexDark());
         g.endFill();
 
-        this.pixiApp.stage.addChild(g);
+        this.tableGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
           if(!DRAW_TRAVERSED_PATH) return;
@@ -79,32 +86,32 @@ class Pitch {
             b.posHistory.forEach(p => {
               if(lastPos == null) {
                 lastPos = p;
-                g.moveTo(V.PAN.x + p.x * V.ZOOM, V.PAN.y + p.y * V.ZOOM);
+                g.moveTo(+ p.x * V.ZOOM, + p.y * V.ZOOM);
                 return;
               }
-              // g.drawCircle(V.PAN.x + p.x * V.ZOOM, V.PAN.y + p.y * V.ZOOM, 2);
+              // g.drawCircle(+ p.x * V.ZOOM, + p.y * V.ZOOM, 2);
               g.lineStyle(2, p.color);
-              g.moveTo(V.PAN.x + lastPos.x * V.ZOOM, V.PAN.y + lastPos.y * V.ZOOM);
-              g.lineTo(V.PAN.x + p.x * V.ZOOM, V.PAN.y + p.y * V.ZOOM);
+              g.moveTo(+ lastPos.x * V.ZOOM, + lastPos.y * V.ZOOM);
+              g.lineTo(+ p.x * V.ZOOM, + p.y * V.ZOOM);
 
               {
                 g.moveTo(
-                  V.PAN.x + p.x * V.ZOOM - Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
-                  V.PAN.y + p.y * V.ZOOM - Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
+                  + p.x * V.ZOOM - Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
+                  + p.y * V.ZOOM - Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
                 );
                 g.lineTo(
-                  V.PAN.x + p.x * V.ZOOM + Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
-                  V.PAN.y + p.y * V.ZOOM + Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
+                  + p.x * V.ZOOM + Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
+                  + p.y * V.ZOOM + Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
                 );
               }
 
-              g.moveTo(V.PAN.x + p.x * V.ZOOM, V.PAN.y + p.y * V.ZOOM);
+              g.moveTo(+ p.x * V.ZOOM, + p.y * V.ZOOM);
               lastPos = p;
             });
 
             if(lastPos != null) {
               g.lineStyle(2, b.robot.led.toHex());
-              g.lineTo(V.PAN.x + b.body.GetPosition().get_x() * V.ZOOM, V.PAN.y + b.body.GetPosition().get_y() * V.ZOOM);
+              g.lineTo(+ b.body.GetPosition().get_x() * V.ZOOM, + b.body.GetPosition().get_y() * V.ZOOM);
             }
           });
         });
@@ -115,10 +122,14 @@ class Pitch {
         let g = new PIXI.Graphics()
         g.zIndex = zIndexOf('Shape');
         g.alpha = 0.3;
+        // g.drawn = false;
         g.lastView = null;
 
-        this.pixiApp.stage.addChild(g);
+        this.tableGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
+          // if(g.drawn) return;
+          // else g.drawn = true;
+
           if(equalViews(g.lastView, V)) return;
           g.lastView = copyView(V);
 
@@ -164,8 +175,8 @@ class Pitch {
               let x = ShapePosOffset.x + coli*_ShapeScale;
               let y = ShapePosOffset.y - (ShapeDesc.length-1 - rowi)*_ShapeScale;
               g.drawRect(
-                V.PAN.x + V.ZOOM * x,
-                V.PAN.y + V.ZOOM * y,
+                + V.ZOOM * x,
+                + V.ZOOM * y,
                 +(V.ZOOM * _ShapeScale - 1),
                 -(V.ZOOM * _ShapeScale - 1),
               );
@@ -180,7 +191,7 @@ class Pitch {
         g.alpha = 0.5;
         g.lastView = null;
 
-        this.pixiApp.stage.addChild(g);
+        this.tableGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           if(equalViews(g.lastView, V)) return;
           g.clear();
@@ -188,11 +199,11 @@ class Pitch {
           g.endFill();
 
           let s = 10 * _ShapeScale;
-          g.moveTo(V.PAN.x - s * V.ZOOM, V.PAN.y + 0 * V.ZOOM);
-          g.lineTo(V.PAN.x + s * V.ZOOM, V.PAN.y + 0 * V.ZOOM)
+          g.moveTo(- s * V.ZOOM, + 0 * V.ZOOM);
+          g.lineTo(+ s * V.ZOOM, + 0 * V.ZOOM)
 
-          g.moveTo(V.PAN.x + 0 * V.ZOOM, V.PAN.y - s * V.ZOOM);
-          g.lineTo(V.PAN.x + 0 * V.ZOOM, V.PAN.y + s * V.ZOOM);
+          g.moveTo(+ 0 * V.ZOOM, - s * V.ZOOM);
+          g.lineTo(+ 0 * V.ZOOM, + s * V.ZOOM);
         });
       }
 
@@ -203,7 +214,7 @@ class Pitch {
         g.zIndex = zIndexOf('Shadow');
         g.alpha = 0.3;
 
-        this.pixiApp.stage.addChild(g);
+        this.tableGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
           if(!DRAW_SHADOW) return;
@@ -211,8 +222,8 @@ class Pitch {
           forEachObj(this.bodies, b => {
 
             let shadowOffset = {
-              x: V.PAN.x + (b.body.GetPosition().get_x() + b.circleRadius*0.25) * V.ZOOM,
-              y: V.PAN.y + (b.body.GetPosition().get_y() + b.circleRadius*0.25) * V.ZOOM,
+              x: + (b.body.GetPosition().get_x() + b.circleRadius*0.25) * V.ZOOM,
+              y: + (b.body.GetPosition().get_y() + b.circleRadius*0.25) * V.ZOOM,
             }
 
             g.beginFill(0x000000)
@@ -228,7 +239,7 @@ class Pitch {
         g.alpha = 0.75; // 0.25;
         let color = 0x008400; // 0xff0000
 
-        this.pixiApp.stage.addChild(g);
+        this.tableGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
           if(!DRAW_LOCALIZATION_ERROR) return;
@@ -246,12 +257,12 @@ class Pitch {
             }
 
             let posActual = {
-              x: V.PAN.x + pos.x * V.ZOOM,
-              y: V.PAN.y + pos.y * V.ZOOM,
+              x: + pos.x * V.ZOOM,
+              y: + pos.y * V.ZOOM,
             }
             let posEstimated = {
-              x: V.PAN.x + (RootSeedPos.x + shapePos.x) * V.ZOOM,
-              y: V.PAN.y + (RootSeedPos.y + shapePos.y) * V.ZOOM,
+              x: + (RootSeedPos.x + shapePos.x) * V.ZOOM,
+              y: + (RootSeedPos.y + shapePos.y) * V.ZOOM,
             }
             let dist = calcDist(posActual, posEstimated);
             // errorMagnitude += dist
@@ -315,7 +326,7 @@ class Pitch {
         let g = new PIXI.Graphics()
         g.zIndex = zIndexOf('RobustQuadlateral');
         g.alpha = 1;
-        this.pixiApp.stage.addChild(g);
+        this.tableGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
           if(!this.selectedUID) return;
@@ -331,12 +342,12 @@ class Pitch {
           g.lineStyle(V.ZOOM * RADIUS/4/4, 0xffffff);
           bodyPositions.forEach(p => {
             g.moveTo(
-              V.PAN.x + b.body.GetPosition().get_x()*V.ZOOM,
-              V.PAN.y + b.body.GetPosition().get_y()*V.ZOOM,
+              + b.body.GetPosition().get_x()*V.ZOOM,
+              + b.body.GetPosition().get_y()*V.ZOOM,
             );
             g.lineTo(
-              V.PAN.x + p.get_x()*V.ZOOM,
-              V.PAN.y + p.get_y()*V.ZOOM,
+              + p.get_x()*V.ZOOM,
+              + p.get_y()*V.ZOOM,
             );
           });
 
@@ -353,12 +364,12 @@ class Pitch {
             let p1 = bodyPositions[indexes[0]-1];
             let p2 = bodyPositions[indexes[1]-1];
             g.moveTo(
-              V.PAN.x + p1.get_x()*V.ZOOM,
-              V.PAN.y + p1.get_y()*V.ZOOM,
+              + p1.get_x()*V.ZOOM,
+              + p1.get_y()*V.ZOOM,
             );
             g.lineTo(
-              V.PAN.x + p2.get_x()*V.ZOOM,
-              V.PAN.y + p2.get_y()*V.ZOOM,
+              + p2.get_x()*V.ZOOM,
+              + p2.get_y()*V.ZOOM,
             );
           });
         });
@@ -369,7 +380,7 @@ class Pitch {
           let connGraphics = new PIXI.Graphics()
           connGraphics.zIndex = zIndexOf('ConnsAndBouns');
           connGraphics.alpha = 0.5;
-          this.pixiApp.stage.addChild(connGraphics);
+          this.tableGraphics.addChild(connGraphics);
           this.pixiApp.ticker.add(() => {
             connGraphics.clear();
             if(!DRAW_CONNS_AND_BOUNDS) return;
@@ -398,8 +409,8 @@ class Pitch {
               connGraphics.lineStyle(2, bound.color || 0x00ff00);
 
               connGraphics.drawRect(
-                V.PAN.x + V.ZOOM * (bound.aabb.get_lowerBound().get_x()),
-                V.PAN.y + V.ZOOM * (bound.aabb.get_lowerBound().get_y()),
+                + V.ZOOM * (bound.aabb.get_lowerBound().get_x()),
+                + V.ZOOM * (bound.aabb.get_lowerBound().get_y()),
                 V.ZOOM * (bound.aabb.get_upperBound().get_x() - bound.aabb.get_lowerBound().get_x()),
                 V.ZOOM * (bound.aabb.get_upperBound().get_y() - bound.aabb.get_lowerBound().get_y()),
               );
@@ -412,15 +423,15 @@ class Pitch {
               let pos1 = this.bodies[conn.from].body.GetPosition();
               let pos2 = this.bodies[conn.to].body.GetPosition();
               connGraphics.lineStyle(V.ZOOM * RADIUS/4, this.bodies[conn.from].robot.led.toHex());
-              connGraphics.moveTo(V.PAN.x + pos1.get_x() * V.ZOOM, V.PAN.y + pos1.get_y() * V.ZOOM);
-              connGraphics.lineTo(V.PAN.x + pos2.get_x() * V.ZOOM, V.PAN.y + pos2.get_y() * V.ZOOM);
+              connGraphics.moveTo(+ pos1.get_x() * V.ZOOM, + pos1.get_y() * V.ZOOM);
+              connGraphics.lineTo(+ pos2.get_x() * V.ZOOM, + pos2.get_y() * V.ZOOM);
             });
 
           });
         }
       }
 
-      this.pixiApp.stage.sortableChildren = true;
+      this.tableGraphics.sortableChildren = true;
 
       document.body.appendChild(this.pixiApp.view);
       this.pixiApp.view.addEventListener('mousewheel', ev => {
@@ -437,6 +448,7 @@ class Pitch {
 
         V.PAN.x += (centerWithoutZoom.x * nextZoom - centerWithoutZoom.x * V.ZOOM);
         V.PAN.y += (centerWithoutZoom.y * nextZoom - centerWithoutZoom.y * V.ZOOM);
+        this.tableGraphics.position = V.PAN;
 
         V.ZOOM = nextZoom;
 
@@ -464,6 +476,7 @@ class Pitch {
         V.PAN.y = this.dragStart.panY + (ev.y - this.dragStart.y);
         localStorage.setItem('V.PAN.x', V.PAN.x);
         localStorage.setItem('V.PAN.y', V.PAN.y);
+        this.tableGraphics.position = V.PAN;
       });
 
       // update at least once:
@@ -1160,8 +1173,8 @@ class Pitch {
               pos = data.pos;
               angle = data.angle;
             }
-            g.x = V.PAN.x + pos.x * V.ZOOM;
-            g.y = V.PAN.y + pos.y * V.ZOOM;
+            g.x = + pos.x * V.ZOOM;
+            g.y = + pos.y * V.ZOOM;
             g.angle = angle;
             g.zIndex = zIndexOf('Robots');
 
@@ -1190,7 +1203,7 @@ class Pitch {
 
 
           this.pixiApp.ticker.add(() => { agentGraphicsTick(b) });
-          this.pixiApp.stage.addChild(g);
+          this.tableGraphics.addChild(g);
           return;
         }
 
@@ -1222,8 +1235,8 @@ class Pitch {
             pos = data.pos;
             angle = data.angle;
           }
-          g.x = V.PAN.x + pos.x * V.ZOOM;
-          g.y = V.PAN.y + pos.y * V.ZOOM;
+          g.x = + pos.x * V.ZOOM;
+          g.y = + pos.y * V.ZOOM;
           g.angle = angle;
           g.zIndex = zIndexOf('Robots');
 
@@ -1381,7 +1394,7 @@ class Pitch {
           }
           agentGraphicsTick(b);
         });
-        this.pixiApp.stage.addChild(g);
+        this.tableGraphics.addChild(g);
         break;
     }
   }
@@ -1566,7 +1579,7 @@ function _runPitch(botProg, graphical, fastforward) {
     b.robot._graphics_must_update = true;
     b.robot._phys.GetWorld().DestroyBody(b.robot._phys);
     delete(this.bodies[b.robot._uid]);
-    // window.pitch.pixiApp.stage.removeChild(g);
+    // window.pitch.tableGraphics.removeChild(g);
   }
 
   console.log("Loaded.");
