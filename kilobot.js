@@ -66,7 +66,6 @@ class Kilobot {
   // roughly every 2 seconds
   // the returned message is sent, unless it is null
   kilo_message_tx() {
-    console.log(`kilo_message_tx: no message`);
     return null;
   }
 

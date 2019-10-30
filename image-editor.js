@@ -30,7 +30,7 @@ class ImageEditor {
       console.log('click', e.data.global);
       this.printPixel(e.data.global);
     });
-    
+
     container.addChild(this.sprite);
   }
 
@@ -55,7 +55,7 @@ class ImageEditor {
   printPixel(pos) {
     let pixels = this.app.renderer.extract.pixels(this.sprite);
     let per_row = this.size.w*4;
-    let k = Math.floor(pos.x) % per_row + Math.floor(pos.y) * per_row; 
+    let k = Math.floor(pos.x) % per_row + Math.floor(pos.y) * per_row;
     // for(let k = 0; k < this.size.w; k+=4) {
       let pixel = {
         r: pixels[k+0],
@@ -135,13 +135,13 @@ class ImageEditor {
 
         if(pixel.r < 100 && pixel.g < 100 && pixel.b < 100) {
           img.drawCircle(
-            coli/4, 
+            coli/4,
             rowi,
             1);
         } else {
           img.beginFill(0xff0000);
           img.drawCircle(
-            coli/4, 
+            coli/4,
             rowi,
             1);
         }

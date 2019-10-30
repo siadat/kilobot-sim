@@ -355,7 +355,7 @@ class GradientAndAssemblyRobot extends Kilobot {
         return;
 
       if(neigh.message.grad < grad)
-        grad = neigh.message.grad; 
+        grad = neigh.message.grad;
     });
 
     if(grad < Infinity)
@@ -710,7 +710,7 @@ class GradientAndAssemblyRobot extends Kilobot {
 
   kilo_message_rx(message, distance) {
     /*
-    let n = this.neighbors[message.robotUID]; 
+    let n = this.neighbors[message.robotUID];
     if(!n
       || n.neighborGradient != message.grad
       || (n.shapePos && (n.shapePos.x != message.shapePos.x || n.shapePos.y != message.shapePos.y))
@@ -751,4 +751,3 @@ class GradientAndAssemblyRobot extends Kilobot {
     };
   }
 }
-// let emptyRobot = new GradientAndAssemblyRobot({});
