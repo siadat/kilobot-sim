@@ -39,11 +39,36 @@ class Pitch {
       window.pixiApp = this.pixiApp;
       document.body.appendChild(this.pixiApp.view);
 
-      this.pixiApp.view.addEventListener('mousewheel', ev => {
-        let nextZoom = V.ZOOM * (1 + ev.wheelDelta/1000.0);
+      let updateZoom = (nextZoom, screenCenter) => {
         if(nextZoom < 2) nextZoom = 2;
         if(nextZoom > 20) nextZoom = 20;
 
+        let centerWithoutZoom = {
+          // x: (V.PAN.x-SIZE.w/2)/V.ZOOM,
+          // y: (V.PAN.y-SIZE.h/2)/V.ZOOM,
+          x: (V.PAN.x - screenCenter.x)/V.ZOOM,
+          y: (V.PAN.y - screenCenter.y)/V.ZOOM,
+        }
+
+        V.PAN.x += (centerWithoutZoom.x * nextZoom - centerWithoutZoom.x * V.ZOOM);
+        V.PAN.y += (centerWithoutZoom.y * nextZoom - centerWithoutZoom.y * V.ZOOM);
+        this.platformGraphics.position = V.PAN;
+
+        V.ZOOM = nextZoom;
+
+        localStorage.setItem('V.ZOOM', V.ZOOM);
+        localStorage.setItem('V.PAN.x', V.PAN.x);
+        localStorage.setItem('V.PAN.y', V.PAN.y);
+      }
+
+      this.pixiApp.view.addEventListener('mousewheel', ev => {
+        let nextZoom = V.ZOOM * (1 + ev.wheelDelta/1000.0);
+        updateZoom(nextZoom, {
+          x: ev.clientX,
+          y: ev.clientY,
+        });
+
+        /*
         let centerWithoutZoom = {
           // x: (V.PAN.x-SIZE.w/2)/V.ZOOM,
           // y: (V.PAN.y-SIZE.h/2)/V.ZOOM,
@@ -60,6 +85,7 @@ class Pitch {
         localStorage.setItem('V.ZOOM', V.ZOOM);
         localStorage.setItem('V.PAN.x', V.PAN.x);
         localStorage.setItem('V.PAN.y', V.PAN.y);
+        */
       });
 
 
@@ -70,9 +96,23 @@ class Pitch {
         this.clickArea.hitArea = new PIXI.Rectangle(0, 0, SIZE.w, SIZE.h);
         this.pixiApp.stage.addChild(this.clickArea);
 
+        this.touches = {};
+
         let pointerdown = ev => {
+          this.touches[ev.data.pointerId] = {
+            p1: {
+              x: ev.data.global.x,
+              y: ev.data.global.y,
+              zoomBeforePinch: V.ZOOM,
+            },
+            p2: {
+              x: ev.data.global.x,
+              y: ev.data.global.y,
+            },
+          };
+
           this.clickArea.cursor = 'grabbing';
-          this.dragStart = {
+          this.pointerDownStart = {
             x: ev.data.global.x,
             y: ev.data.global.y,
             panX: V.PAN.x,
@@ -82,21 +122,74 @@ class Pitch {
         };
 
         let pointerup = ev => {
-          if(this.dragStart == null) return;
+          delete(this.touches[ev.data.pointerId]);
 
-          let clicked = this.dragStart.x == ev.data.global.x && this.dragStart.y == ev.data.global.y;
+          if(this.pointerDownStart == null) return;
+
+          let clicked = this.pointerDownStart.x == ev.data.global.x && this.pointerDownStart.y == ev.data.global.y;
           if(clicked) {
             this.selectedUID = null;
           }
 
           this.clickArea.cursor = 'grab';
-          this.dragStart = null;
+          this.pointerDownStart = null;
         };
 
+        if(DEV) {
+          this.pixiApp.ticker.add(() => {
+            this.setDisplayedData('Touches', `${Object.keys(this.touches).length} (${Object.keys(this.touches).join(',')})`);
+          });
+        }
+
         let pointermove = ev => {
-          if(!this.dragStart) return;
-          V.PAN.x = this.dragStart.panX + (ev.data.global.x - this.dragStart.x);
-          V.PAN.y = this.dragStart.panY + (ev.data.global.y - this.dragStart.y);
+          { // pinch zoom
+            if(Object.keys(this.touches).length == 2) {
+              let movedTouchEventID = ev.data.pointerId;
+              let otherTouchEventID = Object.keys(this.touches).filter(id => id != movedTouchEventID)[0];
+
+              if(!otherTouchEventID) {
+                console.error("the other touch ID was not found");
+                return;
+              }
+
+              let otherTouch = this.touches[otherTouchEventID];
+              let movedTouch = this.touches[movedTouchEventID];
+              movedTouch.p2 = { x: ev.data.global.x, y: ev.data.global.y, }
+
+              let dist1 = Math.round(calcDist(otherTouch.p1, movedTouch.p1));
+              let dist2 = Math.round(calcDist(otherTouch.p2, movedTouch.p2));
+
+
+              let zoomOnScreenCenter = {
+                x: (otherTouch.p2.x + movedTouch.p2.x)/2,
+                y: (otherTouch.p2.y + movedTouch.p2.y)/2,
+              };
+              let zoomBeforePinch = otherTouch.p1.zoomBeforePinch; // == movedTouch.p1.zoom
+
+              if(dist1 == 0) dist1 = 1; // avoid divide by 0
+              let newZoom = zoomBeforePinch * dist2/dist1;
+              updateZoom(newZoom, zoomOnScreenCenter);
+
+              return;
+            }
+          }
+
+
+          if(!this.pointerDownStart) return;
+          this.touches[ev.data.pointerId] = {
+            p1: {
+              x: ev.data.global.x,
+              y: ev.data.global.y,
+              zoomBeforePinch: V.ZOOM,
+            },
+            p2: {
+              x: ev.data.global.x,
+              y: ev.data.global.y,
+            },
+          };
+
+          V.PAN.x = this.pointerDownStart.panX + (ev.data.global.x - this.pointerDownStart.x);
+          V.PAN.y = this.pointerDownStart.panY + (ev.data.global.y - this.pointerDownStart.y);
           localStorage.setItem('V.PAN.x', V.PAN.x);
           localStorage.setItem('V.PAN.y', V.PAN.y);
           this.platformGraphics.position = V.PAN;
@@ -108,6 +201,9 @@ class Pitch {
         this.clickArea.on('pointercancel', pointerup);
         this.clickArea.on('pointerout', pointerup);
         this.clickArea.on('pointermove', pointermove);
+
+        this.clickArea.on('touchend', pointerup);
+        this.clickArea.on('touchcancel', pointerup);
       }
 
       {
