@@ -229,7 +229,7 @@ class Pitch {
         });
       }
 
-      if(DRAW_TRAVERSED_PATH) {
+      {
         // position vectors
         let g = new PIXI.Graphics()
         g.zIndex = zIndexOf('TraversedPath');
@@ -240,7 +240,7 @@ class Pitch {
         this.platformGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
-          if(!DRAW_TRAVERSED_PATH) return;
+          if(!this.experiment.runnerOptions.traversedPath) return;
           forEachObj(this.bodies, b => {
             g.lineStyle(2, b.robot.led.toHexDark());
 
@@ -383,9 +383,14 @@ class Pitch {
     this.destroyFuncs.forEach(cb => cb());
   }
 
-  run(experiment, RobotClass) {
+  run(experiment) {
 		this.bodies = {};
     this.experiment = experiment;
+    this.experiment.runnerOptions = Object.assign({
+      limitSpeed: false,
+      traversedPath: false,
+      traversedPathLen: 5,
+    }, this.experiment.runnerOptions);
 
     let uidCounter = 0;
 
@@ -522,8 +527,8 @@ class Pitch {
 
         this.physics.update();
 
-        if(DRAW_TRAVERSED_PATH && frameCount % 30 == 0) {
-          let max = 5;
+        if(this.experiment.runnerOptions.traversedPath && frameCount % 30 == 0) {
+          let max = this.experiment.runnerOptions.traversedPathLen;
           forEachObj(this.bodies, b => {
             let pos = b.body.GetPosition();
             let lastPos = b.posHistory[b.posHistory.length-1];
@@ -823,6 +828,9 @@ class Pitch {
 
               if(this.tickBatchCount < 1) this.tickBatchCount = 1;
               //if(this.tickBatchCount > 3) this.tickBatchCount = 3;
+
+              if(this.experiment.runnerOptions.limitSpeed)
+                this.tickBatchCount = 1;
 
               if(DEV) {
                 this.setDisplayedData('Tick batch', Math.round(this.tickBatchCount));
