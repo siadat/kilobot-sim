@@ -758,6 +758,7 @@ class ExperimentAssembly {
   constructor() {
     this.selectedUID = null;
     this.drawLocalizationError = true;
+    this.COUNT = 4 + 204;
 
     this.runnerOptions = {
       limitSpeed: false,
@@ -799,6 +800,7 @@ class ExperimentAssembly {
 
       newRobot(
         shapePosToPhysPos(shapePos),
+        MathRandom() * 2*Math.PI,
         new GradientAndAssemblyRobot({
           isInsideShape: isInsideShape,
           shapePos: shapePos.isSeed ? {x: shapePos.x, y: shapePos.y} : null,
@@ -826,7 +828,7 @@ class ExperimentAssembly {
       return pos;
     }
 
-    let assemblyCount = COUNT - bodyCounter;
+    let assemblyCount = this.COUNT - bodyCounter;
     let hexaNeighbors = [
                [0,   -1], [+1,-1],
       [-1, 0], /*cursor*/ [+1, 0],
@@ -895,6 +897,7 @@ class ExperimentAssembly {
 
       newRobot(
         pos,
+        MathRandom() * 2*Math.PI,
         new GradientAndAssemblyRobot({
           isInsideShape: isInsideShape,
           shapePos: null,

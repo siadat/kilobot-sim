@@ -1,4 +1,3 @@
-const COUNT = 4 + 204;
 let RANDOM_SEED = 1234;
 let MathRandom = new Math.seedrandom(RANDOM_SEED); // = Math.random;
 
@@ -61,8 +60,6 @@ if(true){
     }
   }
 }
-
-const PER_ROW = Math.floor(Math.sqrt(COUNT * $(window).width()/$(window).height()*1));
 
 const MARGIN = 12 * RADIUS;
 let SIZE = {
@@ -162,10 +159,6 @@ let BENCHMARKING = true;
 if(BENCHMARKING) {
   // DRAW_SHAPE_DESCRIPTION = false;
   DRAW_CONNS_AND_BOUNDS = false;
-}
-
-if(COUNT > 500) {
-  DRAW_SHADOW = false;
 }
 
 const DARK_MODE = !true;

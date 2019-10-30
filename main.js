@@ -16,5 +16,11 @@ Box2D({
   window.pitch = pitch;
 
   // pitch.run(new ExperimentAssembly());
-  pitch.run(new ExperimentLab0());
+  // pitch.run(new ExperimentLab0());
+  let ExperimentClass = window[window.location.search.substr(1)];
+  if(!ExperimentClass) {
+    console.error(`Experiment '${ExperimentClass}' is not defined`);
+    return;
+  }
+  pitch.run(new ExperimentClass());
 });

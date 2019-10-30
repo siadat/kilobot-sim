@@ -178,7 +178,7 @@ class Kilobot {
   }
 
   spinup_motors() {
-    this.set_motors(255, 255);
+    // this.set_motors(255, 255);
     // this.dalay(15);
   }
 
@@ -203,9 +203,9 @@ class Kilobot {
   }
 
   set_color(rgb) {
-    let r = (0b000011 & rgb) >> 0;
+    let r = (0b110000 & rgb) >> 4;
     let g = (0b001100 & rgb) >> 2;
-    let b = (0b110000 & rgb) >> 4;
+    let b = (0b000011 & rgb) >> 0;
 
     if(  r == this.led.r
       && g == this.led.g

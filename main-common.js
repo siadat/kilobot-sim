@@ -394,9 +394,9 @@ class Pitch {
 
     let uidCounter = 0;
 
-    experiment.createRobots((pos, robot) => {
+    experiment.createRobots((pos, angle, robot) => {
         uidCounter++;
-        let b = this.physics.circle(pos, RADIUS, uidCounter);
+        let b = this.physics.circle(pos, angle, RADIUS, uidCounter);
         b.robot = robot;
         b.robot._uid = uidCounter;
         b.robot._phys = b.body;
@@ -443,14 +443,14 @@ class Pitch {
       this.setDisplayedData.bind(this),
     );
 
-    // if(PERFECT) {
+    if(PERFECT) {
       forEachObj(this.bodies, b => {
         b.robot.setup();
         b.robot._started = true;
       });
-    // }
+    }
 
-    this.setDisplayedData('Count', `${COUNT} ${COUNT == 1 ? 'robot' : 'robots'}`);
+    this.setDisplayedData('Count', `${this.bodyIDs.length} ${this.bodyIDs.length == 1 ? 'robot' : 'robots'}`);
     this.setDisplayedData('Random seed', `${RANDOM_SEED}`);
     this.setDisplayedData('Version', `${VERSION.substr(0, 8)}`);
 
@@ -573,7 +573,7 @@ class Pitch {
             continue;
           }
 
-          if(MathRandom() < 0.1) {
+          if(MathRandom() < 0.75) {
             r.setup();
             r._started = true;
           }
@@ -773,9 +773,9 @@ class Pitch {
 
         if(DEV) {
           this.setDisplayedData('message_tx()', messageTxCount);
-          this.setDisplayedData('message_tx()/robot', Math.round(messageTxCount/COUNT * 100)/100);
+          this.setDisplayedData('message_tx()/robot', Math.round(messageTxCount/this.bodyIDs.length * 100)/100);
           this.setDisplayedData('message_rx()', messageRxCount);
-          this.setDisplayedData('message_rx()/robot', Math.round(messageRxCount/COUNT * 100)/100);
+          this.setDisplayedData('message_rx()/robot', Math.round(messageRxCount/this.bodyIDs.length * 100)/100);
         }
 
         this.Box2D.destroy(lowerBound);
@@ -1050,14 +1050,14 @@ class Box2DPhysics {
     this.currentFrame++;
   }
 
-	circle(pos, radius, id) {
+	circle(pos, angle, radius, id) {
 		let b2bodyDef = new this.Box2D.b2BodyDef();
     b2bodyDef.set_linearDamping(20.0);
 		b2bodyDef.set_angularDamping(20.0);
     // if(BENCHMARKING) {
     //   b2bodyDef.set_type(this.Box2D.b2_staticBody);
     // } else {
-    if(id == 1 || id == 2 || id == 3 || id == 4) {
+    if(false && (id == 1 || id == 2 || id == 3 || id == 4)) {
       b2bodyDef.set_type(this.Box2D.b2_staticBody);
     } else {
       b2bodyDef.set_type(this.Box2D.b2_dynamicBody);
@@ -1109,7 +1109,7 @@ class Box2DPhysics {
 		// ---
 
     body.SetUserData(id);
-    let angle = MathRandom() * 2*Math.PI /*Math.PI/2*/;
+    // let angle = MathRandom() * 2*Math.PI /*Math.PI/2*/;
     body.SetTransform(
       body.GetPosition(),
       180 * angle / Math.PI,

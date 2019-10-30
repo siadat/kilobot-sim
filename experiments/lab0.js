@@ -6,19 +6,15 @@ class RobotLab0 extends Kilobot {
   loop() {
     this.counter++;
 
-    let left = MathRandom() > 0.5 ? this.kilo_turn_left : 0;
-    let right = MathRandom() > 0.5 ? this.kilo_turn_right : 0;
-    this.set_motors(left, right);
-
     if(Math.floor(this.counter / 15) % 2 == 0) {
-      this.set_color(this.RGB(1, 0, 0));
+      this.set_color(this.RGB(3, 0, 0));
     } else {
-      this.set_color(this.RGB(0, 0, 1));
+      this.set_color(this.RGB(0, 0, 3));
     }
   }
 }
 
-class ExperimentLab0 {
+window.ExperimentLab0 = class {
   constructor() {
     this.runnerOptions = {
       limitSpeed: true,
@@ -28,10 +24,16 @@ class ExperimentLab0 {
   }
 
   createRobots(newRobot) {
-    newRobot(
-      {x: 0, y: 0},
-      new RobotLab0(),
-    );
+    for(let i = 0; i < 10; i++) {
+      newRobot(
+        {
+          x: MathRandom(),
+          y: MathRandom(),
+        },
+        0,
+        new RobotLab0(),
+      );
+    }
   }
 
   setupGraphics(
