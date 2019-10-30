@@ -70,7 +70,7 @@ class Pitch {
         this.clickArea.hitArea = new PIXI.Rectangle(0, 0, SIZE.w, SIZE.h);
         this.pixiApp.stage.addChild(this.clickArea);
 
-        this.clickArea.on('pointerdown', ev => {
+        let pointerdown = ev => {
           this.clickArea.cursor = 'grabbing';
           this.dragStart = {
             x: ev.data.global.x,
@@ -79,9 +79,9 @@ class Pitch {
             panY: V.PAN.y,
           };
           ev.stopPropagation();
-        });
+        };
 
-        this.clickArea.on('pointerup', ev => {
+        let pointerup = ev => {
           if(this.dragStart == null) return;
 
           let clicked = this.dragStart.x == ev.data.global.x && this.dragStart.y == ev.data.global.y;
@@ -91,16 +91,23 @@ class Pitch {
 
           this.clickArea.cursor = 'grab';
           this.dragStart = null;
-        });
+        };
 
-        this.clickArea.on('pointermove', ev => {
+        let pointermove = ev => {
           if(!this.dragStart) return;
           V.PAN.x = this.dragStart.panX + (ev.data.global.x - this.dragStart.x);
           V.PAN.y = this.dragStart.panY + (ev.data.global.y - this.dragStart.y);
           localStorage.setItem('V.PAN.x', V.PAN.x);
           localStorage.setItem('V.PAN.y', V.PAN.y);
           this.platformGraphics.position = V.PAN;
-        });
+        };
+
+        this.clickArea.on('pointerdown', pointerdown);
+        this.clickArea.on('pointerup', pointerup);
+        this.clickArea.on('pointerupoutside', pointerup);
+        this.clickArea.on('pointercancel', pointerup);
+        this.clickArea.on('pointerout', pointerup);
+        this.clickArea.on('pointermove', pointermove);
       }
 
       {
