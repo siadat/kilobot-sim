@@ -72,7 +72,6 @@ class Pitch {
 
         this.clickArea.on('pointerdown', ev => {
           this.clickArea.cursor = 'grabbing';
-          this.selectedUID = null;
           this.dragStart = {
             x: ev.data.global.x,
             y: ev.data.global.y,
@@ -83,6 +82,13 @@ class Pitch {
         });
 
         this.clickArea.on('pointerup', ev => {
+          if(this.dragStart == null) return;
+
+          let clicked = this.dragStart.x == ev.data.global.x && this.dragStart.y == ev.data.global.y;
+          if(clicked) {
+            this.selectedUID = null;
+          }
+
           this.clickArea.cursor = 'grab';
           this.dragStart = null;
         });
@@ -1232,7 +1238,7 @@ class Pitch {
         g.buttonMode = true;
         g.on('pointerdown', (ev) => {
           this.selectedUID = b.robot._uid;
-          console.log('robot clicked', ev, {
+          console.log({
             uid: b.robot._uid,
             state: b.robot.state,
             grad: b.robot.myGradient,
