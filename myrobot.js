@@ -18,14 +18,14 @@ class MyRobot extends Kilobot {
     }
   }
 
-  kilo_message_rx(message, distance) {
-    // console.log(`kilo_message_rx: from distance=${distance}`); //, message);
-    // console.log(`kilo_message_rx`);
+  message_rx(message, distance) {
+    // console.log(`message_rx: from distance=${distance}`); //, message);
+    // console.log(`message_rx`);
   }
 
   // roughly every 2 seconds
   // the returned message is sent, unless it is null
-  kilo_message_tx() {
+  message_tx() {
     // return null;
     return {"hello": true};
   }

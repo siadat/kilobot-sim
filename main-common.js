@@ -482,14 +482,11 @@ class Pitch {
         }
 
         if(fixtureA.IsSensor()) {
-          this.sensorContactCounter++;
-          // console.log(`BeginContact sensor=${idA} other=${idB}`);
         }
 
         if(fixtureB.IsSensor()) {
-          this.sensorContactCounter++;
-          // console.log(`BeginContact sensor=${idB} other=${idA}`);
         }
+
         return;
       }
       this.physics.world.SetContactListener(listener);
@@ -505,9 +502,6 @@ class Pitch {
           resolve();
           return;
         }
-
-        // this.setDisplayedData('sensorContactCounter', `${this.sensorContactCounter}`);
-        // this.sensorContactCounter = 0;
 
         {
           let virtualSeconds = Math.floor(frameCount/LOOP_PER_SECOND);
@@ -552,21 +546,9 @@ class Pitch {
           });
         }
 
-          /*
-          // testing how fast I can get all positions
-        let poses = [];
-        for(let i = 0; i < this.bodyIDs.length; i++) {
-          let body = this.bodies[this.bodyIDs[i]].body;
-          let pos = body.GetPosition();
-          poses.push({x: pos.get_x(), y: pos.get_y()});
-        }
-        */
-
         // ******
-        if(true)
         for(let i = 0; i < this.bodyIDs.length; i++) {
           let r = this.bodies[this.bodyIDs[i]].robot;
-          // let r = this.robots[i];
           if(r._started) {
             r.loop();
             r._internal_loop();
@@ -577,22 +559,9 @@ class Pitch {
             r.setup();
             r._started = true;
           }
-
-          /*
-          if(this.bodyRobotIsStarted[i] == 1) {
-            r.loop();
-            r._internal_loop();
-            continue;
-          }
-
-          if(MathRandom() < 0.1) {
-            r.setup();
-            this.bodyRobotIsStarted[i] = 1;
-          }
-          */
         }
-        // ******
 
+        // ******
         this.connections = [];
         let messageTxCount = 0;
         let messageRxCount = 0;
@@ -621,7 +590,7 @@ class Pitch {
           }
 
           messageRxCount++;
-          receiverBody.robot.kilo_message_rx(message, distance);
+          receiverBody.robot.message_rx(message, distance);
 
           if(DRAW_CONNS_AND_BOUNDS) {
             this.connections.push({
@@ -710,10 +679,11 @@ class Pitch {
           }
 
           messageTxCount++;
-          let message = broadcastingBody.robot.kilo_message_tx();
+          let message = broadcastingBody.robot.message_tx();
           if(message == null) {
             continue;
           }
+          broadcastingBody.robot.message_tx_success();
 
           {
             /*

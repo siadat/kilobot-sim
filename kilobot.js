@@ -18,7 +18,7 @@ class Kilobot {
   _internal_loop() {
     this._internalTicker++;
     // if(this._internalTicker % 40 == 0) {
-    //   let msgToSend = this.kilo_message_tx();
+    //   let msgToSend = this.message_tx();
     //   if(!msgToSend) {
     //     return;
     //   }
@@ -56,17 +56,21 @@ class Kilobot {
   get kilo_straight_left() { return 255; }
   get kilo_straight_right() { return 255; }
   get kilo_ticks() {
-    return Math.floor((new Date() - this._startedAt)/30.0);
+    return this._internalTicker;
+    // return Math.floor((new Date() - this._startedAt)/30.0);
   }
 
-  kilo_message_rx(message, distance) {
-    // console.log(`kilo_message_rx: unhandled message=${message} from distance=${distance}`);
+  message_rx(message, distance) {
+    // console.log(`message_rx: unhandled message=${message} from distance=${distance}`);
   }
 
   // roughly every 2 seconds
   // the returned message is sent, unless it is null
-  kilo_message_tx() {
+  message_tx() {
     return null;
+  }
+
+  message_tx_success() {
   }
 
   set_motors_old(left, right) {

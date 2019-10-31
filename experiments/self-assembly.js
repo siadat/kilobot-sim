@@ -708,7 +708,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     return false;
   }
 
-  kilo_message_rx(message, distance) {
+  message_rx(message, distance) {
     /*
     let n = this.neighbors[message.robotUID];
     if(!n
@@ -738,7 +738,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     };
   }
 
-  kilo_message_tx() {
+  message_tx() {
     return {
       grad: this.myGradient,
       isStationary: this.isStationary,
@@ -754,7 +754,7 @@ class GradientAndAssemblyRobot extends Kilobot {
 
 // ----
 
-class ExperimentAssembly {
+window['ExperimentAssembly'] = class {
   constructor() {
     this.selectedUID = null;
     this.drawLocalizationError = true;
