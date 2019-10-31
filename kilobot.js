@@ -1,4 +1,4 @@
-class Kilobot {
+export class Kilobot {
   constructor() {
     this.led = new RGBClass(0, 0, 0);
     this._graphics_must_update = true;

@@ -1,4 +1,6 @@
-class Pitch {
+import * as PIXI from "pixi.js";
+
+export class Pitch {
   constructor(Box2D) {
     this.Box2D = Box2D;
 
@@ -279,28 +281,6 @@ class Pitch {
         });
       }
 
-      if(false) { // origin grid
-        let g = new PIXI.Graphics()
-        g.zIndex = zIndexOf('OriginGrid');
-        g.alpha = 0.5;
-        g.lastView = null;
-
-        this.platformGraphics.addChild(g);
-        this.pixiApp.ticker.add(() => {
-          if(equalZooms(g.lastView, V)) return;
-          g.clear();
-          g.lineStyle(4, 0x000000);
-          g.endFill();
-
-          let s = 10 * _ShapeScale;
-          g.moveTo(- s * V.ZOOM, + 0 * V.ZOOM);
-          g.lineTo(+ s * V.ZOOM, + 0 * V.ZOOM)
-
-          g.moveTo(+ 0 * V.ZOOM, - s * V.ZOOM);
-          g.lineTo(+ 0 * V.ZOOM, + s * V.ZOOM);
-        });
-      }
-
       if(DRAW_SHADOW) {
         // position vectors
         let g = new PIXI.Graphics()
@@ -436,6 +416,7 @@ class Pitch {
 
     this.experiment.setupGraphics && this.experiment.setupGraphics(
       PIXI,
+      Box2D,
       this.pixiApp,
       this.platformGraphics,
       this.bodies,
