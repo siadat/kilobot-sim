@@ -3,7 +3,6 @@ class Kilobot {
     this.led = new RGBClass(0, 0, 0);
     this._graphics_must_update = true;
     this._uid = -1;
-    this._seed = 0;
     this._permanentSpeedErr = 1.0;
     this._startedAt = new Date();
     this._internalTicker = 0;
@@ -43,8 +42,6 @@ class Kilobot {
   }
 
   rand_seed(seed) {
-    console.error("Seed ignored");
-    this._seed = seed;
   }
 
   _updated_graphics() {

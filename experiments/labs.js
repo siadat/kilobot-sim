@@ -25,8 +25,7 @@ window.ExperimentLab0 = class {
 
   createRobots(newRobot) {
     for(let i = 0; i < 10; i++) {
-      newRobot(
-        {
+      newRobot({
           x: MathRandom(),
           y: MathRandom(),
         },
@@ -34,16 +33,6 @@ window.ExperimentLab0 = class {
         new RobotLab0(),
       );
     }
-  }
-
-  setupGraphics(
-    PIXI,
-    pixiApp,
-    platformGraphics,
-    bodies,
-    bodyIDs,
-    setDisplayedData,
-  ) {
   }
 }
 
@@ -88,8 +77,7 @@ window['ExperimentLab1.2'] = class {
 
   createRobots(newRobot) {
     for(let i = 0; i < 10; i++) {
-      newRobot(
-        {
+      newRobot({
           x: MathRandom(),
           y: MathRandom(),
         },
@@ -97,16 +85,6 @@ window['ExperimentLab1.2'] = class {
         new RobotLab1_2(),
       );
     }
-  }
-
-  setupGraphics(
-    PIXI,
-    pixiApp,
-    platformGraphics,
-    bodies,
-    bodyIDs,
-    setDisplayedData,
-  ) {
   }
 }
 
@@ -160,8 +138,7 @@ window['ExperimentLab1.3'] = class {
 
   createRobots(newRobot) {
     for(let i = 0; i < 10; i++) {
-      newRobot(
-        {
+      newRobot({
           x: MathRandom(),
           y: MathRandom(),
         },
@@ -169,15 +146,5 @@ window['ExperimentLab1.3'] = class {
         new RobotLab1_3(),
       );
     }
-  }
-
-  setupGraphics(
-    PIXI,
-    pixiApp,
-    platformGraphics,
-    bodies,
-    bodyIDs,
-    setDisplayedData,
-  ) {
   }
 }

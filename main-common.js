@@ -434,7 +434,7 @@ class Pitch {
       */
     }
 
-    this.experiment.setupGraphics(
+    this.experiment.setupGraphics && this.experiment.setupGraphics(
       PIXI,
       this.pixiApp,
       this.platformGraphics,

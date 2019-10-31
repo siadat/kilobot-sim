@@ -6,8 +6,8 @@ class RobotRandom extends Kilobot {
   loop() {
     this.counter++;
 
-    let left = MathRandom() > 0.5 ? this.kilo_turn_left : 0;
-    let right = MathRandom() > 0.5 ? this.kilo_turn_right : 0;
+    let left = this.rand_soft()/255.0 > 0.5 ? this.kilo_turn_left : 0;
+    let right = this.rand_soft()/255.0 > 0.5 ? this.kilo_turn_right : 0;
     this.set_motors(left, right);
   }
 }
@@ -25,8 +25,8 @@ window.ExperimentRandom = class {
     for(let i = 0; i < 10; i++) {
       newRobot(
         {
-          x: 20 * RADIUS * MathRandom(),
-          y: 20 * RADIUS * MathRandom(),
+          x: 20 * RADIUS * this.rand_soft()/255.0,
+          y: 20 * RADIUS * this.rand_soft()/255.0,
         },
         0,
         new RobotRandom(),

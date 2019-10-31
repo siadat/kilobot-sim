@@ -269,19 +269,6 @@ class GradientAndAssemblyRobot extends Kilobot {
       closestNeighbours.push(neigh)
     });
 
-    /*
-    closestNeighbours.sort((a, b) => {
-      if(a.isSeed && b.isSeed) return Infinity * (a.measuredDist - b.measuredDist);
-      if(a.isSeed) return -Infinity;
-      if(b.isSeed) return +Infinity;
-      return a.measuredDist - b.measuredDist;
-    });
-    */
-
-    // closestNeighbours.sort((a, b) => {
-    //   return MathRandom() - 0.5;
-    // });
-
     while(closestNeighbours.length >= 3) {
       let x1 = closestNeighbours[0].shapePos.x;
       let x2 = closestNeighbours[1].shapePos.x;
@@ -304,7 +291,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       //   break;
       // }
       closestNeighbours.splice(2, 1);
-      // closestNeighbours.splice(Math.floor(MathRandom() * 3), 1);
+      // closestNeighbours.splice(Math.floor(this.rand_soft()/255.0 * 3), 1);
       // let d = Math.sqrt(pow2(slopeA) + pow2(slopeB) + pow2(slopeC));
       // if(d > 5.0) {
       //   break;
@@ -696,7 +683,7 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   hesitate(what) {
-    this.hesitateData[what] = this.counter + HESITATE_DURATION*(MathRandom()*0.2);
+    this.hesitateData[what] = this.counter + HESITATE_DURATION*(this.rand_soft()/255.0*0.2);
   }
 
   isHesitating(what) {
