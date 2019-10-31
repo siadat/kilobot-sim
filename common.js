@@ -63,8 +63,8 @@ if(true){
 
 const MARGIN = 12 * RADIUS;
 let SIZE = {
-  w: $(window).width()-10,
-  h: $(window).height()-10,
+  w: window.innerWidth,
+  h: window.innerHeight-10,
 }
 
 let V = {
