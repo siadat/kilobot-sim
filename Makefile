@@ -5,7 +5,9 @@ deploy: update_version
 	npx webpack --config webpack.prod.js
 
 update_version:
-	echo "export const VERSION = '$(shell git rev-parse HEAD)';" > version.js
+	echo "// Build stuff" > version.js
+	echo "export const VERSION = '$(shell git rev-parse HEAD)';" >> version.js
+	echo "export const BUILTAT = '$(shell date +%Y-%m-%d-at-%H-%M-%S)';" >> version.js
 
 dependencies: node_modules
 
