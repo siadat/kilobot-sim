@@ -1,5 +1,5 @@
 module.exports = {
-  entry: "./kilolib.js",
+  entry: "./lib.js",
   node: { fs: "empty" },
   output: {
     filename: "bundle.js",
