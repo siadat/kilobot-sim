@@ -1,5 +1,3 @@
-import * as PIXI from "pixi.js";
-
 export class Pitch {
   constructor(Box2D) {
     this.Box2D = Box2D;
