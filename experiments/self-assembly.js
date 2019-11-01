@@ -943,6 +943,7 @@ window['ExperimentAssembly'] = class {
     bodies,
     bodyIDs,
     setDisplayedData,
+    V,
   ) {
     for(let i = 0; i < bodyIDs.length; i++) {
       let b = bodies[bodyIDs[i]];

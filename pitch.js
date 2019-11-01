@@ -12,6 +12,13 @@ export class Pitch {
     this.fps = 60;
     this.metaData = {};
     this.tickBatchCount = 1;
+    this.V = {
+      PAN: {
+        x: (1*localStorage.getItem('V.PAN.x')) || SIZE.w/2.0,
+        y: (1*localStorage.getItem('V.PAN.y')) || SIZE.h/2.0,
+      },
+      ZOOM: (1*localStorage.getItem('V.ZOOM')) || 20.0,
+    };
 
     if(true /*graphical*/) {
       PIXI.utils.skipHello();
@@ -27,30 +34,31 @@ export class Pitch {
       window.pixiApp = this.pixiApp;
       document.body.appendChild(this.pixiApp.view);
 
+
       let updateZoom = (nextZoom, screenCenter) => {
         if(nextZoom < 2) nextZoom = 2;
         if(nextZoom > 20) nextZoom = 20;
 
         let centerWithoutZoom = {
-          // x: (V.PAN.x-SIZE.w/2)/V.ZOOM,
-          // y: (V.PAN.y-SIZE.h/2)/V.ZOOM,
-          x: (V.PAN.x - screenCenter.x)/V.ZOOM,
-          y: (V.PAN.y - screenCenter.y)/V.ZOOM,
+          // x: (this.V.PAN.x-SIZE.w/2)/this.V.ZOOM,
+          // y: (this.V.PAN.y-SIZE.h/2)/this.V.ZOOM,
+          x: (this.V.PAN.x - screenCenter.x)/this.V.ZOOM,
+          y: (this.V.PAN.y - screenCenter.y)/this.V.ZOOM,
         }
 
-        V.PAN.x += (centerWithoutZoom.x * nextZoom - centerWithoutZoom.x * V.ZOOM);
-        V.PAN.y += (centerWithoutZoom.y * nextZoom - centerWithoutZoom.y * V.ZOOM);
-        this.platformGraphics.position = V.PAN;
+        this.V.PAN.x += (centerWithoutZoom.x * nextZoom - centerWithoutZoom.x * this.V.ZOOM);
+        this.V.PAN.y += (centerWithoutZoom.y * nextZoom - centerWithoutZoom.y * this.V.ZOOM);
+        this.platformGraphics.position = this.V.PAN;
 
-        V.ZOOM = nextZoom;
+        this.V.ZOOM = nextZoom;
 
-        localStorage.setItem('V.ZOOM', V.ZOOM);
-        localStorage.setItem('V.PAN.x', V.PAN.x);
-        localStorage.setItem('V.PAN.y', V.PAN.y);
+        localStorage.setItem('this.V.ZOOM', this.V.ZOOM);
+        localStorage.setItem('this.V.PAN.x', this.V.PAN.x);
+        localStorage.setItem('this.V.PAN.y', this.V.PAN.y);
       }
 
       this.pixiApp.view.addEventListener('mousewheel', ev => {
-        let nextZoom = V.ZOOM * (1 + ev.wheelDelta/1000.0);
+        let nextZoom = this.V.ZOOM * (1 + ev.wheelDelta/1000.0);
         updateZoom(nextZoom, {
           x: ev.clientX,
           y: ev.clientY,
@@ -58,21 +66,21 @@ export class Pitch {
 
         /*
         let centerWithoutZoom = {
-          // x: (V.PAN.x-SIZE.w/2)/V.ZOOM,
-          // y: (V.PAN.y-SIZE.h/2)/V.ZOOM,
-          x: (V.PAN.x - ev.clientX)/V.ZOOM,
-          y: (V.PAN.y - ev.clientY)/V.ZOOM,
+          // x: (this.V.PAN.x-SIZE.w/2)/this.V.ZOOM,
+          // y: (this.V.PAN.y-SIZE.h/2)/this.V.ZOOM,
+          x: (this.V.PAN.x - ev.clientX)/this.V.ZOOM,
+          y: (this.V.PAN.y - ev.clientY)/this.V.ZOOM,
         }
 
-        V.PAN.x += (centerWithoutZoom.x * nextZoom - centerWithoutZoom.x * V.ZOOM);
-        V.PAN.y += (centerWithoutZoom.y * nextZoom - centerWithoutZoom.y * V.ZOOM);
-        this.platformGraphics.position = V.PAN;
+        this.V.PAN.x += (centerWithoutZoom.x * nextZoom - centerWithoutZoom.x * this.V.ZOOM);
+        this.V.PAN.y += (centerWithoutZoom.y * nextZoom - centerWithoutZoom.y * this.V.ZOOM);
+        this.platformGraphics.position = this.V.PAN;
 
-        V.ZOOM = nextZoom;
+        this.V.ZOOM = nextZoom;
 
-        localStorage.setItem('V.ZOOM', V.ZOOM);
-        localStorage.setItem('V.PAN.x', V.PAN.x);
-        localStorage.setItem('V.PAN.y', V.PAN.y);
+        localStorage.setItem('this.V.ZOOM', this.V.ZOOM);
+        localStorage.setItem('this.V.PAN.x', this.V.PAN.x);
+        localStorage.setItem('this.V.PAN.y', this.V.PAN.y);
         */
       });
 
@@ -91,7 +99,7 @@ export class Pitch {
             p1: {
               x: ev.data.global.x,
               y: ev.data.global.y,
-              zoomBeforePinch: V.ZOOM,
+              zoomBeforePinch: this.V.ZOOM,
             },
             p2: {
               x: ev.data.global.x,
@@ -103,8 +111,8 @@ export class Pitch {
           this.pointerDownStart = {
             x: ev.data.global.x,
             y: ev.data.global.y,
-            panX: V.PAN.x,
-            panY: V.PAN.y,
+            panX: this.V.PAN.x,
+            panY: this.V.PAN.y,
           };
           ev.stopPropagation();
         };
@@ -168,7 +176,7 @@ export class Pitch {
             p1: {
               x: ev.data.global.x,
               y: ev.data.global.y,
-              zoomBeforePinch: V.ZOOM,
+              zoomBeforePinch: this.V.ZOOM,
             },
             p2: {
               x: ev.data.global.x,
@@ -176,11 +184,11 @@ export class Pitch {
             },
           };
 
-          V.PAN.x = this.pointerDownStart.panX + (ev.data.global.x - this.pointerDownStart.x);
-          V.PAN.y = this.pointerDownStart.panY + (ev.data.global.y - this.pointerDownStart.y);
-          localStorage.setItem('V.PAN.x', V.PAN.x);
-          localStorage.setItem('V.PAN.y', V.PAN.y);
-          this.platformGraphics.position = V.PAN;
+          this.V.PAN.x = this.pointerDownStart.panX + (ev.data.global.x - this.pointerDownStart.x);
+          this.V.PAN.y = this.pointerDownStart.panY + (ev.data.global.y - this.pointerDownStart.y);
+          localStorage.setItem('this.V.PAN.x', this.V.PAN.x);
+          localStorage.setItem('this.V.PAN.y', this.V.PAN.y);
+          this.platformGraphics.position = this.V.PAN;
         };
 
         this.clickArea.on('pointerdown', pointerdown);
@@ -198,7 +206,7 @@ export class Pitch {
         this.platformGraphics = new PIXI.Container();
         this.platformGraphics.zIndex = 1;
         // this.platformGraphics.interactive = true;
-        this.platformGraphics.position = V.PAN;
+        this.platformGraphics.position = this.V.PAN;
         this.platformGraphics.sortableChildren = true;
 
         // this.platformGraphics.interactive = true;
@@ -250,32 +258,32 @@ export class Pitch {
             b.posHistory.forEach(p => {
               if(lastPos == null) {
                 lastPos = p;
-                g.moveTo(+ p.x * V.ZOOM, + p.y * V.ZOOM);
+                g.moveTo(+ p.x * this.V.ZOOM, + p.y * this.V.ZOOM);
                 return;
               }
-              // g.drawCircle(+ p.x * V.ZOOM, + p.y * V.ZOOM, 2);
+              // g.drawCircle(+ p.x * this.V.ZOOM, + p.y * this.V.ZOOM, 2);
               g.lineStyle(2, p.color);
-              g.moveTo(+ lastPos.x * V.ZOOM, + lastPos.y * V.ZOOM);
-              g.lineTo(+ p.x * V.ZOOM, + p.y * V.ZOOM);
+              g.moveTo(+ lastPos.x * this.V.ZOOM, + lastPos.y * this.V.ZOOM);
+              g.lineTo(+ p.x * this.V.ZOOM, + p.y * this.V.ZOOM);
 
               {
                 g.moveTo(
-                  + p.x * V.ZOOM - Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
-                  + p.y * V.ZOOM - Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
+                  + p.x * this.V.ZOOM - Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
+                  + p.y * this.V.ZOOM - Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
                 );
                 g.lineTo(
-                  + p.x * V.ZOOM + Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
-                  + p.y * V.ZOOM + Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * V.ZOOM * 0.1,
+                  + p.x * this.V.ZOOM + Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
+                  + p.y * this.V.ZOOM + Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
                 );
               }
 
-              g.moveTo(+ p.x * V.ZOOM, + p.y * V.ZOOM);
+              g.moveTo(+ p.x * this.V.ZOOM, + p.y * this.V.ZOOM);
               lastPos = p;
             });
 
             if(lastPos != null) {
               g.lineStyle(2, b.robot.led.toHex());
-              g.lineTo(+ b.body.GetPosition().get_x() * V.ZOOM, + b.body.GetPosition().get_y() * V.ZOOM);
+              g.lineTo(+ b.body.GetPosition().get_x() * this.V.ZOOM, + b.body.GetPosition().get_y() * this.V.ZOOM);
             }
           });
         });
@@ -295,12 +303,12 @@ export class Pitch {
           forEachObj(this.bodies, b => {
 
             let shadowOffset = {
-              x: + (b.body.GetPosition().get_x() + b.circleRadius*0.25) * V.ZOOM,
-              y: + (b.body.GetPosition().get_y() + b.circleRadius*0.25) * V.ZOOM,
+              x: + (b.body.GetPosition().get_x() + b.circleRadius*0.25) * this.V.ZOOM,
+              y: + (b.body.GetPosition().get_y() + b.circleRadius*0.25) * this.V.ZOOM,
             }
 
             g.beginFill(0x000000)
-            g.drawCircle(shadowOffset.x, shadowOffset.y, b.circleRadius * V.ZOOM);
+            g.drawCircle(shadowOffset.x, shadowOffset.y, b.circleRadius * this.V.ZOOM);
           });
         });
       }
@@ -422,6 +430,7 @@ export class Pitch {
       this.bodies,
       this.bodyIDs,
       this.setDisplayedData.bind(this),
+      this.V,
     );
 
     if(PERFECT) {
@@ -818,8 +827,8 @@ export class Pitch {
               pos = data.pos;
               angle = data.angle;
             }
-            g.x = + pos.x * V.ZOOM;
-            g.y = + pos.y * V.ZOOM;
+            g.x = + pos.x * this.V.ZOOM;
+            g.y = + pos.y * this.V.ZOOM;
             g.angle = angle;
             g.zIndex = zIndexOf('Robots');
 
@@ -838,11 +847,11 @@ export class Pitch {
             } else {
               g.beginFill(b.robot.led.toHex(), 0.5);
             }
-            g.drawCircle(0, 0, b.circleRadius * V.ZOOM);
+            g.drawCircle(0, 0, b.circleRadius * this.V.ZOOM);
 
-            g.lineStyle(b.circleRadius*V.ZOOM/2.0, 1.0);
+            g.lineStyle(b.circleRadius*this.V.ZOOM/2.0, 1.0);
             g.moveTo(0, 0);
-            g.lineTo(b.circleRadius*V.ZOOM, 0);
+            g.lineTo(b.circleRadius*this.V.ZOOM, 0);
           }
 
           this.pixiApp.ticker.add(() => { agentGraphicsTick(b) });
@@ -858,12 +867,12 @@ export class Pitch {
             pos = data.pos;
             angle = data.angle;
           }
-          g.x = + pos.x * V.ZOOM;
-          g.y = + pos.y * V.ZOOM;
+          g.x = + pos.x * this.V.ZOOM;
+          g.y = + pos.y * this.V.ZOOM;
           g.angle = angle;
           g.zIndex = zIndexOf('Robots');
 
-          if(equalZooms(g.lastView, V)) {
+          if(equalZooms(g.lastView, this.V)) {
             if(!b.robot._graphics_must_update) {
               return;
             } else {
@@ -871,7 +880,7 @@ export class Pitch {
             }
           }
 
-          g.lastView = copyView(V);
+          g.lastView = copyView(this.V);
 
           g.clear();
           g.removeChildren();
@@ -886,7 +895,7 @@ export class Pitch {
             g.beginFill(0xffffff);
           }
 
-          g.drawCircle(0, 0, b.circleRadius * V.ZOOM - thickness/2);
+          g.drawCircle(0, 0, b.circleRadius * this.V.ZOOM - thickness/2);
 
           g.lineStyle(0);
           if(false && b.robot.state == States.JoinedShape) {
@@ -894,7 +903,7 @@ export class Pitch {
           } else {
             g.beginFill(b.robot.led.toHex(), 0.2);
           }
-          g.drawCircle(0, 0, b.circleRadius * V.ZOOM - thickness/2);
+          g.drawCircle(0, 0, b.circleRadius * this.V.ZOOM - thickness/2);
 
           /*
           if(b.robot.led.toHex() != 0x000000) {
@@ -906,20 +915,20 @@ export class Pitch {
           }
           */
 
-          if(V.ZOOM * b.circleRadius > 10) { // line direction indicator
+          if(this.V.ZOOM * b.circleRadius > 10) { // line direction indicator
             g.endFill();
-            g.lineStyle(b.circleRadius*V.ZOOM*0.25, 0x000000, 0.4);
-            // g.lineStyle(b.circleRadius*V.ZOOM*0.25, b.robot.led.toHex(), 1);
+            g.lineStyle(b.circleRadius*this.V.ZOOM*0.25, 0x000000, 0.4);
+            // g.lineStyle(b.circleRadius*this.V.ZOOM*0.25, b.robot.led.toHex(), 1);
             g.moveTo(0, 0);
-            g.lineTo(b.circleRadius*V.ZOOM - thickness, 0);
+            g.lineTo(b.circleRadius*this.V.ZOOM - thickness, 0);
           }
 
           // legs direction indicator
-          if(V.ZOOM * b.circleRadius > 10) {
+          if(this.V.ZOOM * b.circleRadius > 10) {
             g.beginFill(0x000000, 0.4);
             g.lineStyle(0);
-            let r = b.circleRadius*V.ZOOM*0.1;
-            let R = b.circleRadius*V.ZOOM - r;
+            let r = b.circleRadius*this.V.ZOOM*0.1;
+            let R = b.circleRadius*this.V.ZOOM - r;
             [0, 2/3*Math.PI, 4/3*Math.PI].forEach(a => {
               g.drawCircle(R * Math.cos(a), R * Math.sin(a), r);
             });
@@ -933,7 +942,7 @@ export class Pitch {
             g.drawCircle(
               0,
               0,
-              b.circleRadius * 0.4 * V.ZOOM,
+              b.circleRadius * 0.4 * this.V.ZOOM,
             );
           }
 

@@ -24,14 +24,6 @@ let SIZE = {
   h: window.innerHeight-10,
 }
 
-let V = {
-  PAN: {
-    x: (1*localStorage.getItem('V.PAN.x')) || SIZE.w/2.0,
-    y: (1*localStorage.getItem('V.PAN.y')) || SIZE.h/2.0,
-  },
-  ZOOM: (1*localStorage.getItem('V.ZOOM')) || 20.0,
-};
-
 const equalViews = (v1, v2) => {
   if(v1 == null || v2 == null)
     return false;
