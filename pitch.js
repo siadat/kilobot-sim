@@ -50,9 +50,9 @@ export class Pitch {
 
         this.V.ZOOM = nextZoom;
 
-        localStorage.setItem('this.V.ZOOM', this.V.ZOOM);
-        localStorage.setItem('this.V.PAN.x', this.V.PAN.x);
-        localStorage.setItem('this.V.PAN.y', this.V.PAN.y);
+        localStorage.setItem('V.ZOOM', this.V.ZOOM);
+        localStorage.setItem('V.PAN.x', this.V.PAN.x);
+        localStorage.setItem('V.PAN.y', this.V.PAN.y);
       }
 
       this.pixiApp.view.addEventListener('mousewheel', ev => {
@@ -76,9 +76,9 @@ export class Pitch {
 
         this.V.ZOOM = nextZoom;
 
-        localStorage.setItem('this.V.ZOOM', this.V.ZOOM);
-        localStorage.setItem('this.V.PAN.x', this.V.PAN.x);
-        localStorage.setItem('this.V.PAN.y', this.V.PAN.y);
+        localStorage.setItem('V.ZOOM', this.V.ZOOM);
+        localStorage.setItem('V.PAN.x', this.V.PAN.x);
+        localStorage.setItem('V.PAN.y', this.V.PAN.y);
         */
       });
 
@@ -184,8 +184,8 @@ export class Pitch {
 
           this.V.PAN.x = this.pointerDownStart.panX + (ev.data.global.x - this.pointerDownStart.x);
           this.V.PAN.y = this.pointerDownStart.panY + (ev.data.global.y - this.pointerDownStart.y);
-          localStorage.setItem('this.V.PAN.x', this.V.PAN.x);
-          localStorage.setItem('this.V.PAN.y', this.V.PAN.y);
+          localStorage.setItem('V.PAN.x', this.V.PAN.x);
+          localStorage.setItem('V.PAN.y', this.V.PAN.y);
           this.platformGraphics.position = this.V.PAN;
         };
 

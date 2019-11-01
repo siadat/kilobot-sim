@@ -7,4 +7,4 @@ window.Kilobot = Kilobot;
 import {Pitch} from "./pitch.js";
 window.Pitch = Pitch;
 
-console.log("VERSION IS", VERSION);
+console.log("VERSION is", VERSION);
