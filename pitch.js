@@ -319,7 +319,6 @@ export class Pitch {
       this.destroyFuncs.push(() => this.pixiApp.destroy());
     }
 
-    // this.physics = new MatterPhysics();
     this.physics = new Box2DPhysics(this.Box2D, this.MathRandom);
     this.destroyFuncs.push(() => this.physics.destroy());
   }
@@ -502,7 +501,7 @@ export class Pitch {
     return new Promise((resolve, reject) => {
       const tickFunc = (frameCount, recursive) => {
 
-        if(frameCount == FRAME_LIMIT || window._state_stop) {
+        if(window._state_stop) {
           resolve();
           return;
         }

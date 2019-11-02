@@ -912,6 +912,7 @@ window['ExperimentAssembly'] = class {
     }
 
 
+    const DRAW_SHAPE_DESCRIPTION = true;
     if(DRAW_SHAPE_DESCRIPTION) {
       // position vectors
       let g = new PIXI.Graphics()

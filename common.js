@@ -1,13 +1,9 @@
-let RADIUS = 1; // best performance
-
 const DEV = false;
 
 let SIZE = {
   w: window.innerWidth,
   h: window.innerHeight-10,
 }
-
-const FAST = !false;
 
 const LayersOrder = [
   'Shape',
@@ -19,8 +15,9 @@ const LayersOrder = [
   'LocalizationError',
 ]
 
-let INITIAL_DIST = 3 * RADIUS;
-let NEIGHBOUR_DISTANCE = INITIAL_DIST/3*11; // 11 * RADIUS; // 4 * RADIUS + 2 * RADIUS * Math.sqrt(3);
+const RADIUS = 1; // best performance
+const INITIAL_DIST = 3 * RADIUS;
+const NEIGHBOUR_DISTANCE = INITIAL_DIST/3*11; // 11 * RADIUS; // 4 * RADIUS + 2 * RADIUS * Math.sqrt(3);
 
 // const SQRT3 = Math.sqrt(3);
 
@@ -31,20 +28,13 @@ const LOOP_PER_SECOND = 30;
 
 let DRAW_CONNS_AND_BOUNDS = !false;
 let DRAW_SHADOW = false;
-let DRAW_SHAPE_DESCRIPTION = true;
 
 let BENCHMARKING = true;
 if(BENCHMARKING) {
-  // DRAW_SHAPE_DESCRIPTION = false;
   DRAW_CONNS_AND_BOUNDS = false;
 }
 
 const DARK_MODE = !true;
-const FRAME_LIMIT = null;
-const MAX_DEPTH = 3;
-const FRAMES_PER_BODY = 50;
-let RAND_SEED = 0;
-const NO_COLLISION = 0;
 const BODY_ID_IGNORE = 0;
 
 const ContinueQuery = true;
@@ -53,24 +43,6 @@ const StopQuery = false;
 const _tempMathRandom = new Math.seedrandom(1234);
 const noise = function(magnitude) {
   return magnitude * (_tempMathRandom()-0.5);
-}
-
-const clampVector = function(v) {
-  const MAX = 0.01;
-
-  if(v.x > MAX) {
-    v.x = MAX;
-  } else if(v.x < -MAX) {
-    v.x = -MAX;
-  }
-
-  if(v.y > MAX) {
-    v.y = MAX;
-  } else if(v.y < -MAX) {
-    v.y = -MAX;
-  }
-
-  return v;
 }
 
 const zIndexOf = (name) => {
