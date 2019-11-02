@@ -6,7 +6,7 @@ export class Kilobot {
     this._permanentSpeedErr = 1.0;
     this._startedAt = new Date();
     this._internalTicker = 0;
-    if(!PERFECT) {
+    if(!this._PERFECT) {
       this._permanentSpeedErr = 1 + noise(0.4);
     }
   }
@@ -34,11 +34,11 @@ export class Kilobot {
   }
 
   rand_soft() {
-    return Math.floor(256 * MathRandom());
+    return Math.floor(256 * this._MathRandom());
   }
 
   rand_hard() {
-    return Math.floor(256 * MathRandom());
+    return Math.floor(256 * this._MathRandom());
   }
 
   rand_seed(seed) {
@@ -85,11 +85,11 @@ export class Kilobot {
 
     let newCoef = 1.0;
 
-    let coef = newCoef * 3 * 0.01 * (RADIUS*RADIUS*RADIUS) / 0.015625 / 0.0416666;
+    let coef = newCoef * 3 * 0.01 * (this._RADIUS*this._RADIUS*this._RADIUS) / 0.015625 / 0.0416666;
 
 
     let angle = Math.PI * this._phys.GetAngle() / 180.0;
-    if(!PERFECT) {
+    if(!this._PERFECT) {
       angle += noise(0.05 * Math.PI);
     }
 
@@ -130,8 +130,8 @@ export class Kilobot {
     //   25mm/s forward speed
     //   90°/s  turning speed
     let coef = 1.0; // should be 1.0
-    let degreePerTick = 90 * (1.0/LOOP_PER_SECOND) * coef;
-    let forwardSpeed = RADIUS * (25.0/16.0) * (1/LOOP_PER_SECOND) * coef;
+    let degreePerTick = 90 * (1.0/this._LOOP_PER_SECOND) * coef;
+    let forwardSpeed = this._RADIUS * (25.0/16.0) * (1/this._LOOP_PER_SECOND) * coef;
 
     if(left == right
       && left == this.kilo_straight_left
@@ -157,11 +157,11 @@ export class Kilobot {
       let temp_cos = 0;
       let temp_sin = 0;
       if(right > left) {
-        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * RADIUS;
-        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * RADIUS;
+        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * this._RADIUS;
+        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * this._RADIUS;
       } else {
-        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * RADIUS;
-        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * RADIUS;
+        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * this._RADIUS;
+        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * this._RADIUS;
       }
 
       let newPos = new this._Box2D.b2Vec2(

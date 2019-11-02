@@ -1,5 +1,5 @@
 export class Pitch {
-  constructor(Box2D) {
+  constructor(Box2D, RANDOM_SEED) {
     this.Box2D = Box2D;
 
     this.destroyFuncs = [];
@@ -10,6 +10,8 @@ export class Pitch {
     this.fps = 60;
     this.metaData = {};
     this.tickBatchCount = 1;
+    this.MathRandom = new Math.seedrandom(RANDOM_SEED);
+
     this.V = {
       PAN: {
         x: (1*localStorage.getItem('V.PAN.x')) || SIZE.w/2.0,
@@ -318,7 +320,7 @@ export class Pitch {
     }
 
     // this.physics = new MatterPhysics();
-    this.physics = new Box2DPhysics(this.Box2D);
+    this.physics = new Box2DPhysics(this.Box2D, this.MathRandom);
     this.destroyFuncs.push(() => this.physics.destroy());
   }
 
@@ -387,6 +389,10 @@ export class Pitch {
         b.robot._uid = uidCounter;
         b.robot._phys = b.body;
         b.robot._Box2D = this.Box2D;
+        b.robot._MathRandom = this.MathRandom;
+        b.robot._RADIUS = RADIUS;
+        b.robot._PERFECT = PERFECT;
+        b.robot._LOOP_PER_SECOND = LOOP_PER_SECOND ;
 
         this.bodies[b.robot._uid] = b;
         this.createBodyGraphic(b);
@@ -543,7 +549,7 @@ export class Pitch {
             continue;
           }
 
-          if(MathRandom() < 0.75) {
+          if(this.MathRandom() < 0.75) {
             r.setup();
             r._started = true;
           }
@@ -968,8 +974,9 @@ export class Pitch {
 }
 
 class Box2DPhysics {
-	constructor(Box2D) {
+	constructor(Box2D, MathRandom) {
     this.Box2D = Box2D;
+    this.MathRandom = MathRandom;
 		this.currentFrame = 0;
 		this.destroyFuncs = [];
 
@@ -1067,7 +1074,7 @@ class Box2DPhysics {
 		// ---
 
     body.SetUserData(id);
-    // let angle = MathRandom() * 2*Math.PI /*Math.PI/2*/;
+    // let angle = this.MathRandom() * 2*Math.PI /*Math.PI/2*/;
     body.SetTransform(
       body.GetPosition(),
       180 * angle / Math.PI,
@@ -1081,12 +1088,12 @@ class Box2DPhysics {
       );
     }
 
-    return new Body(body, radius)
+    return new Body(body, radius, this.MathRandom)
 	}
 }
 
 class Body {
-  constructor(body, radius) {
+  constructor(body, radius, MathRandom) {
     this.body = body;
     this.label = 'Circle Body';
     this.circleRadius = radius;
@@ -1109,3 +1116,38 @@ class Body {
 function stop() {
   window._state_stop = true;
 }
+
+const formatSeconds = (totalSeconds, full) => {
+  let h = Math.floor(totalSeconds/3600);
+  let m = Math.floor((totalSeconds - h*3600)/60);
+  let s = Math.floor(totalSeconds % 60);
+
+  if(s < 10) s = `0${s}`;
+  if(m < 10) m = `0${m}`;
+  if(h < 10) h = `0${h}`;
+  if(full) {
+    return `${h}:${m}:${s}`;
+  }
+
+  if(h > 0) {
+    return `${h}:${m}:${s}`;
+  } else if(m > 0) {
+    return `${m}m:${s}s`;
+  } else {
+    return `${s}s`;
+  }
+}
+
+const MetaOpts = {
+  fontSize: 12,
+  lineHeight: 20,
+  padding: 20,
+  margin: 20,
+};
+
+let CATS = {
+  NONE: 0,
+  ROBOT: 0b01,
+  NEIGHBOR: 0b10,
+}
+

@@ -24,6 +24,7 @@ window.ExperimentLab0 = class {
   }
 
   createRobots(newRobot) {
+    let MathRandom = new Math.seedrandom(1234);
     for(let i = 0; i < 10; i++) {
       newRobot({
           x: MathRandom(),
@@ -76,6 +77,7 @@ window['ExperimentLab1.2'] = class {
   }
 
   createRobots(newRobot) {
+    let MathRandom = new Math.seedrandom(1234);
     for(let i = 0; i < 10; i++) {
       newRobot({
           x: MathRandom(),
@@ -137,6 +139,7 @@ window['ExperimentLab1.3'] = class {
   }
 
   createRobots(newRobot) {
+    let MathRandom = new Math.seedrandom(1234);
     for(let i = 0; i < 10; i++) {
       newRobot({
           x: MathRandom(),

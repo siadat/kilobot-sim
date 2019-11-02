@@ -1,40 +1,10 @@
-let RANDOM_SEED = 1234;
-let MathRandom = new Math.seedrandom(RANDOM_SEED); // = Math.random;
-
 let RADIUS = 1; // best performance
-
-let CATS = {
-  NONE: 0,
-  ROBOT: 0b01,
-  NEIGHBOR: 0b10,
-}
 
 const DEV = false;
 
-const MetaOpts = {
-  fontSize: 12,
-  lineHeight: 20,
-  padding: 20,
-  margin: 20,
-};
-
-const MARGIN = 12 * RADIUS;
 let SIZE = {
   w: window.innerWidth,
   h: window.innerHeight-10,
-}
-
-const equalViews = (v1, v2) => {
-  if(v1 == null || v2 == null)
-    return false;
-
-  if(v1.PAN.x == v2.PAN.x
-    && v1.PAN.y == v2.PAN.y
-    && v1.ZOOM == v2.ZOOM
-  )
-    return true;
-  else
-    return false;
 }
 
 const equalZooms = (v1, v2) => {
@@ -53,29 +23,6 @@ const copyView = (v) =>{
     ZOOM: v.ZOOM,
   }
 }
-
-
-const formatSeconds = (totalSeconds, full) => {
-  let h = Math.floor(totalSeconds/3600);
-  let m = Math.floor((totalSeconds - h*3600)/60);
-  let s = Math.floor(totalSeconds % 60);
-
-  if(s < 10) s = `0${s}`;
-  if(m < 10) m = `0${m}`;
-  if(h < 10) h = `0${h}`;
-  if(full) {
-    return `${h}:${m}:${s}`;
-  }
-
-  if(h > 0) {
-    return `${h}:${m}:${s}`;
-  } else if(m > 0) {
-    return `${m}m:${s}s`;
-  } else {
-    return `${s}s`;
-  }
-}
-
 
 const FAST = !false;
 
@@ -121,8 +68,9 @@ const BODY_ID_IGNORE = 0;
 const ContinueQuery = true;
 const StopQuery = false;
 
+const _tempMathRandom = new Math.seedrandom(1234);
 const noise = function(magnitude) {
-  return magnitude * (MathRandom()-0.5);
+  return magnitude * (_tempMathRandom()-0.5);
 }
 
 const clampVector = function(v) {
@@ -193,48 +141,10 @@ const calcDistBox2D = function(pos1, pos2) {
   );
 }
 
-function getRandomColor() {
-  let letters = '0123456789ABCDEF';
-  let color = '0x';
-  for (let i = 0; i < 6; i++) {
-    color += letters[Math.floor(MathRandom() * 16)];
-  }
-  return color;
-}
-
-function randomIndex(array) {
-  if(array.length == 0) {
-    console.error("randomIndex: array is empty");
-    return undefined;
-  }
-  return Math.floor(array.length * MathRandom());
-}
-
 function randomItem(array) {
   if(array.length == 0) {
     console.error("randomItem: array is empty");
     return undefined;
   }
-  return array[Math.floor(array.length * MathRandom())];
-}
-
-function weightedRandomItem(array, weightAttribute) {
-  const DEFAULT_WEIGHT = 1;
-
-  let probSum = 0;
-  array.forEach(x => probSum += (x[weightAttribute]||DEFAULT_WEIGHT));
-
-  let chosen = MathRandom() * probSum;
-  let cursor = 0;
-  let chosenIdx = 0;
-
-  for (let j = 0; j < array.length; j++) {
-    if(cursor > chosen) {
-      chosenIdx = j;
-      break;
-    }
-    cursor += array[j][weightAttribute] || DEFAULT_WEIGHT;
-  }
-
-  return array[chosenIdx];
+  return array[Math.floor(array.length * _tempMathRandom())];
 }

@@ -799,6 +799,7 @@ window['ExperimentAssembly'] = class {
   }
 
   createRobots(newRobot) {
+    let MathRandom = new Math.seedrandom(1234);
     const shapePosToPhysPos = (shapePos) => {
       return {
         x: RootSeedPos.x + shapePos.x,

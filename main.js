@@ -19,7 +19,9 @@ Box2D({
     return;
   }
 
-  let pitch = new Pitch(Box2D);
+  RANDOM_SEED = 1234;
+
+  let pitch = new Pitch(Box2D, RANDOM_SEED);
   window.pitch = pitch;
   pitch.run(new ExperimentClass());
 });
