@@ -944,7 +944,7 @@ window['ExperimentAssembly'] = class {
     bodies,
     bodyIDs,
     setDisplayedData,
-    V,
+    // V,
   ) {
     for(let i = 0; i < bodyIDs.length; i++) {
       let b = bodies[bodyIDs[i]];
@@ -981,15 +981,15 @@ window['ExperimentAssembly'] = class {
           switch(b.robot.stats.action) {
             case 'stright':
               g.moveTo(0, 0);
-              g.lineTo(V.ZOOM * RADIUS, 0);
+              g.lineTo(this.V.ZOOM * RADIUS, 0);
               break;
             case 'left-get-farther':
               g.moveTo(0, 0);
-              g.lineTo(0, -V.ZOOM * RADIUS);
+              g.lineTo(0, -this.V.ZOOM * RADIUS);
               break;
             case 'right-get-close':
               g.moveTo(0, 0);
-              g.lineTo(0, +V.ZOOM * RADIUS);
+              g.lineTo(0, +this.V.ZOOM * RADIUS);
               break;
           }
         }
@@ -1007,8 +1007,8 @@ window['ExperimentAssembly'] = class {
 
       platformGraphics.addChild(g);
       pixiApp.ticker.add(() => {
-        if(equalZooms(g.lastView, V)) return;
-        g.lastView = copyView(V);
+        if(this.equalZooms(g.lastView, this.V)) return;
+        g.lastView = this.copyView(this.V);
 
         g.clear();
         if(!DRAW_SHAPE_DESCRIPTION) return;
@@ -1051,10 +1051,10 @@ window['ExperimentAssembly'] = class {
             let x = ShapePosOffset.x + coli*_ShapeScale;
             let y = ShapePosOffset.y - (ShapeDesc.length-1 - rowi)*_ShapeScale;
             g.drawRect(
-              +V.ZOOM * x,
-              +V.ZOOM * y - V.ZOOM * _ShapeScale,
-              +(V.ZOOM * _ShapeScale - 1),
-              +(V.ZOOM * _ShapeScale - 1),
+              +this.V.ZOOM * x,
+              +this.V.ZOOM * y - this.V.ZOOM * _ShapeScale,
+              +(this.V.ZOOM * _ShapeScale - 1),
+              +(this.V.ZOOM * _ShapeScale - 1),
             );
           }
         }
@@ -1085,15 +1085,15 @@ window['ExperimentAssembly'] = class {
           }
 
           let posActual = {
-            x: + pos.x * V.ZOOM,
-            y: + pos.y * V.ZOOM,
+            x: + pos.x * this.V.ZOOM,
+            y: + pos.y * this.V.ZOOM,
           }
           let posEstimated = {
-            x: + (RootSeedPos.x + shapePos.x) * V.ZOOM,
-            y: + (RootSeedPos.y + shapePos.y) * V.ZOOM,
+            x: + (RootSeedPos.x + shapePos.x) * this.V.ZOOM,
+            y: + (RootSeedPos.y + shapePos.y) * this.V.ZOOM,
           }
           let dist = calcDist(posActual, posEstimated);
-          if(dist < RADIUS*V.ZOOM) correctlyLocalizedCount++;
+          if(dist < RADIUS*this.V.ZOOM) correctlyLocalizedCount++;
 
           if(this.selectedUID && this.selectedUID != b.robot._uid)
             return;
@@ -1104,7 +1104,7 @@ window['ExperimentAssembly'] = class {
           if(posEstimated.y > +MAX) posEstimated.y = +MAX;
           if(posEstimated.y < -MAX) posEstimated.y = -MAX;
 
-          let thickness = RADIUS*V.ZOOM * 0.2; // 2
+          let thickness = RADIUS*this.V.ZOOM * 0.2; // 2
           color = 0xff0000; // b.robot.led.toHexDark();
           g.endFill();
           g.lineStyle(thickness, color);
@@ -1124,11 +1124,11 @@ window['ExperimentAssembly'] = class {
           if(false) {
             g.endFill();
             g.lineStyle(1, color);
-            g.drawCircle(posEstimated.x, posEstimated.y, V.ZOOM * RADIUS);
+            g.drawCircle(posEstimated.x, posEstimated.y, this.V.ZOOM * RADIUS);
 
             {
               let crossPoints = [posEstimated, posActual];
-              let fullSize = V.ZOOM * RADIUS * 0.2;
+              let fullSize = this.V.ZOOM * RADIUS * 0.2;
               for(let i = 0, len = crossPoints.length; i < len; i++) {
                 let p = crossPoints[i];
                 let r = fullSize; // * ((i+1)/len);
@@ -1164,20 +1164,20 @@ window['ExperimentAssembly'] = class {
 
         let bodyPositions = quadlateral.map(id => bodies[id].body.GetPosition());
 
-        g.lineStyle(V.ZOOM * RADIUS/4/4, 0xffffff);
+        g.lineStyle(this.V.ZOOM * RADIUS/4/4, 0xffffff);
         bodyPositions.forEach(p => {
           g.moveTo(
-            + b.body.GetPosition().get_x()*V.ZOOM,
-            + b.body.GetPosition().get_y()*V.ZOOM,
+            + b.body.GetPosition().get_x()*this.V.ZOOM,
+            + b.body.GetPosition().get_y()*this.V.ZOOM,
           );
           g.lineTo(
-            + p.get_x()*V.ZOOM,
-            + p.get_y()*V.ZOOM,
+            + p.get_x()*this.V.ZOOM,
+            + p.get_y()*this.V.ZOOM,
           );
         });
 
 
-        g.lineStyle(V.ZOOM * RADIUS/4, 0xffffff);
+        g.lineStyle(this.V.ZOOM * RADIUS/4, 0xffffff);
         [
           [1, 2],
           [1, 3],
@@ -1189,12 +1189,12 @@ window['ExperimentAssembly'] = class {
           let p1 = bodyPositions[indexes[0]-1];
           let p2 = bodyPositions[indexes[1]-1];
           g.moveTo(
-            + p1.get_x()*V.ZOOM,
-            + p1.get_y()*V.ZOOM,
+            + p1.get_x()*this.V.ZOOM,
+            + p1.get_y()*this.V.ZOOM,
           );
           g.lineTo(
-            + p2.get_x()*V.ZOOM,
-            + p2.get_y()*V.ZOOM,
+            + p2.get_x()*this.V.ZOOM,
+            + p2.get_y()*this.V.ZOOM,
           );
         });
       });
@@ -1234,10 +1234,10 @@ window['ExperimentAssembly'] = class {
             connGraphics.lineStyle(2, bound.color || 0x00ff00);
 
             connGraphics.drawRect(
-              + V.ZOOM * (bound.aabb.get_lowerBound().get_x()),
-              + V.ZOOM * (bound.aabb.get_lowerBound().get_y()),
-              V.ZOOM * (bound.aabb.get_upperBound().get_x() - bound.aabb.get_lowerBound().get_x()),
-              V.ZOOM * (bound.aabb.get_upperBound().get_y() - bound.aabb.get_lowerBound().get_y()),
+              + this.V.ZOOM * (bound.aabb.get_lowerBound().get_x()),
+              + this.V.ZOOM * (bound.aabb.get_lowerBound().get_y()),
+              this.V.ZOOM * (bound.aabb.get_upperBound().get_x() - bound.aabb.get_lowerBound().get_x()),
+              this.V.ZOOM * (bound.aabb.get_upperBound().get_y() - bound.aabb.get_lowerBound().get_y()),
             );
           });
 
@@ -1248,9 +1248,9 @@ window['ExperimentAssembly'] = class {
             }
             let pos1 = bodies[conn.from].body.GetPosition();
             let pos2 = bodies[conn.to].body.GetPosition();
-            connGraphics.lineStyle(V.ZOOM * RADIUS/4, bodies[conn.from].robot.led.toHex());
-            connGraphics.moveTo(+ pos1.get_x() * V.ZOOM, + pos1.get_y() * V.ZOOM);
-            connGraphics.lineTo(+ pos2.get_x() * V.ZOOM, + pos2.get_y() * V.ZOOM);
+            connGraphics.lineStyle(this.V.ZOOM * RADIUS/4, bodies[conn.from].robot.led.toHex());
+            connGraphics.moveTo(+ pos1.get_x() * this.V.ZOOM, + pos1.get_y() * this.V.ZOOM);
+            connGraphics.lineTo(+ pos2.get_x() * this.V.ZOOM, + pos2.get_y() * this.V.ZOOM);
           });
           */
 

@@ -380,8 +380,11 @@ export class Pitch {
       traversedPathLen: 5,
     }, this.experiment.runnerOptions);
 
-    let uidCounter = 0;
+    this.experiment.V = this.V;
+    this.experiment.equalZooms = equalZooms;
+    this.experiment.copyView = copyView;
 
+    let uidCounter = 0;
     experiment.createRobots((pos, angle, robot) => {
         uidCounter++;
         let b = this.physics.circle(pos, angle, RADIUS, uidCounter);
@@ -434,7 +437,7 @@ export class Pitch {
       this.bodies,
       this.bodyIDs,
       this.setDisplayedData.bind(this),
-      this.V,
+      // this.V,
     );
 
     if(PERFECT) {
@@ -1149,5 +1152,22 @@ let CATS = {
   NONE: 0,
   ROBOT: 0b01,
   NEIGHBOR: 0b10,
+}
+
+const equalZooms = (v1, v2) => {
+  if(v1 == null || v2 == null)
+    return false;
+
+  return v1.ZOOM == v2.ZOOM;
+}
+
+const copyView = (v) =>{
+  return {
+    PAN: {
+      x: v.PAN.x,
+      y: v.PAN.y,
+    },
+    ZOOM: v.ZOOM,
+  }
 }
 

@@ -7,23 +7,6 @@ let SIZE = {
   h: window.innerHeight-10,
 }
 
-const equalZooms = (v1, v2) => {
-  if(v1 == null || v2 == null)
-    return false;
-
-  return v1.ZOOM == v2.ZOOM;
-}
-
-const copyView = (v) =>{
-  return {
-    PAN: {
-      x: v.PAN.x,
-      y: v.PAN.y,
-    },
-    ZOOM: v.ZOOM,
-  }
-}
-
 const FAST = !false;
 
 const Order = [
