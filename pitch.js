@@ -251,7 +251,7 @@ export class Pitch {
         this.pixiApp.ticker.add(() => {
           g.clear();
           if(!this.experiment.runnerOptions.traversedPath) return;
-          forEachObj(this.bodies, b => {
+          this.forEachBody(b => {
             g.lineStyle(2, b.robot.led.toHexDark());
 
             let lastPos = null;
@@ -300,7 +300,7 @@ export class Pitch {
           g.clear();
           if(!DRAW_SHADOW) return;
 
-          forEachObj(this.bodies, b => {
+          this.forEachBody(b => {
 
             let shadowOffset = {
               x: + (b.body.GetPosition().get_x() + b.circleRadius*0.25) * this.V.ZOOM,
@@ -369,6 +369,13 @@ export class Pitch {
 
   destroy() {
     this.destroyFuncs.forEach(cb => cb());
+  }
+
+  forEachBody(f) {
+    for(let i = 0; i < this.bodyIDs.length; i++) {
+      let id = this.bodyIDs[i];
+      f(this.bodies[id], id, i)
+    }
   }
 
   run(experiment) {
@@ -441,7 +448,7 @@ export class Pitch {
     );
 
     if(PERFECT) {
-      forEachObj(this.bodies, b => {
+      this.forEachBody(b => {
         b.robot.setup();
         b.robot._started = true;
       });
@@ -520,7 +527,7 @@ export class Pitch {
 
         if(this.experiment.runnerOptions.traversedPath && frameCount % 30 == 0) {
           let max = this.experiment.runnerOptions.traversedPathLen;
-          forEachObj(this.bodies, b => {
+          this.forEachBody(b => {
             let pos = b.body.GetPosition();
             let lastPos = b.posHistory[b.posHistory.length-1];
             let newPos = {

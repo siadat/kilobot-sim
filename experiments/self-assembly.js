@@ -1269,3 +1269,13 @@ window['ExperimentAssembly'] = class {
     }
   }
 }
+
+const forEachObj = function(obj, f) {
+  let i = 0;
+  Object.keys(obj).forEach(k => {
+    let item = obj[k];
+    f(item, k, i);
+    i++;
+  });
+}
+
