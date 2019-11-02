@@ -834,6 +834,7 @@ window['ExperimentAssembly'] = class {
       hexagridCursor.x = best.x;
       hexagridCursor.y = best.y;
 
+      let PERFECT = false;
       if(!PERFECT) {
         pos.x += noise(0.2 * RADIUS);
         pos.y += noise(0.2 * RADIUS);

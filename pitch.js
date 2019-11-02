@@ -1,3 +1,14 @@
+const DEV = false;
+const PERFECT = false;
+let SIZE = {
+  w: window.innerWidth,
+  h: window.innerHeight-10,
+}
+
+const ContinueQuery = true;
+const StopQuery = false;
+const BODY_ID_IGNORE = 0;
+
 export class Pitch {
   constructor(Box2D, RANDOM_SEED) {
     this.Box2D = Box2D;
