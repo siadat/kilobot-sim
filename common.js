@@ -9,14 +9,13 @@ let SIZE = {
 
 const FAST = !false;
 
-const Order = [
+const LayersOrder = [
   'Shape',
-  'OriginGrid',
-  'Shadow',
-  'TraversedPath',
+  '_Shadow',
+  '_TraversedPath',
   'RobustQuadlateral',
   'ConnsAndBouns',
-  'Robots',
+  '_Robots',
   'LocalizationError',
 ]
 
@@ -75,7 +74,7 @@ const clampVector = function(v) {
 }
 
 const zIndexOf = (name) => {
-  let zIndex = Order.indexOf(name);
+  let zIndex = LayersOrder.indexOf(name);
   if(zIndex == -1) {
     console.error(`name=${name} not found in order list`);
   }

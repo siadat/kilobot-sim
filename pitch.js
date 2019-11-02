@@ -242,7 +242,7 @@ export class Pitch {
       {
         // position vectors
         let g = new PIXI.Graphics()
-        g.zIndex = zIndexOf('TraversedPath');
+        g.zIndex = zIndexOf('_TraversedPath');
         g.alpha = 0.5;
         // g.beginFill(b.robot.led.toHexDark());
         g.endFill();
@@ -292,7 +292,7 @@ export class Pitch {
       if(DRAW_SHADOW) {
         // position vectors
         let g = new PIXI.Graphics()
-        g.zIndex = zIndexOf('Shadow');
+        g.zIndex = zIndexOf('_Shadow');
         g.alpha = 0.3;
 
         this.platformGraphics.addChild(g);
@@ -844,7 +844,7 @@ export class Pitch {
             g.x = + pos.x * this.V.ZOOM;
             g.y = + pos.y * this.V.ZOOM;
             g.angle = angle;
-            g.zIndex = zIndexOf('Robots');
+            g.zIndex = zIndexOf('_Robots');
 
             if(!b.robot._graphics_must_update) {
               return;
@@ -884,7 +884,7 @@ export class Pitch {
           g.x = + pos.x * this.V.ZOOM;
           g.y = + pos.y * this.V.ZOOM;
           g.angle = angle;
-          g.zIndex = zIndexOf('Robots');
+          g.zIndex = zIndexOf('_Robots');
 
           if(equalZooms(g.lastView, this.V)) {
             if(!b.robot._graphics_must_update) {
