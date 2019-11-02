@@ -216,10 +216,6 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   getFirstRobustQuadrilateral() {
-    // if(this._cached_first_quad) {
-    //   return this._cached_first_quad;
-    // }
-    // let nIDs = Object.keys(this.neighbors);
     let nIDs = this.getNeighborsUIDs().filter(nid => {
       let n = this.neighbors[nid];
       return (
@@ -277,13 +273,6 @@ class GradientAndAssemblyRobot extends Kilobot {
                 nIDs[k],
                 nIDs[l],
               ]
-              // this._cached_first_quad = [
-              //   nIDs[i],
-              //   nIDs[j],
-              //   nIDs[k],
-              //   nIDs[l],
-              // ]
-              // return this._cached_first_quad;
             }
           }
         }
@@ -291,71 +280,6 @@ class GradientAndAssemblyRobot extends Kilobot {
     }
 
     return null;
-  }
-
-  get3ClosestNeighbours() {
-    if(Object.keys(this.neighbors).length < 3) {
-      return [];
-    }
-
-    let closestNeighbours = [];
-
-    forEachObj(this.neighbors, (neigh, uid) => {
-      // if(neigh.neighborUID > this.kilo_uid)
-      if(neigh.neighborGradient == null) {
-        return;
-      }
-
-      if(neigh.neighborGradient > this.myGradient) {
-        return;
-      }
-      closestNeighbours.push(neigh)
-    });
-
-    while(closestNeighbours.length >= 3) {
-      let x1 = closestNeighbours[0].shapePos.x;
-      let x2 = closestNeighbours[1].shapePos.x;
-      let x3 = closestNeighbours[2].shapePos.x;
-
-      let y1 = closestNeighbours[0].shapePos.y;
-      let y2 = closestNeighbours[1].shapePos.y;
-      let y3 = closestNeighbours[2].shapePos.y;
-
-      let area = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2);
-      if(Math.abs(area) > Math.sqrt(3) * pow2(RADIUS)) {
-        break;
-      }
-
-      // const positiveMod = function(num, n) {
-      //   return ((num % n) + n) % n;
-      // }
-
-      // const calcSlope = function(pos1, pos2) {
-      //   return (pos2.y - pos1.y) / (pos2.x - pos1.x);
-      // }
-
-      // let slopeA = positiveMod(180 * Math.atan(calcSlope(closestNeighbours[0].shapePos, closestNeighbours[1].shapePos))/Math.PI, 360);
-      // let slopeB = positiveMod(180 * Math.atan(calcSlope(closestNeighbours[1].shapePos, closestNeighbours[2].shapePos))/Math.PI, 360);
-      // let slopeC = positiveMod(180 * Math.atan(calcSlope(closestNeighbours[0].shapePos, closestNeighbours[2].shapePos))/Math.PI, 360);
-      // let d = 90;
-      // if(Math.abs(slopeA - slopeB) > d || Math.abs(slopeC - slopeB) > d || Math.abs(slopeC - slopeA) > d) {
-      //   break;
-      // }
-      closestNeighbours.splice(2, 1);
-      // closestNeighbours.splice(Math.floor(this.rand_soft()/255.0 * 3), 1);
-      // let d = Math.sqrt(pow2(slopeA) + pow2(slopeB) + pow2(slopeC));
-      // if(d > 5.0) {
-      //   break;
-      // }
-
-    }
-
-    if(closestNeighbours.length < 3) {
-      return [];
-    }
-
-    return closestNeighbours;
-    // return closestNeighbours.slice(0, 3);
   }
 
   getNeighborsUIDs() {
@@ -747,21 +671,6 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   message_rx(message, distance) {
-    /*
-    let n = this.neighbors[message.robotUID];
-    if(!n
-      || n.neighborGradient != message.grad
-      || (n.shapePos && (n.shapePos.x != message.shapePos.x || n.shapePos.y != message.shapePos.y))
-      || n.isStationary != message.isStationary
-      || n.measuredDist != distance
-    ) {
-      // this._cached_first_quad = null;
-      this.lastNeighborChangedAt = this.counter;
-    }
-    */
-    // if(!this.neighbors[this.currentFarthestLocalizingNeighborUID] || this.neighbors[this.currentFarthestLocalizingNeighborUID].measuredDist >= distance) {
-    //   this._cached_first_quad = null;
-    // }
     this.neighbors[message.robotUID] = {
       neighborUID: message.robotUID,
       neighborGradient: message.grad,
@@ -781,7 +690,6 @@ class GradientAndAssemblyRobot extends Kilobot {
       grad: this.myGradient,
       isStationary: this.isStationary,
       robotUID: this.kilo_uid,
-      // consideringMovement: !this.isHesitating("movement"),
       shapePos: this.shapePos,
       isSeed: this.isSeed,
       state: this.state,
@@ -825,15 +733,12 @@ window['ExperimentAssembly'] = class {
       return ShapeDesc[j] && ShapeDesc[j][i] == '#';
     }
 
-    let extraCount = 0;
     let bodyCounter = 0;
     [
       {isSeed: true, isRoot: true,  x: 0*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
       {isSeed: true, isRoot: false, x: 2*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
       {isSeed: true, isRoot: false, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * +Math.sqrt(3)},
       {isSeed: true, isRoot: false, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * -Math.sqrt(3)},
-      // {isSeed: false,isRoot: false, x: 1*RADIUS, y: RADIUS * -Math.sqrt(3) - 1*INITIAL_DIST},
-      // {isSeed: false,isRoot: false, x: 1*RADIUS, y: RADIUS * -Math.sqrt(3) - 2*INITIAL_DIST},
     ].forEach(shapePos => {
       bodyCounter++;
 
@@ -954,7 +859,6 @@ window['ExperimentAssembly'] = class {
     bodies,
     bodyIDs,
     setDisplayedData,
-    // V,
   ) {
     for(let i = 0; i < bodyIDs.length; i++) {
       let b = bodies[bodyIDs[i]];
@@ -1075,8 +979,8 @@ window['ExperimentAssembly'] = class {
       // position vectors
       let g = new PIXI.Graphics()
       g.zIndex = zIndexOf('LocalizationError');
-      g.alpha = 0.75; // 0.25;
-      let color = 0x008400; // 0xff0000
+      g.alpha = 0.75;
+      let color = 0x008400;
 
       platformGraphics.addChild(g);
       pixiApp.ticker.add(() => {
@@ -1115,21 +1019,11 @@ window['ExperimentAssembly'] = class {
           if(posEstimated.y < -MAX) posEstimated.y = -MAX;
 
           let thickness = RADIUS*this.V.ZOOM * 0.2; // 2
-          color = 0xff0000; // b.robot.led.toHexDark();
+          color = 0xff0000;
           g.endFill();
           g.lineStyle(thickness, color);
           g.moveTo(posActual.x, posActual.y);
           g.lineTo(posEstimated.x, posEstimated.y);
-
-          // for perfect cases:
-          /*
-          if(calcDist(posActual, posEstimated) < thickness) {
-            g.lineStyle(0);
-            g.beginFill(color);
-            g.drawCircle(posActual.x, posActual.y, thickness/2);
-            g.drawCircle(posEstimated.x, posEstimated.y, thickness/2);
-          }
-          */
 
           if(false) {
             g.endFill();
@@ -1141,7 +1035,7 @@ window['ExperimentAssembly'] = class {
               let fullSize = this.V.ZOOM * RADIUS * 0.2;
               for(let i = 0, len = crossPoints.length; i < len; i++) {
                 let p = crossPoints[i];
-                let r = fullSize; // * ((i+1)/len);
+                let r = fullSize;
                 g.endFill();
                 g.lineStyle(thickness, i == 0 ? color : 0x000000, 1);
                 g.moveTo(p.x - r, p.y + 0);
