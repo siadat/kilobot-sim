@@ -91,36 +91,9 @@ const forEachObj = function(obj, f) {
   });
 }
 
-const pow2 = function(x) {
-  return x * x;
-}
-
-const pow3 = function(x) {
-  return x * x * x;
-}
-
-const calcSlope = function(pos1, pos2) {
-  return (pos2.y - pos1.y) / (pos2.x - pos1.x);
-}
-
-const positiveMod = function(num, n) {
-  return ((num % n) + n) % n;
-}
-
-const calcDegree = function(pos1, pos2) {
-  let d = calcDist(pos1, pos2);
-  return (pos2.y - pos1.y) / (pos2.x - pos1.x);
-}
-
 const calcDist = function(pos1, pos2) {
   return Math.sqrt(
     Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
-  );
-}
-
-const calcDistBox2D = function(pos1, pos2) {
-  return Math.sqrt(
-    Math.pow(pos1.get_x() - pos2.get_x(), 2) + Math.pow(pos1.get_y() - pos2.get_y(), 2)
   );
 }
 

@@ -93,6 +93,7 @@ export class Kilobot {
       angle += noise(0.05 * Math.PI);
     }
 
+    const pow2 = x => x*x;
     let force = new this._Box2D.b2Vec2(
       this._permanentSpeedErr * newCoef * coef * Math.sqrt(pow2(left) + pow2(right)) * 0.01 * Math.cos(angle),
       this._permanentSpeedErr * newCoef * coef * Math.sqrt(pow2(left) + pow2(right)) * 0.01 * Math.sin(angle),

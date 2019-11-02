@@ -57,6 +57,8 @@ const isTriangleRobust = (points) => {
   e[1] = calculateDistance(points[0], points[2]);
   e[2] = calculateDistance(points[0], points[1]);
 
+
+  const pow2 = x => x*x;
   a[0] = Math.acos((pow2(e[1]) + pow2(e[2]) - pow2(e[0])) / (2 * e[1] * e[2]));
   a[1] = Math.acos((pow2(e[0]) + pow2(e[2]) - pow2(e[1])) / (2 * e[0] * e[2]));
   a[2] = Math.acos((pow2(e[1]) + pow2(e[0]) - pow2(e[2])) / (2 * e[1] * e[0]));
@@ -323,6 +325,14 @@ class GradientAndAssemblyRobot extends Kilobot {
       if(Math.abs(area) > Math.sqrt(3) * pow2(RADIUS)) {
         break;
       }
+
+      // const positiveMod = function(num, n) {
+      //   return ((num % n) + n) % n;
+      // }
+
+      // const calcSlope = function(pos1, pos2) {
+      //   return (pos2.y - pos1.y) / (pos2.x - pos1.x);
+      // }
 
       // let slopeA = positiveMod(180 * Math.atan(calcSlope(closestNeighbours[0].shapePos, closestNeighbours[1].shapePos))/Math.PI, 360);
       // let slopeB = positiveMod(180 * Math.atan(calcSlope(closestNeighbours[1].shapePos, closestNeighbours[2].shapePos))/Math.PI, 360);

@@ -1171,3 +1171,8 @@ const copyView = (v) =>{
   }
 }
 
+const calcDistBox2D = function(pos1, pos2) {
+  return Math.sqrt(
+    Math.pow(pos1.get_x() - pos2.get_x(), 2) + Math.pow(pos1.get_y() - pos2.get_y(), 2)
+  );
+}
