@@ -3,12 +3,13 @@ export class Kilobot {
     this.led = new RGBClass(0, 0, 0);
     this._graphics_must_update = true;
     this._uid = -1;
-    this._permanentSpeedErr = 1.0;
     this._startedAt = new Date();
     this._internalTicker = 0;
-    if(!this._PERFECT) {
-      this._permanentSpeedErr = 1 + noise(0.4);
-    }
+    this._faultiness = 0;
+  }
+
+  setFaultiness(faultiness) {
+    this._faultiness = faultiness;
   }
 
   setup() { }
@@ -70,46 +71,6 @@ export class Kilobot {
   message_tx_success() {
   }
 
-  set_motors_old(left, right) {
-    if(left < 0 || left > 255) {
-      console.error("left must be between 0 and 255, left is", left);
-      return;
-    }
-    if(right < 0 || right > 255) {
-      console.error("right must be between 0 and 255, right is", right);
-      return;
-    }
-
-    if(!this._phys.IsAwake())
-      this._phys.SetAwake(true);
-
-    let newCoef = 1.0;
-
-    let coef = newCoef * 3 * 0.01 * (this._RADIUS*this._RADIUS*this._RADIUS) / 0.015625 / 0.0416666;
-
-
-    let angle = Math.PI * this._phys.GetAngle() / 180.0;
-    if(!this._PERFECT) {
-      angle += noise(0.05 * Math.PI);
-    }
-
-    const pow2 = x => x*x;
-    let force = new this._Box2D.b2Vec2(
-      this._permanentSpeedErr * newCoef * coef * Math.sqrt(pow2(left) + pow2(right)) * 0.01 * Math.cos(angle),
-      this._permanentSpeedErr * newCoef * coef * Math.sqrt(pow2(left) + pow2(right)) * 0.01 * Math.sin(angle),
-    );
-
-    // The reason I am not using ApplyTorque or ApplyAngularImpulse is that no
-    // matter what value I give it the angular velocity doesn't exceed a limit around a PI/second.
-    // Replace this SetTransform if you could get ApplyTorque to be fast enough.
-    this._phys.SetTransform(
-      this._phys.GetPosition(),
-      this._phys.GetAngle() + 2 * newCoef * 2.5 * 0.5 * (right - left)/255.0,
-    );
-    this._phys.ApplyForce(force, this._phys.GetPosition());
-    this._Box2D.destroy(force);
-  }
-
   set_motors(left, right) {
     if(left < 0 || left > 255) {
       console.error("left must be between 0 and 255, left is", left);
@@ -133,6 +94,10 @@ export class Kilobot {
     let coef = 1.0; // should be 1.0
     let degreePerTick = 90 * (1.0/this._LOOP_PER_SECOND) * coef;
     let forwardSpeed = this._RADIUS * (25.0/16.0) * (1/this._LOOP_PER_SECOND) * coef;
+
+    if(this._faultiness > 0) {
+      // TODO
+    }
 
     if(left == right
       && left == this.kilo_straight_left

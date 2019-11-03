@@ -1,5 +1,4 @@
 const DEV = false;
-const PERFECT = false;
 let SIZE = {
   w: window.innerWidth,
   h: window.innerHeight-10,
@@ -10,7 +9,7 @@ const StopQuery = false;
 const BODY_ID_IGNORE = 0;
 
 export class Pitch {
-  constructor(Box2D, RANDOM_SEED) {
+  constructor(Box2D, perfectStart, randomSeed) {
     this.Box2D = Box2D;
 
     this.destroyFuncs = [];
@@ -21,7 +20,9 @@ export class Pitch {
     this.fps = 60;
     this.metaData = {};
     this.tickBatchCount = 1;
-    this.MathRandom = new Math.seedrandom(RANDOM_SEED);
+    this.randomSeed = randomSeed;
+    this.MathRandom = new Math.seedrandom(this.randomSeed);
+    this.perfectStart = perfectStart;
 
     this.V = {
       PAN: {
@@ -411,7 +412,7 @@ export class Pitch {
         b.robot._Box2D = this.Box2D;
         b.robot._MathRandom = this.MathRandom;
         b.robot._RADIUS = RADIUS;
-        b.robot._PERFECT = PERFECT;
+        // b.robot._PERFECT = this.perfectStart;
         b.robot._LOOP_PER_SECOND = LOOP_PER_SECOND ;
 
         this.bodies[b.robot._uid] = b;
@@ -457,7 +458,7 @@ export class Pitch {
       // this.V,
     );
 
-    if(PERFECT) {
+    if(this.perfectStart) {
       this.forEachBody(b => {
         b.robot.setup();
         b.robot._started = true;
@@ -465,7 +466,7 @@ export class Pitch {
     }
 
     this.setDisplayedData('Count', `${this.bodyIDs.length} ${this.bodyIDs.length == 1 ? 'robot' : 'robots'}`);
-    this.setDisplayedData('Random seed', `${RANDOM_SEED}`);
+    this.setDisplayedData('Random seed', `${this.randomSeed}`);
     this.setDisplayedData('Version', `${VERSION.substr(0, 8)}`);
 
     {
@@ -1099,14 +1100,6 @@ class Box2DPhysics {
       body.GetPosition(),
       180 * angle / Math.PI,
     );
-
-    if(!PERFECT) {
-      // body.ApplyTorque(noise(Math.PI/2));
-      body.SetTransform(
-        body.GetPosition(),
-        body.GetAngle() + noise(20),
-      );
-    }
 
     return new Body(body, radius, this.MathRandom)
 	}
