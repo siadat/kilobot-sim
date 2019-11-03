@@ -4,6 +4,16 @@ const NEIGHBOUR_DISTANCE = 11 * RADIUS;
 const TICKS_BETWEEN_MSGS = 30/2;
 const LOOP_PER_SECOND = 30;
 
+let DRAW_SHADOW = false;
+let DRAW_CONNS_AND_BOUNDS = !false;
+let DARK_MODE = false;
+
+let BENCHMARKING = true;
+if(BENCHMARKING) {
+  DRAW_CONNS_AND_BOUNDS = false;
+}
+
+
 const DEV = false;
 let SIZE = {
   w: window.innerWidth,
@@ -13,6 +23,12 @@ let SIZE = {
 const ContinueQuery = true;
 const StopQuery = false;
 const BODY_ID_IGNORE = 0;
+
+const calcDist = function(pos1, pos2) {
+  return Math.sqrt(
+    Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
+  );
+}
 
 export class Pitch {
   constructor(Box2D, perfectStart, randomSeed) {
@@ -29,6 +45,11 @@ export class Pitch {
     this.randomSeed = randomSeed;
     this.MathRandom = new Math.seedrandom(this.randomSeed);
     this.perfectStart = perfectStart;
+    this.LayersOrder = [
+      '_Shadow',
+      '_TraversedPath',
+      '_Robots',
+    ];
 
     this.V = {
       PAN: {
@@ -260,7 +281,7 @@ export class Pitch {
       {
         // position vectors
         let g = new PIXI.Graphics()
-        g.zIndex = zIndexOf('_TraversedPath');
+        g.zIndex = this.zIndexOf('_TraversedPath');
         g.alpha = 0.5;
         // g.beginFill(b.robot.led.toHexDark());
         g.endFill();
@@ -310,7 +331,7 @@ export class Pitch {
       if(DRAW_SHADOW) {
         // position vectors
         let g = new PIXI.Graphics()
-        g.zIndex = zIndexOf('_Shadow');
+        g.zIndex = this.zIndexOf('_Shadow');
         g.alpha = 0.3;
 
         this.platformGraphics.addChild(g);
@@ -334,7 +355,7 @@ export class Pitch {
       {
         if(DRAW_CONNS_AND_BOUNDS) {
           let connGraphics = new PIXI.Graphics()
-          connGraphics.zIndex = zIndexOf('ConnsAndBouns');
+          connGraphics.zIndex = this.zIndexOf('ConnsAndBouns');
           connGraphics.alpha = 0.5;
           platformGraphics.addChild(connGraphics);
           pixiApp.ticker.add(() => {
@@ -398,6 +419,35 @@ export class Pitch {
     this.physics = new Box2DPhysics(this.Box2D, this.MathRandom);
     this.destroyFuncs.push(() => this.physics.destroy());
   }
+
+  setDrawConnsAndBounds(v) {
+    DRAW_CONNS_AND_BOUNDS = v;
+  }
+
+  setDarkMode(v) {
+    DARK_MODE = v;
+  }
+
+  setDrawShadow(v) {
+    DRAW_SHADOW = v;
+  }
+
+  getLayersOrder() {
+    return this.LayersOrder;
+  }
+
+  setLayersOrder(v) {
+    this.LayersOrder = v;
+  }
+
+  zIndexOf(name) {
+    let zIndex = this.LayersOrder.indexOf(name);
+    if(zIndex == -1) {
+      console.error(`name=${name} not found in order list`);
+    }
+    return zIndex;
+  }
+
 
   setDisplayedData(key, value) {
     if(this.metaData[key] == value) {
@@ -524,6 +574,7 @@ export class Pitch {
       this.bodies,
       this.bodyIDs,
       this.setDisplayedData.bind(this),
+      this.zIndexOf.bind(this),
       // this.V,
     );
 
@@ -924,7 +975,7 @@ export class Pitch {
             g.x = + pos.x * this.V.ZOOM;
             g.y = + pos.y * this.V.ZOOM;
             g.angle = angle;
-            g.zIndex = zIndexOf('_Robots');
+            g.zIndex = this.zIndexOf('_Robots');
 
             if(!b.robot._graphics_must_update) {
               return;
@@ -964,7 +1015,7 @@ export class Pitch {
           g.x = + pos.x * this.V.ZOOM;
           g.y = + pos.y * this.V.ZOOM;
           g.angle = angle;
-          g.zIndex = zIndexOf('_Robots');
+          g.zIndex = this.zIndexOf('_Robots');
 
           if(equalZooms(g.lastView, this.V)) {
             if(!b.robot._graphics_must_update) {

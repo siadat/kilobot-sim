@@ -24,5 +24,14 @@ Box2D({
 
   let pitch = new Pitch(Box2D, perfectStart, randomSeed);
   window.pitch = pitch;
+  pitch.setLayersOrder([
+    'Shape',
+    '_Shadow',
+    '_TraversedPath',
+    'RobustQuadlateral',
+    'ConnsAndBouns',
+    '_Robots',
+    'LocalizationError',
+  ]);
   pitch.run(new ExperimentClass());
 });

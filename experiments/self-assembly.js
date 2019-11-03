@@ -719,6 +719,9 @@ window['ExperimentAssembly'] = class {
 
 
     let MathRandom = new Math.seedrandom(1234);
+    const noise = function(magnitude) {
+      return magnitude * (MathRandom()-0.5);
+    }
     const shapePosToPhysPos = (shapePos) => {
       return {
         x: this.RootSeedPos.x + shapePos.x,
@@ -809,7 +812,7 @@ window['ExperimentAssembly'] = class {
                   x: this.ShapePosOffset.x + coli*this._ShapeScale,
                   y: this.ShapePosOffset.y - (this.ShapeDesc.length-1 - rowi)*this._ShapeScale,
                 }
-                if(calcDist(gridPosToPhysPos(candidate), p) < 4*INITIAL_DIST) {
+                if(calculateDistance(gridPosToPhysPos(candidate), p) < 4*INITIAL_DIST) {
                   return null;
                 }
               }
@@ -817,7 +820,7 @@ window['ExperimentAssembly'] = class {
           }
         }
 
-        let distToOrigin = calcDist(gridPosToPhysPos(candidate), gridPosToPhysPos({x: 0, y: 0}));
+        let distToOrigin = calculateDistance(gridPosToPhysPos(candidate), gridPosToPhysPos({x: 0, y: 0}));
 
         return {
           x: candidate.x,
@@ -871,6 +874,7 @@ window['ExperimentAssembly'] = class {
     bodies,
     bodyIDs,
     setDisplayedData,
+    zIndexOf,
   ) {
     for(let i = 0; i < bodyIDs.length; i++) {
       let b = bodies[bodyIDs[i]];
@@ -954,12 +958,7 @@ window['ExperimentAssembly'] = class {
         }
 
         g.lineStyle(0, 0x000000);
-
-        if(DARK_MODE) {
-          g.beginFill(0x000000);
-        } else {
-          g.beginFill(0x888888);
-        }
+        g.beginFill(0x000000, 0.4);
 
         for(let rowi = 0; rowi < this.ShapeDesc.length; rowi++) {
           let row = this.ShapeDesc[rowi];
@@ -1019,7 +1018,7 @@ window['ExperimentAssembly'] = class {
             x: + (this.RootSeedPos.x + shapePos.x) * this.V.ZOOM,
             y: + (this.RootSeedPos.y + shapePos.y) * this.V.ZOOM,
           }
-          let dist = calcDist(posActual, posEstimated);
+          let dist = calculateDistance(posActual, posEstimated);
           if(dist < this.RADIUS*this.V.ZOOM) correctlyLocalizedCount++;
 
           if(this.selectedUID && this.selectedUID != b.robot._uid)
