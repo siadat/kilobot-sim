@@ -1,49 +1,3 @@
-const _ShapeScale = 1.5*RADIUS; // 1.5*RADIUS
-let ShapeDesc = [[" "," "," "," "," "," "," ","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "],[" "," "," "," "," "," ","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "],[" "," "," "," "," ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#"," "," "," "],[" "," "," "," ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#"," "," "],[" "," "," "," ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#"," "," "],[" "," "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#"," "," "],[" "," "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#"," "," "],[" "," "," ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#"," "," "],[" "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," ","#","#","#","#","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "],[" "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "],[" "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "],[" "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "],[" "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "],[" "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "],[" "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "],[" "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "],[" "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "],[" "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "],[" "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "],[" "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "],[" "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "],[" "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "],[" "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "],[" "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "],[" "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "],[" "," ","#","#","#","#","#","#","#","#","#"," "," "," "," ","#","#","#","#","#","#","#","#","#","#"," "," "],[" ","#","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#","#"," "],[" ","#","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#","#"," "],[" ","#","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#","#"," "],[" ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#"," "],[" ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#"," "],[" ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "," "],[" ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "," "," "],[" ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "," "," "],[" "," ","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "," "," "," "],[" "," ","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "," "," "," "],[" "," "," ","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#"," "," "," "," "," "],[" "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," ","R","#"," "," "," "," "," "," "," "]];
-// let ShapeDesc = [
-//   '###',
-//   '#  ',
-//   '#  ',
-// ];
-
-const RootSeedPos = {
-  x: 0,
-  y: 0,
-};
-
-let ShapePosOffset = {x: 0, y: 0};
-let _ShapePosRootIndexes = {x: 0, y: 0};
-
-if(true){
-  let trimmed = false;
-  let rowCount = ShapeDesc.length;
-  for(let rowi = rowCount-1; rowi >= 0; rowi--) {
-    if(trimmed) {
-      break;
-    }
-    for(let coli = 0; coli < ShapeDesc[rowi].length; coli++) {
-      if(ShapeDesc[rowi][coli] == '#') {
-        ShapeDesc = ShapeDesc.slice(0, rowi+1);
-        _ShapePosRootIndexes = {
-          x: coli,
-          y: 0,
-        };
-        ShapePosOffset = {
-          x: RootSeedPos.x - _ShapePosRootIndexes.x*_ShapeScale,
-          y: RootSeedPos.y - _ShapePosRootIndexes.y*_ShapeScale,
-        };
-        trimmed = true;
-        break;
-      }
-    }
-  }
-}
-
-const GRADIENT_DIST = 1.5*INITIAL_DIST;
-const HESITATE_DURATION = 20 * TICKS_BETWEEN_MSGS;
-const NEIGHBOUR_EXPIRY = 2 * TICKS_BETWEEN_MSGS;
-const DESIRED_SHAPE_DIST = 3.5*RADIUS;
-const NEARBY_MOVING_DISTANCE = 4*DESIRED_SHAPE_DIST;
 const calculateDistance = function(pos1, pos2) {
   return Math.sqrt(
     Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
@@ -82,6 +36,13 @@ const States = {
 class GradientAndAssemblyRobot extends Kilobot {
   constructor(opts) {
     super();
+    this.gradientDist = opts.gradientDist;
+    this.initialDist = opts.initialDist;
+    this.HESITATE_DURATION = 20 * opts.ticksBetweenMsgs;
+    this.NEIGHBOUR_EXPIRY = 2 * opts.ticksBetweenMsgs;
+    this.DESIRED_SHAPE_DIST = 3.5*opts.radius;
+    this.NEARBY_MOVING_DISTANCE = 4*this.DESIRED_SHAPE_DIST;
+
     this.shapeDesc = opts.shapeDesc;
     this.isSeed = opts.isSeed;
     this.isGradientSeed = opts.isGradientSeed;
@@ -287,7 +248,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       return this._neighborsUIDs;
     }
     let nIDs = Object.keys(this.neighbors);
-    this._neighborsUIDs = nIDs.filter(nuid => this.counter - this.neighbors[nuid].seenAt < NEIGHBOUR_EXPIRY);
+    this._neighborsUIDs = nIDs.filter(nuid => this.counter - this.neighbors[nuid].seenAt < this.NEIGHBOUR_EXPIRY);
     return this._neighborsUIDs;
   }
 
@@ -307,7 +268,7 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     this.getNeighborsUIDs().forEach(nuid => {
       let neigh = this.neighbors[nuid];
-      if(neigh.measuredDist > GRADIENT_DIST)
+      if(neigh.measuredDist > this.gradientDist)
         return;
 
       if(neigh.message.grad == null)
@@ -371,7 +332,7 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     this.getNeighborsUIDs().forEach(nuid => {
       let n = this.neighbors[nuid];
-      if(n.measuredDist > GRADIENT_DIST)
+      if(n.measuredDist > this.gradientDist)
         return;
 
       if(ret == null) {
@@ -404,7 +365,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       // because 0,0 is always inside the shape!
       this.shapePos = {
         x: 0,
-        y: 10*INITIAL_DIST,
+        y: 10*this.initialDist,
       };
     }
 
@@ -448,7 +409,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       }
 
       if(n.isStationary) return;
-      if(n.measuredDist > NEARBY_MOVING_DISTANCE) return;
+      if(n.measuredDist > this.NEARBY_MOVING_DISTANCE) return;
       // if(n.neighborUID < this.kilo_uid) return;
       if(n.edgeFollowingAge < this.edgeFollowingAge) return;
 
@@ -466,7 +427,7 @@ class GradientAndAssemblyRobot extends Kilobot {
         return;
 
       if(n.isStationary) return;
-      if(n.measuredDist > NEARBY_MOVING_DISTANCE) return;
+      if(n.measuredDist > this.NEARBY_MOVING_DISTANCE) return;
       // if(n.neighborUID < this.kilo_uid) return;
       if(n.edgeFollowingAge < this.edgeFollowingAge) return;
 
@@ -496,7 +457,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     let nn = this.getNearestNeighbor();
     if(nn == null) return;
 
-    let tooClose = nn.measuredDist < DESIRED_SHAPE_DIST;
+    let tooClose = nn.measuredDist < this.DESIRED_SHAPE_DIST;
     let gettingFarther = this.prevNearestNeighDist < nn.measuredDist;
     let noNewData = this.prevNearestNeighDist == nn.measuredDist;
     this.prevNearestNeighDist = nn.measuredDist;
@@ -658,12 +619,12 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   hesitate(what) {
-    this.hesitateData[what] = this.counter + HESITATE_DURATION*(this.rand_soft()/255.0*0.2);
+    this.hesitateData[what] = this.counter + this.HESITATE_DURATION*(this.rand_soft()/255.0*0.2);
   }
 
   isHesitating(what) {
     let at = this.hesitateData[what];
-    if(at != undefined && this.counter < at + HESITATE_DURATION) {
+    if(at != undefined && this.counter < at + this.HESITATE_DURATION) {
       return true;
     }
     delete(this.hesitateData[what]);
@@ -716,21 +677,61 @@ window['ExperimentAssembly'] = class {
     this.selectedUID = null;
   }
 
-  createRobots(newRobot) {
+  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+    const INITIAL_DIST = NEIGHBOUR_DISTANCE/11*3;
+    const GRADIENT_DIST = 1.5*INITIAL_DIST;
+    this.RADIUS = RADIUS;
+    this._ShapeScale = 1.5*this.RADIUS; // 1.5*this.RADIUS
+    this.ShapeDesc = [[" "," "," "," "," "," "," ","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "],[" "," "," "," "," "," ","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "],[" "," "," "," "," ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#"," "," "," "],[" "," "," "," ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#"," "," "],[" "," "," "," ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#"," "," "],[" "," "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#"," "," "],[" "," "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#"," "," "],[" "," "," ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#"," "," "],[" "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," ","#","#","#","#","#","#","#","#","#"," "],[" "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "],[" "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "],[" "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "],[" "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "],[" "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "],[" "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "],[" "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "],[" "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "],[" "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "],[" "," "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "," "],[" "," "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "," "],[" "," "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "],[" "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "," "],[" "," "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "," "],[" "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "],[" "," "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "],[" "," ","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#","#"," "," "],[" "," ","#","#","#","#","#","#","#","#","#"," "," "," "," ","#","#","#","#","#","#","#","#","#","#"," "," "],[" ","#","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#","#"," "],[" ","#","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#","#"," "],[" ","#","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#","#"," "],[" ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#"," "],[" ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#","#"," "],[" ","#","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "," "],[" ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "," "," "],[" ","#","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "," "," "],[" "," ","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "," "," "," "],[" "," ","#","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#","#"," "," "," "," "],[" "," "," ","#","#","#"," "," "," "," "," "," "," "," "," "," "," "," ","#","#","#","#"," "," "," "," "," "],[" "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," ","R","#"," "," "," "," "," "," "," "]];
+
+    this.RootSeedPos = {
+      x: 0,
+      y: 0,
+    };
+
+    this.ShapePosOffset = {x: 0, y: 0};
+    let _ShapePosRootIndexes = {x: 0, y: 0};
+
+    if(true){
+      let trimmed = false;
+      let rowCount = this.ShapeDesc.length;
+      for(let rowi = rowCount-1; rowi >= 0; rowi--) {
+        if(trimmed) {
+          break;
+        }
+        for(let coli = 0; coli < this.ShapeDesc[rowi].length; coli++) {
+          if(this.ShapeDesc[rowi][coli] == '#') {
+            this.ShapeDesc = this.ShapeDesc.slice(0, rowi+1);
+            _ShapePosRootIndexes = {
+              x: coli,
+              y: 0,
+            };
+            this.ShapePosOffset = {
+              x: this.RootSeedPos.x - _ShapePosRootIndexes.x*this._ShapeScale,
+              y: this.RootSeedPos.y - _ShapePosRootIndexes.y*this._ShapeScale,
+            };
+            trimmed = true;
+            break;
+          }
+        }
+      }
+    }
+
+
     let MathRandom = new Math.seedrandom(1234);
     const shapePosToPhysPos = (shapePos) => {
       return {
-        x: RootSeedPos.x + shapePos.x,
-        y: RootSeedPos.y + shapePos.y,
+        x: this.RootSeedPos.x + shapePos.x,
+        y: this.RootSeedPos.y + shapePos.y,
       };
     }
 
     const isInsideShape = (pos) => {
       if(pos == null) return false;
-      let i = Math.floor(+(pos.x-ShapePosOffset.x)/_ShapeScale);
-      let j = Math.floor(-(pos.y-ShapePosOffset.y)/_ShapeScale);
-      j = ShapeDesc.length - 1 - j;
-      return ShapeDesc[j] && ShapeDesc[j][i] == '#';
+      let i = Math.floor(+(pos.x-this.ShapePosOffset.x)/this._ShapeScale);
+      let j = Math.floor(-(pos.y-this.ShapePosOffset.y)/this._ShapeScale);
+      j = this.ShapeDesc.length - 1 - j;
+      return this.ShapeDesc[j] && this.ShapeDesc[j][i] == '#';
     }
 
     let bodyCounter = 0;
@@ -746,6 +747,11 @@ window['ExperimentAssembly'] = class {
         shapePosToPhysPos(shapePos),
         MathRandom() * 2*Math.PI,
         new GradientAndAssemblyRobot({
+          gradientDist: GRADIENT_DIST,
+          initialDist: INITIAL_DIST,
+          ticksBetweenMsgs: TICKS_BETWEEN_MSGS,
+          radius: this.RADIUS,
+
           isInsideShape: isInsideShape,
           shapePos: shapePos.isSeed ? {x: shapePos.x, y: shapePos.y} : null,
           isGradientSeed: shapePos.isSeed && shapePos.isRoot,
@@ -763,8 +769,8 @@ window['ExperimentAssembly'] = class {
 
     let gridPosToPhysPos = (gridPos) => {
       let pos = {
-        x: (RootSeedPos.x + INITIAL_DIST/2),
-        y: (RootSeedPos.y + Math.sqrt(3) * INITIAL_DIST/2 + 2*INITIAL_DIST/2),
+        x: (this.RootSeedPos.x + INITIAL_DIST/2),
+        y: (this.RootSeedPos.y + Math.sqrt(3) * INITIAL_DIST/2 + 2*INITIAL_DIST/2),
       };
 
       pos.x += gridPos.x * INITIAL_DIST + (gridPos.y%2==0 ? -INITIAL_DIST/2 : 0);
@@ -794,14 +800,14 @@ window['ExperimentAssembly'] = class {
         } else {
           let seedAreaWidth = Math.floor(NEIGHBOUR_DISTANCE/INITIAL_DIST) * 2;
           if(candidate.x < -seedAreaWidth/2 || candidate.x > +seedAreaWidth/2 || candidate.y < 0) {
-            for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
-              let row = ShapeDesc[rowi];
+            for(let rowi = 0; rowi < this.ShapeDesc.length; rowi++) {
+              let row = this.ShapeDesc[rowi];
               for(let coli = 0; coli < row.length; coli++) {
                 if(row[coli] != '#')
                   continue;
                 let p = {
-                  x: ShapePosOffset.x + coli*_ShapeScale,
-                  y: ShapePosOffset.y - (ShapeDesc.length-1 - rowi)*_ShapeScale,
+                  x: this.ShapePosOffset.x + coli*this._ShapeScale,
+                  y: this.ShapePosOffset.y - (this.ShapeDesc.length-1 - rowi)*this._ShapeScale,
                 }
                 if(calcDist(gridPosToPhysPos(candidate), p) < 4*INITIAL_DIST) {
                   return null;
@@ -836,14 +842,19 @@ window['ExperimentAssembly'] = class {
 
       let PERFECT = false;
       if(!PERFECT) {
-        pos.x += noise(0.2 * RADIUS);
-        pos.y += noise(0.2 * RADIUS);
+        pos.x += noise(0.2 * this.RADIUS);
+        pos.y += noise(0.2 * this.RADIUS);
       }
 
       newRobot(
         pos,
         MathRandom() * 2*Math.PI,
         new GradientAndAssemblyRobot({
+          gradientDist: GRADIENT_DIST,
+          initialDist: INITIAL_DIST,
+          ticksBetweenMsgs: TICKS_BETWEEN_MSGS,
+          radius: this.RADIUS,
+
           isInsideShape: isInsideShape,
           shapePos: null,
           isSeed: false,
@@ -896,15 +907,15 @@ window['ExperimentAssembly'] = class {
           switch(b.robot.stats.action) {
             case 'stright':
               g.moveTo(0, 0);
-              g.lineTo(this.V.ZOOM * RADIUS, 0);
+              g.lineTo(this.V.ZOOM * this.RADIUS, 0);
               break;
             case 'left-get-farther':
               g.moveTo(0, 0);
-              g.lineTo(0, -this.V.ZOOM * RADIUS);
+              g.lineTo(0, -this.V.ZOOM * this.RADIUS);
               break;
             case 'right-get-close':
               g.moveTo(0, 0);
-              g.lineTo(0, +this.V.ZOOM * RADIUS);
+              g.lineTo(0, +this.V.ZOOM * this.RADIUS);
               break;
           }
         }
@@ -935,9 +946,9 @@ window['ExperimentAssembly'] = class {
         if(highlightJoined) {
           forEachObj(bodies, b => {
             let p = b.body.GetPosition();
-            let i = Math.floor(+(p.get_x() - ShapePosOffset.x)/_ShapeScale);
-            let j = Math.floor(-(p.get_y() - ShapePosOffset.y)/_ShapeScale);
-            let key = `${ShapeDesc.length - 1 - j}:${i}`;
+            let i = Math.floor(+(p.get_x() - this.ShapePosOffset.x)/this._ShapeScale);
+            let j = Math.floor(-(p.get_y() - this.ShapePosOffset.y)/this._ShapeScale);
+            let key = `${this.ShapeDesc.length - 1 - j}:${i}`;
             shapeMarks[key] = (shapeMarks[key] || 0) + 1
           });
         }
@@ -950,8 +961,8 @@ window['ExperimentAssembly'] = class {
           g.beginFill(0x888888);
         }
 
-        for(let rowi = 0; rowi < ShapeDesc.length; rowi++) {
-          let row = ShapeDesc[rowi];
+        for(let rowi = 0; rowi < this.ShapeDesc.length; rowi++) {
+          let row = this.ShapeDesc[rowi];
           for(let coli = 0; coli < row.length; coli++) {
             if(row[coli] != '#') {
               continue;
@@ -964,13 +975,13 @@ window['ExperimentAssembly'] = class {
               }
             }
 
-            let x = ShapePosOffset.x + coli*_ShapeScale;
-            let y = ShapePosOffset.y - (ShapeDesc.length-1 - rowi)*_ShapeScale;
+            let x = this.ShapePosOffset.x + coli*this._ShapeScale;
+            let y = this.ShapePosOffset.y - (this.ShapeDesc.length-1 - rowi)*this._ShapeScale;
             g.drawRect(
               +this.V.ZOOM * x,
-              +this.V.ZOOM * y - this.V.ZOOM * _ShapeScale,
-              +(this.V.ZOOM * _ShapeScale - 1),
-              +(this.V.ZOOM * _ShapeScale - 1),
+              +this.V.ZOOM * y - this.V.ZOOM * this._ShapeScale,
+              +(this.V.ZOOM * this._ShapeScale - 1),
+              +(this.V.ZOOM * this._ShapeScale - 1),
             );
           }
         }
@@ -1005,11 +1016,11 @@ window['ExperimentAssembly'] = class {
             y: + pos.y * this.V.ZOOM,
           }
           let posEstimated = {
-            x: + (RootSeedPos.x + shapePos.x) * this.V.ZOOM,
-            y: + (RootSeedPos.y + shapePos.y) * this.V.ZOOM,
+            x: + (this.RootSeedPos.x + shapePos.x) * this.V.ZOOM,
+            y: + (this.RootSeedPos.y + shapePos.y) * this.V.ZOOM,
           }
           let dist = calcDist(posActual, posEstimated);
-          if(dist < RADIUS*this.V.ZOOM) correctlyLocalizedCount++;
+          if(dist < this.RADIUS*this.V.ZOOM) correctlyLocalizedCount++;
 
           if(this.selectedUID && this.selectedUID != b.robot._uid)
             return;
@@ -1020,7 +1031,7 @@ window['ExperimentAssembly'] = class {
           if(posEstimated.y > +MAX) posEstimated.y = +MAX;
           if(posEstimated.y < -MAX) posEstimated.y = -MAX;
 
-          let thickness = RADIUS*this.V.ZOOM * 0.2; // 2
+          let thickness = this.RADIUS*this.V.ZOOM * 0.2; // 2
           color = 0xff0000;
           g.endFill();
           g.lineStyle(thickness, color);
@@ -1030,11 +1041,11 @@ window['ExperimentAssembly'] = class {
           if(false) {
             g.endFill();
             g.lineStyle(1, color);
-            g.drawCircle(posEstimated.x, posEstimated.y, this.V.ZOOM * RADIUS);
+            g.drawCircle(posEstimated.x, posEstimated.y, this.V.ZOOM * this.RADIUS);
 
             {
               let crossPoints = [posEstimated, posActual];
-              let fullSize = this.V.ZOOM * RADIUS * 0.2;
+              let fullSize = this.V.ZOOM * this.RADIUS * 0.2;
               for(let i = 0, len = crossPoints.length; i < len; i++) {
                 let p = crossPoints[i];
                 let r = fullSize;
@@ -1070,7 +1081,7 @@ window['ExperimentAssembly'] = class {
 
         let bodyPositions = quadlateral.map(id => bodies[id].body.GetPosition());
 
-        g.lineStyle(this.V.ZOOM * RADIUS/4/4, 0xffffff);
+        g.lineStyle(this.V.ZOOM * this.RADIUS/4/4, 0xffffff);
         bodyPositions.forEach(p => {
           g.moveTo(
             + b.body.GetPosition().get_x()*this.V.ZOOM,
@@ -1083,7 +1094,7 @@ window['ExperimentAssembly'] = class {
         });
 
 
-        g.lineStyle(this.V.ZOOM * RADIUS/4, 0xffffff);
+        g.lineStyle(this.V.ZOOM * this.RADIUS/4, 0xffffff);
         [
           [1, 2],
           [1, 3],
@@ -1104,64 +1115,6 @@ window['ExperimentAssembly'] = class {
           );
         });
       });
-    }
-
-    {
-      if(DRAW_CONNS_AND_BOUNDS) {
-        let connGraphics = new PIXI.Graphics()
-        connGraphics.zIndex = zIndexOf('ConnsAndBouns');
-        connGraphics.alpha = 0.5;
-        platformGraphics.addChild(connGraphics);
-        pixiApp.ticker.add(() => {
-          connGraphics.clear();
-          if(!DRAW_CONNS_AND_BOUNDS) return;
-
-          let bounds = [];
-          for(let i = 0; i < bodyIDs.length; i++) {
-            if(this.selectedUID != null && this.selectedUID != bodyIDs[i]) {
-              continue;
-            }
-            let body = bodies[bodyIDs[i]].body;
-            let f = body.GetFixtureList();
-            let fp = Box2D.getPointer(f);
-            let j = 0;
-            while(fp) {
-              j++;
-              bounds.push({
-                aabb: f.GetAABB(),
-                color: j%2==0 ? 0x00ff00 : 0x0000ff,
-              });
-              f = f.GetNext();
-              fp = Box2D.getPointer(f);
-            }
-          }
-
-          bounds.forEach(bound => {
-            connGraphics.lineStyle(2, bound.color || 0x00ff00);
-
-            connGraphics.drawRect(
-              + this.V.ZOOM * (bound.aabb.get_lowerBound().get_x()),
-              + this.V.ZOOM * (bound.aabb.get_lowerBound().get_y()),
-              this.V.ZOOM * (bound.aabb.get_upperBound().get_x() - bound.aabb.get_lowerBound().get_x()),
-              this.V.ZOOM * (bound.aabb.get_upperBound().get_y() - bound.aabb.get_lowerBound().get_y()),
-            );
-          });
-
-          /*
-          this.connections.forEach(conn => {
-            if(this.selectedUID != null && (this.selectedUID != conn.from)) { // && this.selectedUID != conn.to
-              return;
-            }
-            let pos1 = bodies[conn.from].body.GetPosition();
-            let pos2 = bodies[conn.to].body.GetPosition();
-            connGraphics.lineStyle(this.V.ZOOM * RADIUS/4, bodies[conn.from].robot.led.toHex());
-            connGraphics.moveTo(+ pos1.get_x() * this.V.ZOOM, + pos1.get_y() * this.V.ZOOM);
-            connGraphics.lineTo(+ pos2.get_x() * this.V.ZOOM, + pos2.get_y() * this.V.ZOOM);
-          });
-          */
-
-        });
-      }
     }
   }
 }

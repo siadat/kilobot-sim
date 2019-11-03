@@ -1,10 +1,3 @@
-const RADIUS = 1; // best performance
-const INITIAL_DIST = 3 * RADIUS;
-const NEIGHBOUR_DISTANCE = INITIAL_DIST/3*11; // 11 * RADIUS; // 4 * RADIUS + 2 * RADIUS * Math.sqrt(3);
-
-const TICKS_BETWEEN_MSGS = 30/2;
-const LOOP_PER_SECOND = 30;
-
 let DRAW_CONNS_AND_BOUNDS = !false;
 let DRAW_SHADOW = false;
 

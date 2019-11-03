@@ -1,3 +1,9 @@
+const RADIUS = 1; // best performance
+const NEIGHBOUR_DISTANCE = 11 * RADIUS;
+
+const TICKS_BETWEEN_MSGS = 30/2;
+const LOOP_PER_SECOND = 30;
+
 const DEV = false;
 let SIZE = {
   w: window.innerWidth,
@@ -325,6 +331,64 @@ export class Pitch {
         });
       }
 
+      {
+        if(DRAW_CONNS_AND_BOUNDS) {
+          let connGraphics = new PIXI.Graphics()
+          connGraphics.zIndex = zIndexOf('ConnsAndBouns');
+          connGraphics.alpha = 0.5;
+          platformGraphics.addChild(connGraphics);
+          pixiApp.ticker.add(() => {
+            connGraphics.clear();
+            if(!DRAW_CONNS_AND_BOUNDS) return;
+
+            let bounds = [];
+            for(let i = 0; i < bodyIDs.length; i++) {
+              if(this.selectedUID != null && this.selectedUID != bodyIDs[i]) {
+                continue;
+              }
+              let body = bodies[bodyIDs[i]].body;
+              let f = body.GetFixtureList();
+              let fp = Box2D.getPointer(f);
+              let j = 0;
+              while(fp) {
+                j++;
+                bounds.push({
+                  aabb: f.GetAABB(),
+                  color: j%2==0 ? 0x00ff00 : 0x0000ff,
+                });
+                f = f.GetNext();
+                fp = Box2D.getPointer(f);
+              }
+            }
+
+            bounds.forEach(bound => {
+              connGraphics.lineStyle(2, bound.color || 0x00ff00);
+
+              connGraphics.drawRect(
+                + this.V.ZOOM * (bound.aabb.get_lowerBound().get_x()),
+                + this.V.ZOOM * (bound.aabb.get_lowerBound().get_y()),
+                this.V.ZOOM * (bound.aabb.get_upperBound().get_x() - bound.aabb.get_lowerBound().get_x()),
+                this.V.ZOOM * (bound.aabb.get_upperBound().get_y() - bound.aabb.get_lowerBound().get_y()),
+              );
+            });
+
+            /*
+          this.connections.forEach(conn => {
+            if(this.selectedUID != null && (this.selectedUID != conn.from)) { // && this.selectedUID != conn.to
+              return;
+            }
+            let pos1 = bodies[conn.from].body.GetPosition();
+            let pos2 = bodies[conn.to].body.GetPosition();
+            connGraphics.lineStyle(this.V.ZOOM * RADIUS/4, bodies[conn.from].robot.led.toHex());
+            connGraphics.moveTo(+ pos1.get_x() * this.V.ZOOM, + pos1.get_y() * this.V.ZOOM);
+            connGraphics.lineTo(+ pos2.get_x() * this.V.ZOOM, + pos2.get_y() * this.V.ZOOM);
+          });
+          */
+
+          });
+        }
+      }
+
       // update at least once:
       this.destroyFuncs.push(() => this.pixiApp.ticker.update());
       // destroy
@@ -417,7 +481,12 @@ export class Pitch {
 
         this.bodies[b.robot._uid] = b;
         this.createBodyGraphic(b);
-    });
+    },
+      RADIUS,
+      NEIGHBOUR_DISTANCE,
+      TICKS_BETWEEN_MSGS,
+      // LOOP_PER_SECOND,
+    );
 
     window.bodies = this.bodies;
 
