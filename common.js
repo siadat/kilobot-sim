@@ -1,13 +1,3 @@
-const LayersOrder = [
-  'Shape',
-  '_Shadow',
-  '_TraversedPath',
-  'RobustQuadlateral',
-  'ConnsAndBouns',
-  '_Robots',
-  'LocalizationError',
-]
-
 const RADIUS = 1; // best performance
 const INITIAL_DIST = 3 * RADIUS;
 const NEIGHBOUR_DISTANCE = INITIAL_DIST/3*11; // 11 * RADIUS; // 4 * RADIUS + 2 * RADIUS * Math.sqrt(3);
@@ -30,6 +20,15 @@ const noise = function(magnitude) {
   return magnitude * (_tempMathRandom()-0.5);
 }
 
+const LayersOrder = [
+  'Shape',
+  '_Shadow',
+  '_TraversedPath',
+  'RobustQuadlateral',
+  'ConnsAndBouns',
+  '_Robots',
+  'LocalizationError',
+]
 const zIndexOf = (name) => {
   let zIndex = LayersOrder.indexOf(name);
   if(zIndex == -1) {

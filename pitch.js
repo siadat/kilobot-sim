@@ -394,7 +394,7 @@ export class Pitch {
     this.experiment.runnerOptions = Object.assign({
       limitSpeed: false,
       traversedPath: false,
-      traversedPathLen: 5,
+      traversedPathLen: 20,
     }, this.experiment.runnerOptions);
 
     this.experiment.V = this.V;
