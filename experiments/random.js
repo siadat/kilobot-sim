@@ -35,7 +35,7 @@ window.ExperimentRandom = class {
     }
   }
 
-  createRobots(newRobot) {
+  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     for(let i = 0; i < 1; i++) {
       let angle = Math.PI/2;
       let pos = {

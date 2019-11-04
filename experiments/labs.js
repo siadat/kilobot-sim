@@ -23,7 +23,7 @@ window.ExperimentLab0 = class {
     }
   }
 
-  createRobots(newRobot) {
+  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     let MathRandom = new Math.seedrandom(1234);
     for(let i = 0; i < 10; i++) {
       newRobot({
@@ -76,7 +76,7 @@ window['ExperimentLab1.2'] = class {
     }
   }
 
-  createRobots(newRobot) {
+  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     let MathRandom = new Math.seedrandom(1234);
     for(let i = 0; i < 10; i++) {
       newRobot({
@@ -138,7 +138,7 @@ window['ExperimentLab1.3'] = class {
     }
   }
 
-  createRobots(newRobot) {
+  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     let MathRandom = new Math.seedrandom(1234);
     for(let i = 0; i < 10; i++) {
       newRobot({

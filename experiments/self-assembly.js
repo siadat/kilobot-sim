@@ -717,7 +717,6 @@ window['ExperimentAssembly'] = class {
       }
     }
 
-
     let MathRandom = new Math.seedrandom(1234);
     const noise = function(magnitude) {
       return magnitude * (MathRandom()-0.5);
