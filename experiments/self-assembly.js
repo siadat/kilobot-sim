@@ -669,7 +669,7 @@ window['ExperimentAssembly'] = class {
 
     this.runnerOptions = {
       limitSpeed: false,
-      traversedPath: true,
+      traversedPath: false,
     }
   }
 
