@@ -38,9 +38,9 @@ class GradientAndAssemblyRobot extends Kilobot {
     super();
     this.gradientDist = opts.gradientDist;
     this.initialDist = opts.initialDist;
-    this.HESITATE_DURATION = 20 * opts.ticksBetweenMsgs;
+    this.HESITATE_DURATION = 2 * opts.ticksBetweenMsgs;
     this.NEIGHBOUR_EXPIRY = 2 * opts.ticksBetweenMsgs;
-    this.DESIRED_SHAPE_DIST = 3.5*opts.radius;
+    this.DESIRED_SHAPE_DIST = 3.6*opts.radius;
     this.NEARBY_MOVING_DISTANCE = 4*this.DESIRED_SHAPE_DIST;
 
     this.shapeDesc = opts.shapeDesc;
@@ -56,6 +56,9 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.lastExpireCheck = -1;
     this.isInsideShape = opts.isInsideShape;
     this.edgeFollowingStartedAt = null;
+    // this.robotsIveEdgeFollowed = [];
+    this.robotsIveEdgeFollowed = {};
+    this.lastRobotIveEdgeFollowed = null;
 
     this.switchToState(States.Start);
 
@@ -116,6 +119,7 @@ class GradientAndAssemblyRobot extends Kilobot {
 
   newEvent(s) {
     if(true) {
+      if(this.events[this.events.length - 1] == s) return;
       this.events.push(s);
     }
   }
@@ -128,6 +132,7 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
 
+    /*
   getFirstRobustTriangle() {
     let nIDs = Object.keys(this.neighbors);
     nIDs = nIDs.filter(nid => this.neighbors[nid].shapePos != null && this.neighbors[nid].isStationary);
@@ -175,19 +180,25 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     return null;
   }
+  */
 
   getFirstRobustQuadrilateral() {
     let nIDs = this.getNeighborsUIDs().filter(nid => {
       let n = this.neighbors[nid];
-      return (
+      return n.isSeed || (
            n.shapePos != null
         && n.isStationary
         && n.neighborGradient != null
-        && (/*n.neighborState == States.JoinedShape ||*/ n.neighborGradient < this.myGradient)
+        && n.neighborGradient < this.myGradient
       );
-    }).sort((a, b) => {
-      return +(this.neighbors[a].measuredDist - this.neighbors[b].measuredDist);
-    }).slice(0, 10);
+    }).sort((nid1, nid2) => {
+      return +(
+        this.neighbors[nid1].measuredDist * (this.neighbors[nid1].isSeed ? 0.001 : 1)
+        -
+        this.neighbors[nid2].measuredDist * (this.neighbors[nid2].isSeed ? 0.001 : 1)
+      );
+    });
+    this.closestRobustNeighborsCandidates = nIDs.map(nid => this.neighbors[nid])
 
     // this.currentFarthestLocalizingNeighborUID = nIDs[nIDs.length-1];
 
@@ -249,6 +260,16 @@ class GradientAndAssemblyRobot extends Kilobot {
     }
     let nIDs = Object.keys(this.neighbors);
     this._neighborsUIDs = nIDs.filter(nuid => this.counter - this.neighbors[nuid].seenAt < this.NEIGHBOUR_EXPIRY);
+    // {
+    //   for(let i = 0; i < nIDs.length; i++) {
+    //     let nuid = nIDs[i];
+    //     if(this.counter - this.neighbors[nuid].seenAt > this.NEIGHBOUR_EXPIRY) {
+    //       delete(this.neighbors[nuid]);
+    //     }
+    //   }
+    //   this._neighborsUIDs = Object.keys(this.neighbors);
+    // }
+
     return this._neighborsUIDs;
   }
 
@@ -327,35 +348,38 @@ class GradientAndAssemblyRobot extends Kilobot {
     return ret;
   }
 
-  getHighestGradAndIDNeighbor() {
-    let ret = null;
+  getMostCompetitiveWaitingNeighbor() {
+    let neigh = null;
 
     this.getNeighborsUIDs().forEach(nuid => {
       let n = this.neighbors[nuid];
       if(n.measuredDist > this.gradientDist)
         return;
 
-      if(ret == null) {
-        ret = n;
-        return;
-      }
-
       if(n.neighborGradient == null)
         return;
 
-      if(n.neighborGradient > ret.neighborGradient) {
-        ret = n;
+      if(n.neighborState != States.WaitToMove)
+        return;
+
+      if(neigh == null) {
+        neigh = n;
         return;
       }
 
-      if(n.neighborGradient == ret.neighborGradient && n.neighborUID > ret.neighborUID) {
-        ret = n;
+      if(n.neighborGradient > neigh.neighborGradient) {
+        neigh = n;
+        return;
+      }
+
+      if(n.neighborGradient == neigh.neighborGradient && n.neighborUID > neigh.neighborUID) {
+        neigh = n;
         return;
       }
 
     });
 
-    return ret;
+    return neigh;
   }
 
   localize() {
@@ -396,6 +420,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     });
   }
 
+    /*
   seenRecentMovingOrPausedNeighbors() {
     let seen = false;
     this.getNeighborsUIDs().forEach(nuid => {
@@ -418,23 +443,64 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     return seen;
   }
+  */
 
   seenRecentMovingNeighbors() {
-    let seen = false;
+    let movingNeighbor = null;
     this.getNeighborsUIDs().forEach(nuid => {
       let n = this.neighbors[nuid];
-      if(seen == true)
-        return;
+      if(movingNeighbor) return;
 
       if(n.isStationary) return;
       if(n.measuredDist > this.NEARBY_MOVING_DISTANCE) return;
       // if(n.neighborUID < this.kilo_uid) return;
-      if(n.edgeFollowingAge < this.edgeFollowingAge) return;
 
-      seen = true;
+      if(n.robotsIveEdgeFollowed[this.kilo_uid]) {
+        movingNeighbor = n;
+        return movingNeighbor;
+      }
+
+      if(this.robotsIveEdgeFollowed[nuid]) {
+        return;
+      }
+
+      // if(this.lastRobotIveEdgeFollowed && n.lastRobotIveEdgeFollowed && this.lastRobotIveEdgeFollowed < n.lastRobotIveEdgeFollowed) {
+      //   movingNeighbor = n;
+      //   return movingNeighbor;
+      // }
+
+      //---- best:
+      // if(Object.keys(this.robotsIveEdgeFollowed).length != Object.keys(n.robotsIveEdgeFollowed).length) {
+      //   console.log(`comparing ${Object.keys(this.robotsIveEdgeFollowed).length} and ${Object.keys(n.robotsIveEdgeFollowed).length}`);
+      // }
+
+      // if(Object.keys(this.robotsIveEdgeFollowed).length < Object.keys(n.robotsIveEdgeFollowed).length) {
+      //   return;
+      // }
+
+      // if(n.shapePos.y > this.shapePos.y) {
+      //   return;
+      // }
+
+      /*
+      for(let i = 0; i < this.robotsIveEdgeFollowed.length; i++) {
+        let id1 = this.robotsIveEdgeFollowed[i];
+        for(let j = 0; j < n.robotsIveEdgeFollowed.length; j++) {
+          let id2 = n.robotsIveEdgeFollowed[j];
+          if(id1 == id2 && i > j) {
+            movingNeighbor = true;
+            return movingNeighbor;
+          }
+        }
+      }
+      */
+
+      // if(n.edgeFollowingAge < this.edgeFollowingAge) return;
+
+      movingNeighbor = n;
     });
 
-    return seen;
+    return movingNeighbor;
   }
 
 
@@ -456,6 +522,17 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.edgeFollowingAge++;
     let nn = this.getNearestNeighbor();
     if(nn == null) return;
+
+    // let dist = this.robotsIveEdgeFollowed[nn.neighborUID];
+    // if(!dist) {
+    //   this.robotsIveEdgeFollowed[nn.neighborUID] = nn.measuredDist;
+    // }
+
+    this.robotsIveEdgeFollowed[nn.neighborUID] = true;
+    this.lastRobotIveEdgeFollowed = nn.measuredDist;
+
+    // if(this.robotsIveEdgeFollowed[this.robotsIveEdgeFollowed.length - 1] != nn.neighborUID)
+    //   this.robotsIveEdgeFollowed.push(nn.neighborUID);
 
     let tooClose = nn.measuredDist < this.DESIRED_SHAPE_DIST;
     let gettingFarther = this.prevNearestNeighDist < nn.measuredDist;
@@ -533,8 +610,9 @@ class GradientAndAssemblyRobot extends Kilobot {
           return;
         }
 
-        if(this.seenRecentMovingOrPausedNeighbors()) {
-          // if(this.seenRecentMovingNeighbors()) {
+        //  if(this.seenRecentMovingOrPausedNeighbors())
+        if(this.seenRecentMovingNeighbors()) {
+          // if(this.seenRecentMovingNeighbors())
           // this.edgeFollowingAge = this._uid;
           this.hesitate("movement");
           this.isStationary = true;
@@ -543,8 +621,11 @@ class GradientAndAssemblyRobot extends Kilobot {
         }
 
         {
-          let hgn = this.getHighestGradAndIDNeighbor();
-          if(hgn == null) return;
+          let hgn = this.getMostCompetitiveWaitingNeighbor();
+          if(hgn == null) {
+            this.switchToState(States.MoveWhileOutside, "no competing neighbors");
+            break;
+          }
 
           if(this.myGradient > hgn.neighborGradient) {
             this.switchToState(States.MoveWhileOutside, "my grad > my neighbors");
@@ -552,6 +633,8 @@ class GradientAndAssemblyRobot extends Kilobot {
             if(this.kilo_uid > hgn.neighborUID) {
               this.switchToState(States.MoveWhileOutside, "equal grads, but my ID is larger");
             }
+          } else {
+            this.newEvent(`still waiting, because either ${hgn.neighborUID} ruled!`);
           }
         }
         break;
@@ -564,15 +647,15 @@ class GradientAndAssemblyRobot extends Kilobot {
           this.switchToState(States.MoveWhileInside, "inside shape");
         }
 
-          /*
-        if(this.seenRecentMovingNeighbors()) {
+        let movingNeighbor = this.seenRecentMovingNeighbors();
+        if(movingNeighbor) {
+          this.switchToState(States.WaitToMove, `saw someone  else moving: ${movingNeighbor.neighborUID}`);
           // this.edgeFollowingAge = this._uid;
-          this.hesitate("movement");
+          // this.hesitate("movement");
           this.isStationary = true;
           this.unmark();
           return;
         }
-      */
 
         this.mark();
         this.isStationary = false;
@@ -612,10 +695,6 @@ class GradientAndAssemblyRobot extends Kilobot {
           this.gradientFormation();
         break;
     }
-
-
-    /*
-    */
   }
 
   hesitate(what) {
@@ -643,6 +722,8 @@ class GradientAndAssemblyRobot extends Kilobot {
       isSeed: message.isSeed,
       isStationary: message.isStationary,
       message: message,
+      robotsIveEdgeFollowed: message.robotsIveEdgeFollowed,
+      lastRobotIveEdgeFollowed: message.lastRobotIveEdgeFollowed,
     };
   }
 
@@ -655,6 +736,8 @@ class GradientAndAssemblyRobot extends Kilobot {
       isSeed: this.isSeed,
       state: this.state,
       edgeFollowingAge: this.edgeFollowingAge,
+      robotsIveEdgeFollowed: this.robotsIveEdgeFollowed,
+      lastRobotIveEdgeFollowed: this.lastRobotIveEdgeFollowed,
     };
   }
 }
@@ -665,10 +748,10 @@ window['ExperimentAssembly'] = class {
   constructor() {
     this.selectedUID = null;
     this.drawLocalizationError = true;
-    this.COUNT = 4 + 204;
+    this.COUNT = 4 + 128;
 
     this.runnerOptions = {
-      limitSpeed: false,
+      limitSpeed: !true,
       traversedPath: false,
     }
   }
@@ -678,7 +761,8 @@ window['ExperimentAssembly'] = class {
   }
 
   createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
-    const INITIAL_DIST = NEIGHBOUR_DISTANCE/11*3;
+    this.NEIGHBOUR_DISTANCE = NEIGHBOUR_DISTANCE;
+    const INITIAL_DIST = this.NEIGHBOUR_DISTANCE/11*3;
     const GRADIENT_DIST = 1.5*INITIAL_DIST;
     this.RADIUS = RADIUS;
     this._ShapeScale = 1.5*this.RADIUS; // 1.5*this.RADIUS
@@ -692,7 +776,7 @@ window['ExperimentAssembly'] = class {
     this.ShapePosOffset = {x: 0, y: 0};
     let _ShapePosRootIndexes = {x: 0, y: 0};
 
-    if(true){
+    if(true) {
       let trimmed = false;
       let rowCount = this.ShapeDesc.length;
       for(let rowi = rowCount-1; rowi >= 0; rowi--) {
@@ -736,6 +820,7 @@ window['ExperimentAssembly'] = class {
       return this.ShapeDesc[j] && this.ShapeDesc[j][i] == '#';
     }
 
+    let PERFECT = false;
     let bodyCounter = 0;
     [
       {isSeed: true, isRoot: true,  x: 0*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
@@ -744,6 +829,11 @@ window['ExperimentAssembly'] = class {
       {isSeed: true, isRoot: false, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * -Math.sqrt(3)},
     ].forEach(shapePos => {
       bodyCounter++;
+
+      if(!PERFECT) {
+        shapePos.x += noise(0.2 * INITIAL_DIST);
+        shapePos.y += noise(0.2 * INITIAL_DIST);
+      }
 
       newRobot(
         shapePosToPhysPos(shapePos),
@@ -762,11 +852,46 @@ window['ExperimentAssembly'] = class {
       );
     });
 
+    const createNewRobot = (candidate) => {
+      hexagrid[`${candidate.x}:${candidate.y}`] = TAKEN;
+
+      let pos = gridPosToPhysPos(candidate);
+
+      hexagridCursor.x = candidate.x;
+      hexagridCursor.y = candidate.y;
+
+      if(!PERFECT) {
+        pos.x += noise(0.2 * INITIAL_DIST);
+        pos.y += noise(0.2 * INITIAL_DIST);
+      }
+
+      newRobot(
+        pos,
+        MathRandom() * 2*Math.PI,
+        new GradientAndAssemblyRobot({
+          gradientDist: GRADIENT_DIST,
+          initialDist: INITIAL_DIST,
+          ticksBetweenMsgs: TICKS_BETWEEN_MSGS,
+          radius: this.RADIUS,
+
+          isInsideShape: isInsideShape,
+          shapePos: null,
+          isSeed: false,
+        }),
+      );
+    }
+
     const TAKEN = true;
-    let hexagrid = {};
+    let hexagrid = {
+      // '-1:0': TAKEN,
+      // '-2:0': TAKEN,
+      // '-3:0': TAKEN,
+      // '2:0': TAKEN,
+      // '3:0': TAKEN,
+    };
     let hexagridCursor = {
       x: 0,
-      y: -1,
+      y: 0,
     };
 
     let gridPosToPhysPos = (gridPos) => {
@@ -787,6 +912,7 @@ window['ExperimentAssembly'] = class {
                [0,   +1], [+1,+1],
     ];
 
+    createNewRobot(hexagridCursor);
     for(let i = 0; i < assemblyCount; i++) {
       let candidates = hexaNeighbors.map(adjacentPoint => {
         let candidate = {
@@ -800,7 +926,7 @@ window['ExperimentAssembly'] = class {
         if(!true) {
           if(candidate.y < 0) return null;
         } else {
-          let seedAreaWidth = Math.floor(NEIGHBOUR_DISTANCE/INITIAL_DIST) * 2;
+          let seedAreaWidth = Math.floor(this.NEIGHBOUR_DISTANCE/INITIAL_DIST) * 2;
           if(candidate.x < -seedAreaWidth/2 || candidate.x > +seedAreaWidth/2 || candidate.y < 0) {
             for(let rowi = 0; rowi < this.ShapeDesc.length; rowi++) {
               let row = this.ShapeDesc[rowi];
@@ -811,8 +937,15 @@ window['ExperimentAssembly'] = class {
                   x: this.ShapePosOffset.x + coli*this._ShapeScale,
                   y: this.ShapePosOffset.y - (this.ShapeDesc.length-1 - rowi)*this._ShapeScale,
                 }
-                if(calculateDistance(gridPosToPhysPos(candidate), p) < 4*INITIAL_DIST) {
+                let d = calculateDistance(gridPosToPhysPos(candidate), p);
+                if(d < 4*INITIAL_DIST) {
                   return null;
+                  // let distToOrigin = calculateDistance(gridPosToPhysPos(candidate), gridPosToPhysPos({x: 0, y: 0}));
+                  // return {
+                  //   x: candidate.x,
+                  //   y: candidate.y,
+                  //   dist: distToOrigin * 10000,
+                  // };
                 }
               }
             }
@@ -835,33 +968,7 @@ window['ExperimentAssembly'] = class {
         return;
       }
 
-      hexagrid[`${best.x}:${best.y}`] = TAKEN;
-
-      let pos = gridPosToPhysPos(best);
-
-      hexagridCursor.x = best.x;
-      hexagridCursor.y = best.y;
-
-      let PERFECT = false;
-      if(!PERFECT) {
-        pos.x += noise(0.2 * this.RADIUS);
-        pos.y += noise(0.2 * this.RADIUS);
-      }
-
-      newRobot(
-        pos,
-        MathRandom() * 2*Math.PI,
-        new GradientAndAssemblyRobot({
-          gradientDist: GRADIENT_DIST,
-          initialDist: INITIAL_DIST,
-          ticksBetweenMsgs: TICKS_BETWEEN_MSGS,
-          radius: this.RADIUS,
-
-          isInsideShape: isInsideShape,
-          shapePos: null,
-          isSeed: false,
-        }),
-      );
+      createNewRobot(best);
     }
   }
 
@@ -893,6 +1000,8 @@ window['ExperimentAssembly'] = class {
           shapePos: b.robot.shapePos,
           neighbors: b.robot.neighbors,
           closestRobustNeighbors: b.robot.getFirstRobustQuadrilateral && b.robot.getFirstRobustQuadrilateral(),
+          closestRobustNeighborsCandidates: b.robot.closestRobustNeighborsCandidates,
+          isStationary: b.robot.isStationary,
           robot: b.robot,
           events: b.robot.events,
         });
@@ -925,7 +1034,6 @@ window['ExperimentAssembly'] = class {
       };
       pixiApp.ticker.add(() => { agentGraphicsTick(b) });
     }
-
 
     const DRAW_SHAPE_DESCRIPTION = true;
     if(DRAW_SHAPE_DESCRIPTION) {
@@ -1020,8 +1128,14 @@ window['ExperimentAssembly'] = class {
           let dist = calculateDistance(posActual, posEstimated);
           if(dist < this.RADIUS*this.V.ZOOM) correctlyLocalizedCount++;
 
-          if(this.selectedUID && this.selectedUID != b.robot._uid)
-            return;
+          color = 0xff0000;
+          let thickness = this.RADIUS*this.V.ZOOM * 0.2; // 2
+          g.endFill();
+          g.lineStyle(thickness, color);
+
+          if(this.selectedUID && this.selectedUID != b.robot._uid) {
+            g.lineStyle(thickness, color, 0.3);
+          }
 
           const MAX = 100000;
           if(posEstimated.x > +MAX) posEstimated.x = +MAX;
@@ -1029,10 +1143,6 @@ window['ExperimentAssembly'] = class {
           if(posEstimated.y > +MAX) posEstimated.y = +MAX;
           if(posEstimated.y < -MAX) posEstimated.y = -MAX;
 
-          let thickness = this.RADIUS*this.V.ZOOM * 0.2; // 2
-          color = 0xff0000;
-          g.endFill();
-          g.lineStyle(thickness, color);
           g.moveTo(posActual.x, posActual.y);
           g.lineTo(posEstimated.x, posEstimated.y);
 
@@ -1062,6 +1172,33 @@ window['ExperimentAssembly'] = class {
       });
     }
 
+    if(!false){ // neighbor area
+      let g = new PIXI.Graphics()
+      g.zIndex = zIndexOf('NeighborRegion');
+      g.alpha = 1;
+      platformGraphics.addChild(g);
+      pixiApp.ticker.add(() => {
+        g.clear();
+
+        forEachObj(bodies, b => {
+          if(b.robot.state != States.MoveWhileOutside && b.robot.state != States.MoveWhileInside)
+            return;
+
+          let pos = b.position;
+          if(!b.position && b.getData) {
+            let data = b.getData();
+            pos = data.pos;
+          }
+          g.beginFill(0xffffff, 0.1);
+          g.drawCircle(
+            pos.x * this.V.ZOOM,
+            pos.y * this.V.ZOOM,
+            this.NEIGHBOUR_DISTANCE * this.V.ZOOM,
+          );
+        });
+
+      });
+    }
     { // robust quadlateral
       let g = new PIXI.Graphics()
       g.zIndex = zIndexOf('RobustQuadlateral');

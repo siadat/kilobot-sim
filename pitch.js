@@ -5,13 +5,9 @@ const TICKS_BETWEEN_MSGS = 30/2;
 const LOOP_PER_SECOND = 30;
 
 let DRAW_SHADOW = false;
-let DRAW_CONNS_AND_BOUNDS = !false;
+let DRAW_CONNS_AND_BOUNDS = false;
 let DARK_MODE = false;
-
 let BENCHMARKING = true;
-if(BENCHMARKING) {
-  DRAW_CONNS_AND_BOUNDS = false;
-}
 
 
 const DEV = false;
@@ -443,7 +439,7 @@ export class Pitch {
   zIndexOf(name) {
     let zIndex = this.LayersOrder.indexOf(name);
     if(zIndex == -1) {
-      console.error(`name=${name} not found in order list`);
+      console.error(`name=${name} not found in order list`, this.LayersOrder);
     }
     return zIndex;
   }
@@ -815,6 +811,7 @@ export class Pitch {
 
           messageTxCount++;
           let message = broadcastingBody.robot.message_tx();
+          message = JSON.parse(JSON.stringify(message));
           if(message == null) {
             continue;
           }
@@ -954,6 +951,10 @@ export class Pitch {
     });
   }
 
+  toggleLimitSpeed() {
+    this.experiment.runnerOptions.limitSpeed = !this.experiment.runnerOptions.limitSpeed;
+  }
+
   createBodyGraphic(b) {
     // if(BENCHMARKING) return;
     switch(b.label) {
@@ -1038,6 +1039,7 @@ export class Pitch {
             thickness = 1;
             g.lineStyle(thickness, 0x000000, 0.6); // b.robot.led.toHexDark());
             g.beginFill(0xffffff);
+            // g.beginFill(0x000000);
           }
 
           g.drawCircle(0, 0, b.circleRadius * this.V.ZOOM - thickness/2);
@@ -1072,7 +1074,7 @@ export class Pitch {
           if(this.V.ZOOM * b.circleRadius > 10) {
             g.beginFill(0x000000, 0.4);
             g.lineStyle(0);
-            let r = b.circleRadius*this.V.ZOOM*0.1;
+            let r = b.circleRadius*this.V.ZOOM*0.15;
             let R = b.circleRadius*this.V.ZOOM - r;
             [0, 2/3*Math.PI, 4/3*Math.PI].forEach(a => {
               g.drawCircle(R * Math.cos(a), R * Math.sin(a), r);

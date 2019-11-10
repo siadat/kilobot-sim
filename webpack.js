@@ -5,7 +5,7 @@ module.exports = {
     filename: "bundle.js",
   },
   watchOptions: {
-    ignored: /(node_modules|vendor)/,
+    ignored: /(node_modules|vendor|experiments|main.js)/,
   },
   module: {
     rules: [

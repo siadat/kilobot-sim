@@ -17,6 +17,9 @@ node_modules:
 package.json:
 	npm init
 
+share:
+	~/Downloads/ngrok http 8080
+
 physics/vendor/box2d.jsm:
 	wget -c https://raw.githubusercontent.com/kripken/box2d.js/master/build/Box2D_v2.3.1_min.js
 	mkdir -p physics/vendor/
