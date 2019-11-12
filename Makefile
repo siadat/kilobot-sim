@@ -1,3 +1,7 @@
+build:
+	cp $(GOROOT)/misc/wasm/wasm_exec.js .
+	GOARCH=wasm GOOS=js go build -o robust.wasm robust.go
+
 dev: update_version
 	npx webpack -w --config webpack.dev.js
 

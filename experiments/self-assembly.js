@@ -25,6 +25,26 @@ const round = function(x) {
   return Math.round(x * 10)/10.0;
 }
 
+if(false){
+	function fetchAndInstantiate(url, importObject) {
+		return fetch(url).then(response =>
+			response.arrayBuffer()
+		).then(bytes =>
+			WebAssembly.instantiate(bytes, importObject)
+		).then(results =>
+			results.instance
+		);
+	}
+	var go = new Go();
+	var mod = fetchAndInstantiate("/robust.wasm", go.importObject);
+	window.onload = function() {
+		mod.then(function(instance) {
+			go.run(instance);
+		});
+	};
+}
+
+
 let triangle_p_x = new Float64Array(4);
 let triangle_p_y = new Float64Array(4);
 let triangle_x = new Float64Array(3);
@@ -51,7 +71,7 @@ function arccos(x) {
 }
   */
 
-const isTriangleRobust = (points_x, points_y) => {
+window.isTriangleRobust = (points_x, points_y) => {
   triangle_e2[0] = (points_x[1] - points_x[2])**2 + (points_y[1] - points_y[2])**2;
   triangle_e2[1] = (points_x[0] - points_x[2])**2 + (points_y[0] - points_y[2])**2;
   triangle_e2[2] = (points_x[0] - points_x[1])**2 + (points_y[0] - points_y[1])**2;
@@ -60,7 +80,6 @@ const isTriangleRobust = (points_x, points_y) => {
   triangle_e[1] = Math.sqrt(triangle_e2[1]);
   triangle_e[2] = Math.sqrt(triangle_e2[2]);
 
-  const pow2 = x => x*x;
   triangle_a[0] = Math.acos((triangle_e2[1] + triangle_e2[2] - triangle_e2[0]) / (2 * triangle_e[1] * triangle_e[2]));
   triangle_a[1] = Math.acos((triangle_e2[0] + triangle_e2[2] - triangle_e2[1]) / (2 * triangle_e[0] * triangle_e[2]));
   triangle_a[2] = Math.acos((triangle_e2[1] + triangle_e2[0] - triangle_e2[2]) / (2 * triangle_e[1] * triangle_e[0]));
@@ -266,7 +285,7 @@ class GradientAndAssemblyRobot extends Kilobot {
                   trianlge_idx++;
                 }
               }
-              if(isTriangleRobust(triangle_x, triangle_y)) {
+              if(window.isTriangleRobust(triangle_x, triangle_y)) {
                 robustTriangles++;
               } else {
                 break;
