@@ -329,7 +329,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
 
       // TODO: UNCOMMEN THIS to test limiting to stationary neighbors (this is used by doEdgeFollow)
-      // if(this.neighbors_is_stationary[i] != STATIONARY) continue;
+      if(this.neighbors_is_stationary[i] != STATIONARY) continue;
 
       if(nnIndex == null) {
         nnIndex = i;
@@ -353,8 +353,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
 
       // TODO: why limit to this.gradientDist???
-      if(this.neighbors_dist[i] > this.gradientDist)
-        continue;
+      if(this.neighbors_dist[i] > this.gradientDist) continue;
 
       if(this.neighbors_grad[i] == NO_GRAD)
         continue;
@@ -724,7 +723,7 @@ window['ExperimentAssembly'] = class {
     this.COUNT = 4 + 128;
 
     this.runnerOptions = {
-      limitSpeed: true,
+      limitSpeed: !true,
       traversedPath: false,
     }
   }
@@ -1042,13 +1041,14 @@ window['ExperimentAssembly'] = class {
 
         let shapeMarks = {};
         if(highlightJoined) {
-          forEachObj(bodies, b => {
+          for(let i = 0; i < bodyIDs.length; i++) {
+            let b = bodies[bodyIDs[i]];
             let p = b.body.GetPosition();
             let i = Math.floor(+(p.get_x() - this.ShapePosOffset.x)/this._ShapeScale);
             let j = Math.floor(-(p.get_y() - this.ShapePosOffset.y)/this._ShapeScale);
             let key = `${this.ShapeDesc.length - 1 - j}:${i}`;
             shapeMarks[key] = (shapeMarks[key] || 0) + 1
-          });
+          }
         }
 
         g.lineStyle(0, 0x000000);
@@ -1094,9 +1094,10 @@ window['ExperimentAssembly'] = class {
         if(!this.drawLocalizationError) return;
 
         let correctlyLocalizedCount = 0;
-        forEachObj(bodies, b => {
+        for(let i = 0; i < bodyIDs.length; i++) {
+          let b = bodies[bodyIDs[i]];
           let shapePos = b.robot.shapePos;
-          if(shapePos.x == NO_POS || shapePos.y == NO_POS) return;
+          if(shapePos.x == NO_POS || shapePos.y == NO_POS) continue;
 
           let pos = b.position;
           if(!b.position && b.getData) {
@@ -1153,8 +1154,7 @@ window['ExperimentAssembly'] = class {
               };
             }
           }
-
-        })
+        }
         setDisplayedData('Well localized', `${correctlyLocalizedCount}/${Object.keys(bodies).length} robots`);
       });
     }
@@ -1167,9 +1167,10 @@ window['ExperimentAssembly'] = class {
       pixiApp.ticker.add(() => {
         g.clear();
 
-        forEachObj(bodies, b => {
+        for(let i = 0; i < bodyIDs.length; i++) {
+          let b = bodies[bodyIDs[i]];
           if(b.robot.state != States.MoveWhileOutside && b.robot.state != States.MoveWhileInside)
-            return;
+            continue;
 
           let pos = b.position;
           if(!b.position && b.getData) {
@@ -1182,7 +1183,7 @@ window['ExperimentAssembly'] = class {
             pos.y * this.V.ZOOM,
             this.NEIGHBOUR_DISTANCE * this.V.ZOOM,
           );
-        });
+        }
 
       });
     }
