@@ -71,9 +71,12 @@ class GradientAndAssemblyRobot extends Kilobot {
       this.neighbors_grad = new Int32Array(MAX_NEIGHBOURS);
       this.neighbors_state = new Array(); // string, TODO: change to int
       this.neighbors_seen_at = new Int32Array(MAX_NEIGHBOURS);
-      this.neighbors_dist = new Int32Array(MAX_NEIGHBOURS);
+
+      // floats:
+      this.neighbors_dist = new Float64Array(MAX_NEIGHBOURS);
       this.neighbors_pos_x = new Float64Array(MAX_NEIGHBOURS);
       this.neighbors_pos_y = new Float64Array(MAX_NEIGHBOURS);
+
       this.neighbors_is_seed = new Int32Array(MAX_NEIGHBOURS);
       this.neighbors_is_stationary = new Int32Array(MAX_NEIGHBOURS);
       this.neighbors_robotsIveEdgeFollowed = new Array();
@@ -217,10 +220,8 @@ class GradientAndAssemblyRobot extends Kilobot {
 
   getFirstRobustQuadrilateral() {
     let indexes = this.neighbors_id.map((id, i) => i).filter(i => {
-      if(this.neighbors_id[i] == VACANT)
-        return false;
-      if(this.counter > this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY)
-        return false;
+      if(this.neighbors_id[i] == VACANT) return false;
+      if(this.counter > this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) return false;
 
       if(this.neighbors_is_seed[i])
         return true;
@@ -352,8 +353,8 @@ class GradientAndAssemblyRobot extends Kilobot {
     // this.getNeighborsUIDs()./*map(nuid => this.neighbors[nuid]).*/forEach(nuid => {
 
     for(let i = 0; i < MAX_NEIGHBOURS; i++) {
-      if(this.neighbors_id[i] == VACANT || this.counter > this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY)
-        continue
+      if(this.neighbors_id[i] == VACANT) continue;
+      if(this.counter > this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
 
       if(this.neighbors_dist[i] > this.gradientDist)
         continue;
@@ -658,10 +659,10 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.counter++;
 
     {
-      // if(this.kilo_uid % 2 == 0)
-      //   this.set_motors(this.kilo_straight_left, 0);
-      // else
-      //   this.set_motors(0, this.kilo_straight_right);
+      if(this.kilo_uid % 2 == 0)
+        this.set_motors(this.kilo_straight_left, 0);
+      else
+        this.set_motors(0, this.kilo_straight_right);
       this.gradientFormation();
       this.localize();
       return;
@@ -1111,12 +1112,17 @@ window['ExperimentAssembly'] = class {
           isSeed: b.robot.isSeed,
           hesitateData: b.robot.hesitateData,
           shapePos: b.robot.shapePos,
-          neighbors_id: b.robot.neighbors_id,
-          neighbors_grad: b.robot.neighbors_grad,
-          neighbors_seen_at: b.robot.neighbors_seen_at,
-          neighbors_is_stationary: b.robot.neighbors_is_stationary,
+          neighbors: Array.from(b.robot.neighbors_id).map((id, i) => {
+            return {
+              id: b.robot.neighbors_id[i],
+              grad: b.robot.neighbors_grad[i],
+              seen_at: b.robot.neighbors_seen_at[i],
+              is_stationary: b.robot.neighbors_is_stationary[i],
+              dist: b.robot.neighbors_dist[i],
+            }
+          }).sort((a, b) => a.id - b.id).filter(x => x.id != VACANT),
           // neighbors: b.robot.neighbors,
-          // closestRobustNeighbors: b.robot.getFirstRobustQuadrilateral && b.robot.getFirstRobustQuadrilateral(),
+          closestRobustNeighbors: b.robot.getFirstRobustQuadrilateralIds && b.robot.getFirstRobustQuadrilateralIds(),
           // closestRobustNeighborsCandidates: b.robot.closestRobustNeighborsCandidates,
           isStationary: b.robot.isStationary,
           robot: b.robot,
