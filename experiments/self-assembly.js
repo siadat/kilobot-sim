@@ -1,4 +1,4 @@
-const MAX_NEIGHBOURS = 100;
+const MAX_NEIGHBOURS = 60;
 const VACANT = -1;
 
 const NO_GRAD = 10000;
@@ -9,7 +9,8 @@ const NOT_STATIONARY = 0;
 
 const calculateDistancePerf = function(x1, x2, y1, y2) {
   return Math.sqrt(
-    Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)
+    (x1 - x2) ** 2 + (y1 - y2) ** 2
+    // Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)
   );
 }
 
@@ -18,23 +19,49 @@ const calculateDistance = function(pos1, pos2) {
     Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
   );
 }
+
+let triangle_p_x = new Float64Array(4);
+let triangle_p_y = new Float64Array(4);
+let triangle_x = new Float64Array(3);
+let triangle_y = new Float64Array(3);
+
+let triangle_e = new Float64Array(3);
+let triangle_a = new Float64Array(3);
+let triangle_e2 = new Float64Array(3);
+
+/*
+let ACOS_RESOLUTION = 10000;
+let acosArray = new Float64Array(ACOS_RESOLUTION );
+// let acosArray = {}; // new Float64Array(100);
+
+for(let i = 0; i < ACOS_RESOLUTION; i++) {
+  let v = 2.0 * i/ACOS_RESOLUTION - 1.0;
+  let angle = Math.acos(v);
+  acosArray[i] = angle;
+}
+
+function arccos(x) {
+  let v = ACOS_RESOLUTION*(x*0.5 + 0.5);
+  return Math.floor(v);
+}
+  */
+
 const isTriangleRobust = (points_x, points_y) => {
-  let e = new Float64Array(3);
-  let a = new Float64Array(3);
+  triangle_e2[0] = (points_x[1] - points_x[2])**2 + (points_y[1] - points_y[2])**2;
+  triangle_e2[1] = (points_x[0] - points_x[2])**2 + (points_y[0] - points_y[2])**2;
+  triangle_e2[2] = (points_x[0] - points_x[1])**2 + (points_y[0] - points_y[1])**2;
 
-
-  e[0] = calculateDistancePerf(points_x[1], points_x[2], points_y[1], points_y[2]);
-  e[1] = calculateDistancePerf(points_x[0], points_x[2], points_y[0], points_y[2]);
-  e[2] = calculateDistancePerf(points_x[0], points_x[1], points_y[0], points_y[1]);
-
+  triangle_e[0] = Math.sqrt(triangle_e2[0]);
+  triangle_e[1] = Math.sqrt(triangle_e2[1]);
+  triangle_e[2] = Math.sqrt(triangle_e2[2]);
 
   const pow2 = x => x*x;
-  a[0] = Math.acos((pow2(e[1]) + pow2(e[2]) - pow2(e[0])) / (2 * e[1] * e[2]));
-  a[1] = Math.acos((pow2(e[0]) + pow2(e[2]) - pow2(e[1])) / (2 * e[0] * e[2]));
-  a[2] = Math.acos((pow2(e[1]) + pow2(e[0]) - pow2(e[2])) / (2 * e[1] * e[0]));
+  triangle_a[0] = Math.acos((triangle_e2[1] + triangle_e2[2] - triangle_e2[0]) / (2 * triangle_e[1] * triangle_e[2]));
+  triangle_a[1] = Math.acos((triangle_e2[0] + triangle_e2[2] - triangle_e2[1]) / (2 * triangle_e[0] * triangle_e[2]));
+  triangle_a[2] = Math.acos((triangle_e2[1] + triangle_e2[0] - triangle_e2[2]) / (2 * triangle_e[1] * triangle_e[0]));
 
-  let minAngle = Math.min(a[0], a[1], a[2]);
-  let minEdge  = Math.min(e[0], e[1], e[2]);
+  let minAngle = Math.min(triangle_a[0], triangle_a[1], triangle_a[2]);
+  let minEdge  = Math.min(triangle_e[0], triangle_e[1], triangle_e[2]);
 
   if(isNaN(minAngle)) return false;
   return minAngle > Math.PI * 15 / 180;
@@ -186,13 +213,13 @@ class GradientAndAssemblyRobot extends Kilobot {
       indexes.push(i);
     }
 
-    indexes.sort((i1, i2) => {
-      return +(
-        this.neighbors_dist[i1] * (this.neighbors_is_seed[i1] ? 0.001 : 1)
-        -
-        this.neighbors_dist[i2] * (this.neighbors_is_seed[i2] ? 0.001 : 1)
-      );
-    })
+    // indexes.sort((i1, i2) => {
+    //   return +(
+    //     this.neighbors_dist[i1] * (this.neighbors_is_seed[i1] ? 0.001 : 1)
+    //     -
+    //     this.neighbors_dist[i2] * (this.neighbors_is_seed[i2] ? 0.001 : 1)
+    //   );
+    // })
 
     this.closestRobustNeighborsCandidates = indexes;
 
@@ -201,34 +228,31 @@ class GradientAndAssemblyRobot extends Kilobot {
       return null;
     }
 
-    let p_x = new Float64Array(4);
-    let p_y = new Float64Array(4);
+    let trianlge_idx = 0;
+    let robustTriangles = 0;
 
     for(let i = 0; i < ncount; i++) {
-      p_x[0] = this.neighbors_pos_x[indexes[i]];
-      p_y[0] = this.neighbors_pos_y[indexes[i]];
+      triangle_p_x[0] = this.neighbors_pos_x[indexes[i]];
+      triangle_p_y[0] = this.neighbors_pos_y[indexes[i]];
       for(let j = i+1; j < ncount; j++) {
-        p_x[1] = this.neighbors_pos_x[indexes[j]];
-        p_y[1] = this.neighbors_pos_y[indexes[j]];
+        triangle_p_x[1] = this.neighbors_pos_x[indexes[j]];
+        triangle_p_y[1] = this.neighbors_pos_y[indexes[j]];
         for(let k = j+1; k < ncount; k++) {
-          p_x[2] = this.neighbors_pos_x[indexes[k]];
-          p_y[2] = this.neighbors_pos_y[indexes[k]];
+          triangle_p_x[2] = this.neighbors_pos_x[indexes[k]];
+          triangle_p_y[2] = this.neighbors_pos_y[indexes[k]];
           for(let l = k+1; l < ncount; l++) {
-            p_x[3] = this.neighbors_pos_x[indexes[l]];
-            p_y[3] = this.neighbors_pos_y[indexes[l]];
+            triangle_p_x[3] = this.neighbors_pos_x[indexes[l]];
+            triangle_p_y[3] = this.neighbors_pos_y[indexes[l]];
 
-            let robustTriangles = 0;
-            for(let skippedIdx = 0; skippedIdx < p_x.length; skippedIdx++) {
+            robustTriangles = 0;
+            for(let skippedIdx = 0; skippedIdx < triangle_p_x.length; skippedIdx++) {
 
-              let triangle_x = new Float64Array(3);
-              let triangle_y = new Float64Array(3);
-              let idx = 0;
-
-              for(let includedIdx = 0; includedIdx < p_x.length; includedIdx++) {
+              trianlge_idx = 0;
+              for(let includedIdx = 0; includedIdx < triangle_p_x.length; includedIdx++) {
                 if(includedIdx != skippedIdx) {
-                  triangle_x[idx] = p_x[includedIdx];
-                  triangle_y[idx] = p_y[includedIdx];
-                  idx++;
+                  triangle_x[trianlge_idx] = triangle_p_x[includedIdx];
+                  triangle_y[trianlge_idx] = triangle_p_y[includedIdx];
+                  trianlge_idx++;
                 }
               }
               if(isTriangleRobust(triangle_x, triangle_y)) {
@@ -700,7 +724,7 @@ window['ExperimentAssembly'] = class {
     this.COUNT = 4 + 128;
 
     this.runnerOptions = {
-      limitSpeed: !true,
+      limitSpeed: true,
       traversedPath: false,
     }
   }
@@ -1135,7 +1159,7 @@ window['ExperimentAssembly'] = class {
       });
     }
 
-    if(!false){ // neighbor area
+    if(false){ // neighbor area
       let g = new PIXI.Graphics()
       g.zIndex = zIndexOf('NeighborRegion');
       g.alpha = 1;
