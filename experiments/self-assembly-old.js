@@ -21,7 +21,7 @@ const isTriangleRobustOld = (points) => {
   let minEdge  = Math.min(e[0], e[1], e[2]);
 
   if(isNaN(minAngle)) return false;
-  return minAngle > Math.PI * 20 / 180;
+  return minAngle > Math.PI * 15 / 180;
 }
 
 const StatesOld = {
@@ -458,15 +458,17 @@ class GradientAndAssemblyRobotOld extends Kilobot {
   loop() {
     this._neighborsUIDs = null;
     this.counter++;
+    /*
     {
-      if(this.kilo_uid % 2 == 0)
-        this.set_motors(this.kilo_straight_left, 0);
-      else
-        this.set_motors(0, this.kilo_straight_right);
+      // if(this.kilo_uid % 2 == 0)
+      //   this.set_motors(this.kilo_straight_left, 0);
+      // else
+      //   this.set_motors(0, this.kilo_straight_right);
       this.gradientFormation();
       // this.localize();
       return;
     }
+    */
 
     switch(this.state) {
 
@@ -630,7 +632,7 @@ window['ExperimentAssemblyOld'] = class {
   constructor() {
     this.selectedUID = null;
     this.drawLocalizationError = true;
-    this.COUNT = 4 + 256;
+    this.COUNT = 4 + 128;
 
     this.runnerOptions = {
       limitSpeed: !true,

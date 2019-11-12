@@ -7,18 +7,25 @@ const NO_POS = 100000;
 const STATIONARY = 1;
 const NOT_STATIONARY = 0;
 
+const calculateDistancePerf = function(x1, x2, y1, y2) {
+  return Math.sqrt(
+    Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)
+  );
+}
+
 const calculateDistance = function(pos1, pos2) {
   return Math.sqrt(
     Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
   );
 }
-const isTriangleRobust = (points) => {
-  let e = [null, null, null];
-  let a = [null, null, null];
+const isTriangleRobust = (points_x, points_y) => {
+  let e = new Float64Array(3);
+  let a = new Float64Array(3);
 
-  e[0] = calculateDistance(points[1], points[2]);
-  e[1] = calculateDistance(points[0], points[2]);
-  e[2] = calculateDistance(points[0], points[1]);
+
+  e[0] = calculateDistancePerf(points_x[1], points_x[2], points_y[1], points_y[2]);
+  e[1] = calculateDistancePerf(points_x[0], points_x[2], points_y[0], points_y[2]);
+  e[2] = calculateDistancePerf(points_x[0], points_x[1], points_y[0], points_y[1]);
 
 
   const pow2 = x => x*x;
@@ -30,7 +37,7 @@ const isTriangleRobust = (points) => {
   let minEdge  = Math.min(e[0], e[1], e[2]);
 
   if(isNaN(minAngle)) return false;
-  return minAngle > Math.PI * 20 / 180;
+  return minAngle > Math.PI * 15 / 180;
 }
 
 const States = {
@@ -147,42 +154,46 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.set_color(this.COLORS[g % this.COLORS.length]);
   }
 
-
-
   getFirstRobustQuadrilateralIndexes() {
-    let indexes = this.neighbors_id.map((id, i) => i).filter(i => {
-      if(this.neighbors_id[i] == VACANT) return false;
-      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) return false;
+    let indexes = [];
+    for(let i = 0; i < MAX_NEIGHBOURS; i++) {
+      if(this.neighbors_id[i] == VACANT) continue;
+      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
 
-      if(this.neighbors_is_seed[i])
-        return true;
+      if(this.neighbors_is_seed[i]) {
+        indexes.push(i);
+        continue;
+      }
 
       if(this.neighbors_pos_x[i] == NO_POS)
-        return false;
+        continue;
 
       if(this.neighbors_pos_y[i] == NO_POS)
-        return false;
+        continue;
 
       if(this.neighbors_is_stationary[i] != STATIONARY)
-        return false;
+        continue;
 
       if(this.neighbors_grad[i] == NO_GRAD)
-        return false;
+        continue;
 
       if(this.myGradient == NO_GRAD)
-        return false;
+        continue;
 
       if(this.neighbors_grad[i] >= this.myGradient)
-        return false;
+        continue;
 
-      return true;
-    }).sort((i1, i2) => {
+      indexes.push(i);
+    }
+
+    indexes.sort((i1, i2) => {
       return +(
         this.neighbors_dist[i1] * (this.neighbors_is_seed[i1] ? 0.001 : 1)
         -
         this.neighbors_dist[i2] * (this.neighbors_is_seed[i2] ? 0.001 : 1)
       );
-    });
+    })
+
     this.closestRobustNeighborsCandidates = indexes;
 
     let ncount = indexes.length;
@@ -190,43 +201,37 @@ class GradientAndAssemblyRobot extends Kilobot {
       return null;
     }
 
-    let p = [
-      null, // this.shapePos || {x: 0, y: 0},
-      null,
-      null,
-      null,
-    ];
+    let p_x = new Float64Array(4);
+    let p_y = new Float64Array(4);
 
     for(let i = 0; i < ncount; i++) {
-      p[0] = {
-        x: this.neighbors_pos_x[indexes[i]],
-        y: this.neighbors_pos_y[indexes[i]],
-      };
+      p_x[0] = this.neighbors_pos_x[indexes[i]];
+      p_y[0] = this.neighbors_pos_y[indexes[i]];
       for(let j = i+1; j < ncount; j++) {
-        p[1] = {
-          x: this.neighbors_pos_x[indexes[j]],
-          y: this.neighbors_pos_y[indexes[j]],
-        };
+        p_x[1] = this.neighbors_pos_x[indexes[j]];
+        p_y[1] = this.neighbors_pos_y[indexes[j]];
         for(let k = j+1; k < ncount; k++) {
-          p[2] = {
-            x: this.neighbors_pos_x[indexes[k]],
-            y: this.neighbors_pos_y[indexes[k]],
-          };
+          p_x[2] = this.neighbors_pos_x[indexes[k]];
+          p_y[2] = this.neighbors_pos_y[indexes[k]];
           for(let l = k+1; l < ncount; l++) {
-            p[3] = {
-              x: this.neighbors_pos_x[indexes[l]],
-              y: this.neighbors_pos_y[indexes[l]],
-            };
+            p_x[3] = this.neighbors_pos_x[indexes[l]];
+            p_y[3] = this.neighbors_pos_y[indexes[l]];
 
             let robustTriangles = 0;
-            for(let skippedIdx = 0; skippedIdx < p.length; skippedIdx++) {
-              let triangle = [];
-              for(let includedIdx = 0; includedIdx < p.length; includedIdx++) {
+            for(let skippedIdx = 0; skippedIdx < p_x.length; skippedIdx++) {
+
+              let triangle_x = new Float64Array(3);
+              let triangle_y = new Float64Array(3);
+              let idx = 0;
+
+              for(let includedIdx = 0; includedIdx < p_x.length; includedIdx++) {
                 if(includedIdx != skippedIdx) {
-                  triangle.push(p[includedIdx]);
+                  triangle_x[idx] = p_x[includedIdx];
+                  triangle_y[idx] = p_y[includedIdx];
+                  idx++;
                 }
               }
-              if(isTriangleRobust(triangle)) {
+              if(isTriangleRobust(triangle_x, triangle_y)) {
                 robustTriangles++;
               } else {
                 break;
@@ -369,7 +374,8 @@ class GradientAndAssemblyRobot extends Kilobot {
       return;
     }
 
-    closestNeighborIndexes.forEach(i => {
+    for(let j = 0; j < closestNeighborIndexes.length; j++) {
+      let i = closestNeighborIndexes[j];
       let nx = this.neighbors_pos_x[i];
       let ny = this.neighbors_pos_y[i];
 
@@ -392,7 +398,7 @@ class GradientAndAssemblyRobot extends Kilobot {
         x: this.shapePos.x + (n.x - this.shapePos.x)/4,
         y: this.shapePos.y + (n.y - this.shapePos.y)/4,
       };
-    });
+    }
   }
 
   seenRecentMovingNeighborsIndex() {
@@ -453,8 +459,8 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.prevNearestNeighDist = this.neighbors_dist[nnIndex];
 
     if(noNewData) {
-      if(this.stats.motors) {
-        this.set_motors(this.stats.motors[0], this.stats.motors[1]);
+      if(this.stats.motors_left != null) {
+        this.set_motors(this.stats.motors_left, this.stats.motors_right);
       }
       return;
     }
@@ -462,21 +468,25 @@ class GradientAndAssemblyRobot extends Kilobot {
     if(tooClose) {
       if(gettingFarther) {
         this.stats.action = 'stright';
-        this.stats.motors = [this.kilo_straight_left, this.kilo_straight_right];
+        this.stats.motors_left = this.kilo_straight_left;
+        this.stats.motors_right = this.kilo_straight_right;
         this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
       } else {
         this.stats.action = 'left-get-farther';
-        this.stats.motors = [this.kilo_turn_left, 0];
+        this.stats.motors_left = this.kilo_straight_left;
+        this.stats.motors_right = 0;
         this.set_motors(this.kilo_turn_left, 0);
       }
     } else {
       if(gettingFarther) {
         this.stats.action = 'right-get-close';
-        this.stats.motors = [0, this.kilo_turn_right];
+        this.stats.motors_left = 0;
+        this.stats.motors_right = this.kilo_straight_right;
         this.set_motors(0, this.kilo_turn_right);
       } else {
         this.stats.action = 'stright';
-        this.stats.motors = [this.kilo_straight_left, this.kilo_straight_right];
+        this.stats.motors_left = this.kilo_straight_left;
+        this.stats.motors_right = this.kilo_straight_right;
         this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
       }
     }
@@ -498,15 +508,17 @@ class GradientAndAssemblyRobot extends Kilobot {
   loop() {
     this.counter++;
 
+    /*
     {
       if(this.kilo_uid % 2 == 0)
         this.set_motors(this.kilo_straight_left, 0);
       else
         this.set_motors(0, this.kilo_straight_right);
       this.gradientFormation();
-      // this.localize();
+      this.localize();
       return;
     }
+    */
 
     switch(this.state) {
 
@@ -685,7 +697,7 @@ window['ExperimentAssembly'] = class {
   constructor() {
     this.selectedUID = null;
     this.drawLocalizationError = true;
-    this.COUNT = 4 + 256;
+    this.COUNT = 4 + 128;
 
     this.runnerOptions = {
       limitSpeed: !true,
@@ -1076,7 +1088,7 @@ window['ExperimentAssembly'] = class {
             x: + (this.RootSeedPos.x + shapePos.x) * this.V.ZOOM,
             y: + (this.RootSeedPos.y + shapePos.y) * this.V.ZOOM,
           }
-          let dist = calculateDistance(posActual, posEstimated);
+          let dist = calculateDistancePerf(posActual.x, posEstimated.x, posActual.y, posEstimated.y);
           if(dist < this.RADIUS*this.V.ZOOM) correctlyLocalizedCount++;
 
           color = 0xff0000;
