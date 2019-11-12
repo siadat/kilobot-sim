@@ -20,6 +20,11 @@ const calculateDistance = function(pos1, pos2) {
   );
 }
 
+const round = function(x) {
+  // radius is 1, so a resolution of 0.1 is good enough
+  return Math.round(x * 10)/10.0;
+}
+
 let triangle_p_x = new Float64Array(4);
 let triangle_p_y = new Float64Array(4);
 let triangle_x = new Float64Array(3);
@@ -182,6 +187,10 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   getFirstRobustQuadrilateralIndexes() {
+    if(this._cached_robust_quad) {
+      return this.robust_quad;
+    }
+
     let indexes = [];
     for(let i = 0; i < MAX_NEIGHBOURS; i++) {
       if(this.neighbors_id[i] == VACANT) continue;
@@ -225,7 +234,9 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     let ncount = indexes.length;
     if(ncount < 4) {
-      return null;
+      this.robust_quad = null;
+      this._cached_robust_quad = true;
+      return this.robust_quad;
     }
 
     let trianlge_idx = 0;
@@ -263,19 +274,23 @@ class GradientAndAssemblyRobot extends Kilobot {
             }
 
             if(robustTriangles == 4) {
-              return [
+              this._cached_robust_quad = true;
+              this.robust_quad = [
                 indexes[i],
                 indexes[j],
                 indexes[k],
                 indexes[l],
-              ]
+              ];
+              return this.robust_quad;
             }
           }
         }
       }
     }
 
-    return null;
+    this._cached_robust_quad = true;
+    this.robust_quad = null;
+    return this.robust_quad;
   }
 
   getFirstRobustQuadrilateralIds() {
@@ -528,6 +543,7 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   loop() {
+    // this._cached_robust_quad = false;
     this.counter++;
 
     /*
@@ -667,10 +683,13 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   message_rx(message, distance) {
+
     let index = -1;
+    let existing = false;
     for(let i = 0; i < MAX_NEIGHBOURS; i++) {
       if(this.neighbors_id[i] == message.robotUID) {
         index = i;
+        existing = true;
         break;
       }
 
@@ -684,6 +703,16 @@ class GradientAndAssemblyRobot extends Kilobot {
     if(index == -1) {
       console.error("did not found a place to add neighbor info");
       return;
+    }
+
+    if(existing
+      && this.neighbors_grad[index] == message.grad
+      && round(this.neighbors_dist[index]) == round(distance)
+      && round(this.neighbors_pos_x[index]) == round(message.shapePos.x)
+      && round(this.neighbors_pos_y[index]) == round(message.shapePos.y)
+    ) {
+    } else {
+      this._cached_robust_quad = false;
     }
 
     this.neighbors_id[index] = message.robotUID;
@@ -719,7 +748,7 @@ window['ExperimentAssembly'] = class {
   constructor() {
     this.selectedUID = null;
     this.drawLocalizationError = true;
-    this.COUNT = 4 + 128;
+    this.COUNT = 4 + 512;
 
     this.runnerOptions = {
       limitSpeed: !true,
@@ -894,7 +923,7 @@ window['ExperimentAssembly'] = class {
         if(hexagrid[`${candidate.x}:${candidate.y}`] == TAKEN)
           return null;
 
-        if(!true) {
+        if(true) {
           if(candidate.y < 0) return null;
         } else {
           let seedAreaWidth = Math.floor(this.NEIGHBOUR_DISTANCE/INITIAL_DIST) * 2;
@@ -1158,7 +1187,7 @@ window['ExperimentAssembly'] = class {
       });
     }
 
-    if(false){ // neighbor area
+    if(!false){ // neighbor area
       let g = new PIXI.Graphics()
       g.zIndex = zIndexOf('NeighborRegion');
       g.alpha = 1;
