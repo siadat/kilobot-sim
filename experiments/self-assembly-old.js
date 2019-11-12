@@ -1,24 +1,15 @@
-const MAX_NEIGHBOURS = 100;
-const VACANT = -1;
-
-const NO_GRAD = 10000;
-const NO_POS = 100000;
-
-const STATIONARY = 1;
-const NOT_STATIONARY = 0;
-
-const calculateDistance = function(pos1, pos2) {
+const calculateDistanceOld = function(pos1, pos2) {
   return Math.sqrt(
     Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
   );
 }
-const isTriangleRobust = (points) => {
+const isTriangleRobustOld = (points) => {
   let e = [null, null, null];
   let a = [null, null, null];
 
-  e[0] = calculateDistance(points[1], points[2]);
-  e[1] = calculateDistance(points[0], points[2]);
-  e[2] = calculateDistance(points[0], points[1]);
+  e[0] = calculateDistanceOld(points[1], points[2]);
+  e[1] = calculateDistanceOld(points[0], points[2]);
+  e[2] = calculateDistanceOld(points[0], points[1]);
 
 
   const pow2 = x => x*x;
@@ -33,7 +24,7 @@ const isTriangleRobust = (points) => {
   return minAngle > Math.PI * 20 / 180;
 }
 
-const States = {
+const StatesOld = {
   Start                  : 'Start',
   WaitToMove             : 'WaitToMove',
   MoveWhileOutside       : 'MoveWhileOutside',
@@ -42,7 +33,7 @@ const States = {
   JoinedShape            : 'JoinedShape',
 }
 
-class GradientAndAssemblyRobot extends Kilobot {
+class GradientAndAssemblyRobotOld extends Kilobot {
   constructor(opts) {
     super();
     this.gradientDist = opts.gradientDist;
@@ -56,8 +47,8 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.isSeed = opts.isSeed;
     this.isGradientSeed = opts.isGradientSeed;
     this.shapePos = opts.shapePos;
-
-    this.isStationary = STATIONARY;
+    this.neighbors = {};
+    this.isStationary = true;
     this.prevNearestNeighDist = Infinity;
     this.stats = {};
     this.events = [];
@@ -68,35 +59,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.robotsIveEdgeFollowed = {};
     // this.lastRobotIveEdgeFollowed = null;
 
-    {
-      // ints:
-      this.neighbors_id = new Int32Array(MAX_NEIGHBOURS);
-      this.neighbors_grad = new Int32Array(MAX_NEIGHBOURS);
-      this.neighbors_seen_at = new Int32Array(MAX_NEIGHBOURS);
-
-      // floats:
-      this.neighbors_dist = new Float64Array(MAX_NEIGHBOURS);
-      this.neighbors_pos_x = new Float64Array(MAX_NEIGHBOURS);
-      this.neighbors_pos_y = new Float64Array(MAX_NEIGHBOURS);
-
-      // boolean:
-      this.neighbors_is_seed = new Int32Array(MAX_NEIGHBOURS);
-      this.neighbors_is_stationary = new Int32Array(MAX_NEIGHBOURS);
-
-      // other:
-      this.neighbors_state = new Array(); // string, TODO: change to int
-      this.neighbors_robotsIveEdgeFollowed = new Array();
-
-      for(let i = 0; i < MAX_NEIGHBOURS; i++) {
-        this.neighbors_id[i] = VACANT;
-        this.neighbors_grad[i] = NO_GRAD;
-        this.neighbors_pos_x[i] = NO_POS;
-        this.neighbors_pos_y[i] = NO_POS;
-        this.neighbors_is_stationary[i] = STATIONARY;
-      }
-    }
-
-    this.switchToState(States.Start);
+    this.switchToState(StatesOld.Start);
 
     this.COLORS = [
       this.RGB(3, 0, 0), // red
@@ -107,19 +70,19 @@ class GradientAndAssemblyRobot extends Kilobot {
       this.RGB(3, 3, 0), // yellow
     ];
 
-    // this.COLORS_INTENSE = [
-    //   this.RGB(3, 0, 0), // red
-    //   this.RGB(3, 0, 3), // magenta
-    //   this.RGB(0, 0, 3), // blue
-    //   this.RGB(0, 3, 3), // cyan
-    //   this.RGB(0, 3, 0), // green
-    //   this.RGB(3, 3, 0), // yellow
-    // ];
+    this.COLORS_INTENSE = [
+      this.RGB(1, 0, 0), // red
+      this.RGB(1, 0, 1), // magenta
+      this.RGB(0, 0, 1), // blue
+      this.RGB(0, 1, 1), // cyan
+      this.RGB(0, 1, 0), // green
+      this.RGB(1, 1, 0), // yellow
+    ];
 
   }
 
   setup() {
-    this.myGradient = NO_GRAD;
+    this.myGradient = null;
     this.hesitateData = {};
     this.counter = 0;
     // this.posHistory = [];
@@ -141,51 +104,35 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   set_colors_for_gradient(g) {
-    if(g == NO_GRAD) {
+    if(g == null) {
       return;
     }
-    this.set_color(this.COLORS[g % this.COLORS.length]);
+    this.set_color(this.COLORS_INTENSE[g % this.COLORS_INTENSE.length]);
   }
 
 
 
-  getFirstRobustQuadrilateralIndexes() {
-    let indexes = this.neighbors_id.map((id, i) => i).filter(i => {
-      if(this.neighbors_id[i] == VACANT) return false;
-      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) return false;
-
-      if(this.neighbors_is_seed[i])
-        return true;
-
-      if(this.neighbors_pos_x[i] == NO_POS)
-        return false;
-
-      if(this.neighbors_pos_y[i] == NO_POS)
-        return false;
-
-      if(this.neighbors_is_stationary[i] != STATIONARY)
-        return false;
-
-      if(this.neighbors_grad[i] == NO_GRAD)
-        return false;
-
-      if(this.myGradient == NO_GRAD)
-        return false;
-
-      if(this.neighbors_grad[i] >= this.myGradient)
-        return false;
-
-      return true;
-    }).sort((i1, i2) => {
+  getFirstRobustQuadrilateral() {
+    let nIDs = this.getNeighborsUIDs().filter(nid => {
+      let n = this.neighbors[nid];
+      return n.isSeed || (
+           n.shapePos != null
+        && n.isStationary
+        && n.neighborGradient != null
+        && n.neighborGradient < this.myGradient
+      );
+    }).sort((nid1, nid2) => {
       return +(
-        this.neighbors_dist[i1] * (this.neighbors_is_seed[i1] ? 0.001 : 1)
+        this.neighbors[nid1].measuredDist * (this.neighbors[nid1].isSeed ? 0.001 : 1)
         -
-        this.neighbors_dist[i2] * (this.neighbors_is_seed[i2] ? 0.001 : 1)
+        this.neighbors[nid2].measuredDist * (this.neighbors[nid2].isSeed ? 0.001 : 1)
       );
     });
-    this.closestRobustNeighborsCandidates = indexes;
+    this.closestRobustNeighborsCandidates = nIDs.map(nid => this.neighbors[nid])
 
-    let ncount = indexes.length;
+    // this.currentFarthestLocalizingNeighborUID = nIDs[nIDs.length-1];
+
+    let ncount = nIDs.length;
     if(ncount < 4) {
       return null;
     }
@@ -198,25 +145,13 @@ class GradientAndAssemblyRobot extends Kilobot {
     ];
 
     for(let i = 0; i < ncount; i++) {
-      p[0] = {
-        x: this.neighbors_pos_x[indexes[i]],
-        y: this.neighbors_pos_y[indexes[i]],
-      };
+      p[0] = this.neighbors[nIDs[i]].shapePos;
       for(let j = i+1; j < ncount; j++) {
-        p[1] = {
-          x: this.neighbors_pos_x[indexes[j]],
-          y: this.neighbors_pos_y[indexes[j]],
-        };
+        p[1] = this.neighbors[nIDs[j]].shapePos;
         for(let k = j+1; k < ncount; k++) {
-          p[2] = {
-            x: this.neighbors_pos_x[indexes[k]],
-            y: this.neighbors_pos_y[indexes[k]],
-          };
+          p[2] = this.neighbors[nIDs[k]].shapePos;
           for(let l = k+1; l < ncount; l++) {
-            p[3] = {
-              x: this.neighbors_pos_x[indexes[l]],
-              y: this.neighbors_pos_y[indexes[l]],
-            };
+            p[3] = this.neighbors[nIDs[l]].shapePos;
 
             let robustTriangles = 0;
             for(let skippedIdx = 0; skippedIdx < p.length; skippedIdx++) {
@@ -226,7 +161,7 @@ class GradientAndAssemblyRobot extends Kilobot {
                   triangle.push(p[includedIdx]);
                 }
               }
-              if(isTriangleRobust(triangle)) {
+              if(isTriangleRobustOld(triangle)) {
                 robustTriangles++;
               } else {
                 break;
@@ -235,10 +170,10 @@ class GradientAndAssemblyRobot extends Kilobot {
 
             if(robustTriangles == 4) {
               return [
-                indexes[i],
-                indexes[j],
-                indexes[k],
-                indexes[l],
+                nIDs[i],
+                nIDs[j],
+                nIDs[k],
+                nIDs[l],
               ]
             }
           }
@@ -249,19 +184,29 @@ class GradientAndAssemblyRobot extends Kilobot {
     return null;
   }
 
-  getFirstRobustQuadrilateralIds() {
-    let indexes = this.getFirstRobustQuadrilateralIndexes();
-    if(!indexes) return indexes;
+  getNeighborsUIDs() {
+    if(this._neighborsUIDs != null) {
+      return this._neighborsUIDs;
+    }
+    let nIDs = Object.keys(this.neighbors);
+    this._neighborsUIDs = nIDs.filter(nuid => this.counter - this.neighbors[nuid].seenAt < this.NEIGHBOUR_EXPIRY);
+    // {
+    //   for(let i = 0; i < nIDs.length; i++) {
+    //     let nuid = nIDs[i];
+    //     if(this.counter - this.neighbors[nuid].seenAt > this.NEIGHBOUR_EXPIRY) {
+    //       delete(this.neighbors[nuid]);
+    //     }
+    //   }
+    //   this._neighborsUIDs = Object.keys(this.neighbors);
+    // }
 
-    return indexes.map(i => this.neighbors_id[i]);
+    return this._neighborsUIDs;
   }
 
-
-
   gradientFormation() {
-    if(this.myGradient == NO_GRAD) {
+    if(this.myGradient == null) {
       this.hesitate("movement");
-      this.isStationary = STATIONARY;
+      this.isStationary = true;
       this.unmark();
     }
 
@@ -272,89 +217,104 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     let grad = Infinity;
 
-    for(let i = 0; i < MAX_NEIGHBOURS; i++) {
-      if(this.neighbors_id[i] == VACANT) continue;
-      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
+    this.getNeighborsUIDs().forEach(nuid => {
+      let neigh = this.neighbors[nuid];
+      if(neigh.measuredDist > this.gradientDist)
+        return;
 
-      if(this.neighbors_dist[i] > this.gradientDist)
-        continue;
+      if(neigh.message.grad == null)
+        return;
 
-      if(this.neighbors_grad[i] == NO_GRAD)
-        continue;
+      if(!neigh.isStationary)
+        return;
 
-      if(this.neighbors_is_stationary[i] != STATIONARY)
-        continue;
-
-      if(this.neighbors_grad[i] < grad)
-        grad = this.neighbors_grad[i]; 
-    }
+      if(neigh.message.grad < grad)
+        grad = neigh.message.grad;
+    });
 
     if(grad < Infinity)
       this.setGradient(grad + 1);
   }
 
-  getNearestNeighborIndex() {
-    let nnIndex = null;
-    for(let i = 0; i < MAX_NEIGHBOURS; i++) {
-      if(this.neighbors_id[i] == VACANT) continue;
-      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
+  getNearestNeighbor() {
+    let ret = null;
 
-      // TODO: UNCOMMEN THIS to test limiting to stationary neighbors (this is used by doEdgeFollow)
-      // if(this.neighbors_is_stationary[i] != STATIONARY) continue;
-
-      if(nnIndex == null) {
-        nnIndex = i;
-        continue;
+    this.getNeighborsUIDs().forEach(nuid => {
+      let n = this.neighbors[nuid];
+      if(ret == null) {
+        ret = n;
+        return;
       }
 
-      if(this.neighbors_dist[i] < this.neighbors_dist[nnIndex]) {
-        nnIndex = i
-        continue;
+      if(n.measuredDist < ret.measuredDist) {
+        ret = n
+        return;
       }
-    }
+    });
 
-    return nnIndex;
+    return ret;
   }
 
+  getHighestUIDInNeighbors() {
+    let ret = null;
 
-  getMostCompetitiveWaitingNeighborIndex() {
-    let bestIndex = null;
-    for(let i = 0; i < MAX_NEIGHBOURS; i++) {
-      if(this.neighbors_id[i] == VACANT) continue;
-      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
-
-      // TODO: why limit to this.gradientDist???
-      if(this.neighbors_dist[i] > this.gradientDist)
-        continue;
-
-      if(this.neighbors_grad[i] == NO_GRAD)
-        continue;
-
-      if(this.neighbors_state[i] != States.WaitToMove)
-        continue;
-
-      if(bestIndex == null) {
-        bestIndex = i;
-        continue;
+    this.getNeighborsUIDs().forEach(nuid => {
+      let n = this.neighbors[nuid];
+      if(ret == null) {
+        ret = n;
+        return;
       }
 
-      if(this.neighbors_grad[i] > this.neighbors_grad[bestIndex]) {
-        bestIndex = i;
-        continue;
+      if(n.neighborUID == null)
+        return;
+
+      if(n.neighborUID > ret.neighborUID) {
+        ret = n;
+        return;
       }
 
-      if(this.neighbors_grad[i] == this.neighbors_grad[bestIndex] && this.neighbors_id[i] > this.neighbors_id[bestIndex]) {
-        bestIndex = i;
-        continue;
-      }
-    }
+    });
 
-    return bestIndex;
+    return ret;
+  }
+
+  getMostCompetitiveWaitingNeighbor() {
+    let neigh = null;
+
+    this.getNeighborsUIDs().forEach(nuid => {
+      let n = this.neighbors[nuid];
+      if(n.measuredDist > this.gradientDist)
+        return;
+
+      if(n.neighborGradient == null)
+        return;
+
+      if(n.neighborState != StatesOld.WaitToMove)
+        return;
+
+      if(neigh == null) {
+        neigh = n;
+        return;
+      }
+
+      if(n.neighborGradient > neigh.neighborGradient) {
+        neigh = n;
+        return;
+      }
+
+      if(n.neighborGradient == neigh.neighborGradient && n.neighborUID > neigh.neighborUID) {
+        neigh = n;
+        return;
+      }
+
+    });
+
+    return neigh;
   }
 
   localize() {
     if(this.isSeed) return;
-    if(this.shapePos.x == NO_POS || this.shapePos.y == NO_POS) {
+    if(this.shapePos == null) {
       // not starting from 0,0
       // because 0,0 is always inside the shape!
       this.shapePos = {
@@ -363,30 +323,25 @@ class GradientAndAssemblyRobot extends Kilobot {
       };
     }
 
-    let closestNeighborIndexes = this.getFirstRobustQuadrilateralIndexes();
+    let closestNeighbourIDs = this.getFirstRobustQuadrilateral();
 
-    if(!closestNeighborIndexes || closestNeighborIndexes.length < 3) {
+    if(!closestNeighbourIDs || closestNeighbourIDs.length < 3) {
       return;
     }
 
-    closestNeighborIndexes.forEach(i => {
-      let nx = this.neighbors_pos_x[i];
-      let ny = this.neighbors_pos_y[i];
-
-      let c = calculateDistance(this.shapePos, {x: nx, y: ny});
-
+    closestNeighbourIDs.forEach(nuid => {
+      let neigh = this.neighbors[nuid];
+      let c = calculateDistanceOld(this.shapePos, neigh.shapePos);
       let v = {x: 0, y: 0};
       if(c != 0) {
         v = {
-          x: (this.shapePos.x - nx)/c,
-          y: (this.shapePos.y - ny)/c,
+          x: (this.shapePos.x - neigh.shapePos.x)/c,
+          y: (this.shapePos.y - neigh.shapePos.y)/c,
         };
       }
-
-      let nd = this.neighbors_dist[i];
       let n = {
-        x: nx + nd * v.x,
-        y: ny + nd * v.y,
+        x: neigh.shapePos.x + (neigh.measuredDist) * v.x,
+        y: neigh.shapePos.y + (neigh.measuredDist) * v.y,
       }
       this.shapePos = {
         x: this.shapePos.x + (n.x - this.shapePos.x)/4,
@@ -395,25 +350,30 @@ class GradientAndAssemblyRobot extends Kilobot {
     });
   }
 
-  seenRecentMovingNeighborsIndex() {
-    for(let i = 0; i < MAX_NEIGHBOURS; i++) {
-      if(this.neighbors_id[i] == VACANT) continue;
-      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
+  seenRecentMovingNeighbors() {
+    let movingNeighbor = null;
+    this.getNeighborsUIDs().forEach(nuid => {
+      let n = this.neighbors[nuid];
+      if(movingNeighbor) return;
 
-      if(this.neighbors_is_stationary[i] == STATIONARY) continue;
-      if(this.neighbors_dist[i] > this.NEARBY_MOVING_DISTANCE) continue;
+      if(n.isStationary) return;
+      if(n.measuredDist > this.NEARBY_MOVING_DISTANCE) return;
+      // if(n.neighborUID < this.kilo_uid) return;
 
-      if(this.neighbors_robotsIveEdgeFollowed[i][this.kilo_uid]) {
-        return i;
+      if(n.robotsIveEdgeFollowed[this.kilo_uid]) {
+        movingNeighbor = n;
+        return movingNeighbor;
       }
 
-      if(this.robotsIveEdgeFollowed[this.neighbors_id[i]]) {
-        continue;
+      if(this.robotsIveEdgeFollowed[nuid]) {
+        return;
       }
-      return i;
-    }
 
-    return null;
+
+      movingNeighbor = n;
+    });
+
+    return movingNeighbor;
   }
 
 
@@ -433,24 +393,24 @@ class GradientAndAssemblyRobot extends Kilobot {
       this.edgeFollowingStartedAt = this.counter;
     }
     // this.edgeFollowingAge++;
-    let nnIndex = this.getNearestNeighborIndex();
-    if(nnIndex == null) return;
+    let nn = this.getNearestNeighbor();
+    if(nn == null) return;
 
-    // let dist = this.robotsIveEdgeFollowed[this.neighbors_id[nnIndex]];
+    // let dist = this.robotsIveEdgeFollowed[nn.neighborUID];
     // if(!dist) {
-    //   this.robotsIveEdgeFollowed[this.neighbors_id[nnIndex]] = this.neighbors_dist[nnIndex];
+    //   this.robotsIveEdgeFollowed[nn.neighborUID] = nn.measuredDist;
     // }
 
-    this.robotsIveEdgeFollowed[this.neighbors_id[nnIndex]] = true;
-    // this.lastRobotIveEdgeFollowed = this.neighbors_dist[nnIndex];
+    this.robotsIveEdgeFollowed[nn.neighborUID] = true;
+    // this.lastRobotIveEdgeFollowed = nn.measuredDist;
 
-    // if(this.robotsIveEdgeFollowed[this.robotsIveEdgeFollowed.length - 1] != this.neighbors_id[nnIndex])
-    //   this.robotsIveEdgeFollowed.push(this.neighbors_id[nnIndex]);
+    // if(this.robotsIveEdgeFollowed[this.robotsIveEdgeFollowed.length - 1] != nn.neighborUID)
+    //   this.robotsIveEdgeFollowed.push(nn.neighborUID);
 
-    let tooClose = this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST;
-    let gettingFarther = this.prevNearestNeighDist < this.neighbors_dist[nnIndex];
-    let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
-    this.prevNearestNeighDist = this.neighbors_dist[nnIndex];
+    let tooClose = nn.measuredDist < this.DESIRED_SHAPE_DIST;
+    let gettingFarther = this.prevNearestNeighDist < nn.measuredDist;
+    let noNewData = this.prevNearestNeighDist == nn.measuredDist;
+    this.prevNearestNeighDist = nn.measuredDist;
 
     if(noNewData) {
       if(this.stats.motors) {
@@ -496,8 +456,8 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   loop() {
+    this._neighborsUIDs = null;
     this.counter++;
-
     {
       if(this.kilo_uid % 2 == 0)
         this.set_motors(this.kilo_straight_left, 0);
@@ -510,20 +470,20 @@ class GradientAndAssemblyRobot extends Kilobot {
 
     switch(this.state) {
 
-      case States.Start:
+      case StatesOld.Start:
         this.gradientFormation();
         this.localize();
 
         if(this.isSeed) {
-          this.switchToState(States.JoinedShape, "isSeed");
+          this.switchToState(StatesOld.JoinedShape, "isSeed");
           return;
         }
 
-        this.switchToState(States.WaitToMove);
+        this.switchToState(StatesOld.WaitToMove);
         break;
 
-      case States.WaitToMove:
-        this.isStationary = STATIONARY;
+      case StatesOld.WaitToMove:
+        this.isStationary = true;
         this.gradientFormation();
         this.localize();
         // break; // <
@@ -533,80 +493,80 @@ class GradientAndAssemblyRobot extends Kilobot {
         }
 
         //  if(this.seenRecentMovingOrPausedNeighbors())
-        if(this.seenRecentMovingNeighborsIndex() != null) {
-          // if(this.seenRecentMovingNeighborsIndex())
+        if(this.seenRecentMovingNeighbors()) {
+          // if(this.seenRecentMovingNeighbors())
           // this.edgeFollowingAge = this._uid;
           this.hesitate("movement");
-          this.isStationary = STATIONARY;
+          this.isStationary = true;
           this.unmark();
           return;
         }
 
         {
-          let hgnIndex = this.getMostCompetitiveWaitingNeighborIndex();
-          if(hgnIndex == null) {
-            this.switchToState(States.MoveWhileOutside, "no competing neighbors");
+          let hgn = this.getMostCompetitiveWaitingNeighbor();
+          if(hgn == null) {
+            this.switchToState(StatesOld.MoveWhileOutside, "no competing neighbors");
             break;
           }
 
-          if(this.myGradient > this.neighbors_grad[hgnIndex]) {
-            this.switchToState(States.MoveWhileOutside, `my grad > my neighbors, ie ${this.neighbors_id[hgnIndex]}`);
-          } else if(this.myGradient == this.neighbors_grad[hgnIndex]) {
-            if(this.kilo_uid > this.neighbors_id[hgnIndex]) {
-              this.switchToState(States.MoveWhileOutside, `equal grads, but my ID is larger than ${this.neighbors_id[hgnIndex]}`);
+          if(this.myGradient > hgn.neighborGradient) {
+            this.switchToState(StatesOld.MoveWhileOutside, "my grad > my neighbors");
+          } else if(this.myGradient == hgn.neighborGradient) {
+            if(this.kilo_uid > hgn.neighborUID) {
+              this.switchToState(StatesOld.MoveWhileOutside, "equal grads, but my ID is larger");
             }
           } else {
-            this.newEvent(`still waiting, because either ${this.neighbors_id[hgnIndex]} ruled!`);
+            this.newEvent(`still waiting, because either ${hgn.neighborUID} ruled!`);
           }
         }
         break;
-      case States.MoveWhileOutside:
+      case StatesOld.MoveWhileOutside:
         this.localize();
         this.gradientFormation();
 
         if(this.isInsideShape(this.shapePos)) {
-          // this.myGradient = NO_GRAD;
-          this.switchToState(States.MoveWhileInside, "inside shape");
+          // this.myGradient = null;
+          this.switchToState(StatesOld.MoveWhileInside, "inside shape");
         }
 
-        let movingNeighborIndex = this.seenRecentMovingNeighborsIndex();
-        if(movingNeighborIndex != null) {
-          this.switchToState(States.WaitToMove, `saw someone  else moving: ${this.neighbors_id[movingNeighborIndex]}`);
+        let movingNeighbor = this.seenRecentMovingNeighbors();
+        if(movingNeighbor) {
+          this.switchToState(StatesOld.WaitToMove, `saw someone  else moving: ${movingNeighbor.neighborUID}`);
           // this.edgeFollowingAge = this._uid;
           // this.hesitate("movement");
-          this.isStationary = STATIONARY;
+          this.isStationary = true;
           this.unmark();
           return;
         }
 
         this.mark();
-        this.isStationary = NOT_STATIONARY;
+        this.isStationary = false;
         this.doEdgeFollow();
         break;
-      case States.MoveWhileInside:
+      case StatesOld.MoveWhileInside:
         this.localize();
         this.gradientFormation();
         this.mark();
-        this.isStationary = NOT_STATIONARY;
+        this.isStationary = false;
         this.doEdgeFollow();
 
         if(!this.isInsideShape(this.shapePos)) {
-          this.switchToState(States.JoinedShape, "went out");
+          this.switchToState(StatesOld.JoinedShape, "went out");
           return;
         }
 
         {
-          let nnIndex = this.getNearestNeighborIndex();
-          if(nnIndex != null && this.neighbors_grad[nnIndex] >= this.myGradient /*&& this.neighbors_grad[nnIndex] != 1*/) {
-            this.switchToState(States.JoinedShape, `my grad ${this.myGradient} >= closest neighbor ${this.neighbors_grad[nnIndex]}`);
+          let nn = this.getNearestNeighbor();
+          if(nn != null && nn.neighborGradient >= this.myGradient /*&& nn.neighborGradient != 1*/) {
+            this.switchToState(StatesOld.JoinedShape, `my grad ${this.myGradient} >= closest neighbor ${nn.neighborGradient }`);
             return;
           }
         }
 
         break;
-      case States.JoinedShape:
+      case StatesOld.JoinedShape:
         this.unmark();
-        this.isStationary = STATIONARY;
+        this.isStationary = true;
         this.localize();
 
         // if(!this.isSeed) {
@@ -633,35 +593,20 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   message_rx(message, distance) {
-    let index = -1;
-    for(let i = 0; i < MAX_NEIGHBOURS; i++) {
-      if(this.neighbors_id[i] == message.robotUID) {
-        index = i;
-        break;
-      }
-
-      if(index == -1) { // do it only once
-        if(this.neighbors_id[i] == VACANT || this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) {
-          index = i;
-        }
-      }
-    }
-
-    if(index == -1) {
-      console.error("did not found a place to add neighbor info");
-      return;
-    }
-
-    this.neighbors_id[index] = message.robotUID;
-    this.neighbors_grad[index] = message.grad;
-    this.neighbors_state[index] = message.state;
-    this.neighbors_seen_at[index] = this.counter;
-    this.neighbors_dist[index] = distance;
-    this.neighbors_pos_x[index] = message.shapePos.x;
-    this.neighbors_pos_y[index] = message.shapePos.y;
-    this.neighbors_is_seed[index] = message.isSeed;
-    this.neighbors_is_stationary[index] = message.isStationary;
-    this.neighbors_robotsIveEdgeFollowed[index] = message.robotsIveEdgeFollowed;
+    this.neighbors[message.robotUID] = {
+      neighborUID: message.robotUID,
+      neighborGradient: message.grad,
+      neighborState: message.state,
+      // edgeFollowingAge: message.edgeFollowingAge,
+      seenAt: this.counter,
+      measuredDist: distance,
+      shapePos: message.shapePos,
+      isSeed: message.isSeed,
+      isStationary: message.isStationary,
+      message: message,
+      robotsIveEdgeFollowed: message.robotsIveEdgeFollowed,
+      // lastRobotIveEdgeFollowed: message.lastRobotIveEdgeFollowed,
+    };
   }
 
   message_tx() {
@@ -681,7 +626,7 @@ class GradientAndAssemblyRobot extends Kilobot {
 
 // ----
 
-window['ExperimentAssembly'] = class {
+window['ExperimentAssemblyOld'] = class {
   constructor() {
     this.selectedUID = null;
     this.drawLocalizationError = true;
@@ -750,7 +695,7 @@ window['ExperimentAssembly'] = class {
     }
 
     const isInsideShape = (pos) => {
-      if(pos.x == NO_POS || pos.y == NO_POS) return false;
+      if(pos == null) return false;
       let i = Math.floor(+(pos.x-this.ShapePosOffset.x)/this._ShapeScale);
       let j = Math.floor(-(pos.y-this.ShapePosOffset.y)/this._ShapeScale);
       j = this.ShapeDesc.length - 1 - j;
@@ -775,14 +720,14 @@ window['ExperimentAssembly'] = class {
       newRobot(
         shapePosToPhysPos(shapePos),
         MathRandom() * 2*Math.PI,
-        new GradientAndAssemblyRobot({
+        new GradientAndAssemblyRobotOld({
           gradientDist: GRADIENT_DIST,
           initialDist: INITIAL_DIST,
           ticksBetweenMsgs: TICKS_BETWEEN_MSGS,
           radius: this.RADIUS,
 
           isInsideShape: isInsideShape,
-          shapePos: shapePos.isSeed ? {x: shapePos.x, y: shapePos.y} : {x: NO_POS, y: NO_POS},
+          shapePos: shapePos.isSeed ? {x: shapePos.x, y: shapePos.y} : null,
           isGradientSeed: shapePos.isSeed && shapePos.isRoot,
           isSeed: shapePos.isSeed,
         }),
@@ -805,14 +750,14 @@ window['ExperimentAssembly'] = class {
       newRobot(
         pos,
         MathRandom() * 2*Math.PI,
-        new GradientAndAssemblyRobot({
+        new GradientAndAssemblyRobotOld({
           gradientDist: GRADIENT_DIST,
           initialDist: INITIAL_DIST,
           ticksBetweenMsgs: TICKS_BETWEEN_MSGS,
           radius: this.RADIUS,
 
           isInsideShape: isInsideShape,
-          shapePos: {x: NO_POS, y: NO_POS},
+          shapePos: null,
           isSeed: false,
         }),
       );
@@ -874,10 +819,10 @@ window['ExperimentAssembly'] = class {
                   x: this.ShapePosOffset.x + coli*this._ShapeScale,
                   y: this.ShapePosOffset.y - (this.ShapeDesc.length-1 - rowi)*this._ShapeScale,
                 }
-                let d = calculateDistance(gridPosToPhysPos(candidate), p);
+                let d = calculateDistanceOld(gridPosToPhysPos(candidate), p);
                 if(d < 4*INITIAL_DIST) {
                   return null;
-                  // let distToOrigin = calculateDistance(gridPosToPhysPos(candidate), gridPosToPhysPos({x: 0, y: 0}));
+                  // let distToOrigin = calculateDistanceOld(gridPosToPhysPos(candidate), gridPosToPhysPos({x: 0, y: 0}));
                   // return {
                   //   x: candidate.x,
                   //   y: candidate.y,
@@ -889,7 +834,7 @@ window['ExperimentAssembly'] = class {
           }
         }
 
-        let distToOrigin = calculateDistance(gridPosToPhysPos(candidate), gridPosToPhysPos({x: 0, y: 0}));
+        let distToOrigin = calculateDistanceOld(gridPosToPhysPos(candidate), gridPosToPhysPos({x: 0, y: 0}));
 
         return {
           x: candidate.x,
@@ -927,19 +872,6 @@ window['ExperimentAssembly'] = class {
       g.buttonMode = true;
       g.on('pointerdown', (ev) => {
         this.selectedUID = b.robot._uid;
-
-        let convertIndexesToNeighbors = (indexes) => {
-          return indexes.map(i => {
-            return {
-              id: b.robot.neighbors_id[i],
-              grad: b.robot.neighbors_grad[i],
-              seen_at: b.robot.neighbors_seen_at[i],
-              is_stationary: b.robot.neighbors_is_stationary[i],
-              dist: b.robot.neighbors_dist[i],
-            }
-          }).sort((a, b) => a.id - b.id).filter(x => x.id != VACANT);
-        }
-
         console.log({
           uid: b.robot._uid,
           state: b.robot.state,
@@ -948,10 +880,9 @@ window['ExperimentAssembly'] = class {
           isSeed: b.robot.isSeed,
           hesitateData: b.robot.hesitateData,
           shapePos: b.robot.shapePos,
-          neighbors: convertIndexesToNeighbors(Array.from(b.robot.neighbors_id).map((id, i) => i)),
-          // neighbors: b.robot.neighbors,
-          closestRobustNeighbors: b.robot.getFirstRobustQuadrilateralIds && b.robot.getFirstRobustQuadrilateralIds(),
-          closestRobustNeighborsCandidates: convertIndexesToNeighbors(Array.from(b.robot.closestRobustNeighborsCandidates)),
+          neighbors: b.robot.neighbors,
+          closestRobustNeighbors: b.robot.getFirstRobustQuadrilateral && b.robot.getFirstRobustQuadrilateral(),
+          closestRobustNeighborsCandidates: b.robot.closestRobustNeighborsCandidates,
           isStationary: b.robot.isStationary,
           robot: b.robot,
           events: b.robot.events,
@@ -1006,7 +937,7 @@ window['ExperimentAssembly'] = class {
 
         let shapeMarks = {};
         if(highlightJoined) {
-          forEachObj(bodies, b => {
+          forEachObjOld(bodies, b => {
             let p = b.body.GetPosition();
             let i = Math.floor(+(p.get_x() - this.ShapePosOffset.x)/this._ShapeScale);
             let j = Math.floor(-(p.get_y() - this.ShapePosOffset.y)/this._ShapeScale);
@@ -1058,9 +989,9 @@ window['ExperimentAssembly'] = class {
         if(!this.drawLocalizationError) return;
 
         let correctlyLocalizedCount = 0;
-        forEachObj(bodies, b => {
+        forEachObjOld(bodies, b => {
           let shapePos = b.robot.shapePos;
-          if(shapePos.x == NO_POS || shapePos.y == NO_POS) return;
+          if(!shapePos) return;
 
           let pos = b.position;
           if(!b.position && b.getData) {
@@ -1076,7 +1007,7 @@ window['ExperimentAssembly'] = class {
             x: + (this.RootSeedPos.x + shapePos.x) * this.V.ZOOM,
             y: + (this.RootSeedPos.y + shapePos.y) * this.V.ZOOM,
           }
-          let dist = calculateDistance(posActual, posEstimated);
+          let dist = calculateDistanceOld(posActual, posEstimated);
           if(dist < this.RADIUS*this.V.ZOOM) correctlyLocalizedCount++;
 
           color = 0xff0000;
@@ -1131,8 +1062,8 @@ window['ExperimentAssembly'] = class {
       pixiApp.ticker.add(() => {
         g.clear();
 
-        forEachObj(bodies, b => {
-          if(b.robot.state != States.MoveWhileOutside && b.robot.state != States.MoveWhileInside)
+        forEachObjOld(bodies, b => {
+          if(b.robot.state != StatesOld.MoveWhileOutside && b.robot.state != StatesOld.MoveWhileInside)
             return;
 
           let pos = b.position;
@@ -1150,7 +1081,6 @@ window['ExperimentAssembly'] = class {
 
       });
     }
-
     { // robust quadlateral
       let g = new PIXI.Graphics()
       g.zIndex = zIndexOf('RobustQuadlateral');
@@ -1161,12 +1091,12 @@ window['ExperimentAssembly'] = class {
         if(!this.selectedUID) return;
 
         let b = bodies[this.selectedUID];
-        let quadlateral = b.robot.getFirstRobustQuadrilateralIds && b.robot.getFirstRobustQuadrilateralIds();
+        let quadlateral = b.robot.getFirstRobustQuadrilateral && b.robot.getFirstRobustQuadrilateral();
         if(!quadlateral) {
           return;
         }
 
-        let bodyPositions = Array.from(quadlateral).map(id => bodies[id].body.GetPosition());
+        let bodyPositions = quadlateral.map(id => bodies[id].body.GetPosition());
 
         g.lineStyle(this.V.ZOOM * this.RADIUS/4/4, 0xffffff);
         bodyPositions.forEach(p => {
@@ -1206,7 +1136,7 @@ window['ExperimentAssembly'] = class {
   }
 }
 
-const forEachObj = function(obj, f) {
+const forEachObjOld = function(obj, f) {
   let i = 0;
   Object.keys(obj).forEach(k => {
     let item = obj[k];
