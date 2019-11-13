@@ -71,6 +71,31 @@ function arccos(x) {
 }
   */
 
+// To enable WASM:
+//   window.isTriangleRobustC = Module.cwarp('isTriangleRobustC', 'number', ['number', 'number', 'number', 'number', 'number', 'number']);
+
+// window.isTriangleRobustC_JS_counter = 0;
+window.isTriangleRobustC = (x0, y0, x1, y1, x2, y2) => {
+  // window.isTriangleRobustC_JS_counter++;
+  triangle_e2[0] = (x1 - x2)**2 + (y1 - y2)**2;
+  triangle_e2[1] = (x0 - x2)**2 + (y0 - y2)**2;
+  triangle_e2[2] = (x0 - x1)**2 + (y0 - y1)**2;
+
+  triangle_e[0] = Math.sqrt(triangle_e2[0]);
+  triangle_e[1] = Math.sqrt(triangle_e2[1]);
+  triangle_e[2] = Math.sqrt(triangle_e2[2]);
+
+  triangle_a[0] = Math.acos((triangle_e2[1] + triangle_e2[2] - triangle_e2[0]) / (2 * triangle_e[1] * triangle_e[2]));
+  triangle_a[1] = Math.acos((triangle_e2[0] + triangle_e2[2] - triangle_e2[1]) / (2 * triangle_e[0] * triangle_e[2]));
+  triangle_a[2] = Math.acos((triangle_e2[1] + triangle_e2[0] - triangle_e2[2]) / (2 * triangle_e[1] * triangle_e[0]));
+
+  let minAngle = Math.min(triangle_a[0], triangle_a[1], triangle_a[2]);
+  let minEdge  = Math.min(triangle_e[0], triangle_e[1], triangle_e[2]);
+
+  if(isNaN(minAngle)) return false;
+  return minAngle > Math.PI * 15 / 180;
+}
+
 window.isTriangleRobust = (points_x, points_y) => {
   triangle_e2[0] = (points_x[1] - points_x[2])**2 + (points_y[1] - points_y[2])**2;
   triangle_e2[1] = (points_x[0] - points_x[2])**2 + (points_y[0] - points_y[2])**2;
@@ -89,6 +114,26 @@ window.isTriangleRobust = (points_x, points_y) => {
 
   if(isNaN(minAngle)) return false;
   return minAngle > Math.PI * 15 / 180;
+}
+
+window.isTriangleRobustASMJS = (points_x, points_y) => {
+  triangle_e2[0] = (points_x[1] - points_x[2])**2 + (points_y[1] - points_y[2])**2;
+  triangle_e2[1] = (points_x[0] - points_x[2])**2 + (points_y[0] - points_y[2])**2;
+  triangle_e2[2] = (points_x[0] - points_x[1])**2 + (points_y[0] - points_y[1])**2;
+
+  triangle_e[0] = Math.sqrt(triangle_e2[0]);
+  triangle_e[1] = Math.sqrt(triangle_e2[1]);
+  triangle_e[2] = Math.sqrt(triangle_e2[2]);
+
+  triangle_a[0] = Math.acos((triangle_e2[1] + triangle_e2[2] - triangle_e2[0]) / (2 * triangle_e[1] * triangle_e[2]));
+  triangle_a[1] = Math.acos((triangle_e2[0] + triangle_e2[2] - triangle_e2[1]) / (2 * triangle_e[0] * triangle_e[2]));
+  triangle_a[2] = Math.acos((triangle_e2[1] + triangle_e2[0] - triangle_e2[2]) / (2 * triangle_e[1] * triangle_e[0]));
+
+  let minAngle = Math.fround(Math.min(triangle_a[0], triangle_a[1], triangle_a[2]));
+  let minEdge  = Math.fround(Math.min(triangle_e[0], triangle_e[1], triangle_e[2]));
+
+  if(isNaN(minAngle)) return 0|0;
+  return (minAngle > Math.PI * 15 / 180)|0;
 }
 
 const States = {
@@ -285,6 +330,7 @@ class GradientAndAssemblyRobot extends Kilobot {
                   trianlge_idx++;
                 }
               }
+              // if(window.isTriangleRobustC(triangle_x[0], triangle_y[0], triangle_x[1], triangle_y[1], triangle_x[2], triangle_y[2])) {
               if(window.isTriangleRobust(triangle_x, triangle_y)) {
                 robustTriangles++;
               } else {
@@ -767,7 +813,7 @@ window['ExperimentAssembly'] = class {
   constructor() {
     this.selectedUID = null;
     this.drawLocalizationError = true;
-    this.COUNT = 4 + 512;
+    this.COUNT = 4 + 256;
 
     this.runnerOptions = {
       limitSpeed: !true,

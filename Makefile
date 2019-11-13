@@ -1,6 +1,7 @@
 build:
-	cp $(GOROOT)/misc/wasm/wasm_exec.js .
-	GOARCH=wasm GOOS=js go build -o robust.wasm robust.go
+	emcc -O3 robustc.c -o robustc.html -s EXPORTED_FUNCTIONS='["_isTriangleRobustC"]'  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
+	# cp $(GOROOT)/misc/wasm/wasm_exec.js .
+	# GOARCH=wasm GOOS=js go build -o robust.wasm robust.go
 
 dev: update_version
 	npx webpack -w --config webpack.dev.js

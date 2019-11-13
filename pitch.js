@@ -636,7 +636,7 @@ export class Pitch {
 
         {
           let virtualSeconds = Math.floor(frameCount/LOOP_PER_SECOND);
-          let ourSeconds = (new Date() - this.startDate)/1000;
+          let ourSeconds = (performance.now() - this.startDate)/1000;
           let s = this.tickBatchCount * (this.fps/LOOP_PER_SECOND);
           if(this.speedX == null) {
             this.speedX = s;
@@ -782,95 +782,99 @@ export class Pitch {
           */
         }
 
-
         // ---
-        let aabb = new this.Box2D.b2AABB();
-        let lowerBound = new this.Box2D.b2Vec2(0, 0);
-        let upperBound = new this.Box2D.b2Vec2(0, 0);
 
-        if(true) // 88 -> 68
-        for(let i = 0; i < this.bodyIDs.length; i++) {
-          let b = this.bodies[this.bodyIDs[i]];
-          if(frameCount < b.lastMessageSentAt + TICKS_BETWEEN_MSGS) {
-            continue;
-          }
-          // if(frameCount > 60 * 5) { continue; }
-
-          b.lastMessageSentAt = frameCount;
-
-          let broadcastingBody = b;
-
-          if(!broadcastingBody) {
-            console.error("deleted robot fetched");
-            continue;
-          }
-
-          if(!broadcastingBody.robot._started) {
-            continue;
-          }
-
-          messageTxCount++;
-          let message = broadcastingBody.robot.message_tx();
-          message = JSON.parse(JSON.stringify(message));
-          if(message == null) {
-            continue;
-          }
-          broadcastingBody.robot.message_tx_success();
-
-          {
-            /*
-          let f = broadcastingBody.body.GetFixtureList();
-          let fp = this.Box2D.getPointer(f);
-          let j = 0;
-          while(fp) {
-            j++;
-            if(f.IsSensor()) {
-              let fd = f.GetFilterData();
-              fd.set_maskBits(CATS.ROBOT)
-              f.SetFilterData(fd);
-              break;
+        if(true) {
+          let aabb = new this.Box2D.b2AABB();
+          let lowerBound = new this.Box2D.b2Vec2(0, 0);
+          let upperBound = new this.Box2D.b2Vec2(0, 0);
+          for(let i = 0; i < this.bodyIDs.length; i++) {
+            let b = this.bodies[this.bodyIDs[i]];
+            if(frameCount < b.lastMessageSentAt + TICKS_BETWEEN_MSGS) {
+              continue;
             }
-            f = f.GetNext();
-            fp = this.Box2D.getPointer(f);
-          }
-          */
-            /*
-            if(!this.filter2) {
-              console.log("should be called ONCE");
-            this.filter2 = new this.Box2D.b2Filter();
-            this.filter2.set_categoryBits(CATS.NEIGHBOR);
-            this.filter2.set_maskBits(CATS.ROBOT);
-            this.sensorCircleShape = new this.Box2D.b2CircleShape();
-            this.sensorCircleShape.set_m_radius(NEIGHBOUR_DISTANCE);
-            this.fixtureSensor = new this.Box2D.b2FixtureDef();
-            this.fixtureSensor.set_shape(this.sensorCircleShape);
-            this.fixtureSensor.set_isSensor(true);
-            this.fixtureSensor.set_filter(this.filter2);
+            // if(frameCount > 60 * 5) { continue; }
+
+            b.lastMessageSentAt = frameCount;
+
+            let broadcastingBody = b;
+
+            if(!broadcastingBody) {
+              console.error("deleted robot fetched");
+              continue;
             }
-            broadcastingBody.body.CreateFixture(this.fixtureSensor);
-            // this.Box2D.destroy(filter2);
-            // this.Box2D.destroy(sensorCircleShape);
+
+            if(!broadcastingBody.robot._started) {
+              continue;
+            }
+
+            messageTxCount++;
+            let message = broadcastingBody.robot.message_tx();
+            message = JSON.parse(JSON.stringify(message));
+            if(message == null) {
+              continue;
+            }
+            broadcastingBody.robot.message_tx_success();
+
+            {
+              /*
+            let f = broadcastingBody.body.GetFixtureList();
+            let fp = this.Box2D.getPointer(f);
+            let j = 0;
+            while(fp) {
+              j++;
+              if(f.IsSensor()) {
+                let fd = f.GetFilterData();
+                fd.set_maskBits(CATS.ROBOT)
+                f.SetFilterData(fd);
+                break;
+              }
+              f = f.GetNext();
+              fp = this.Box2D.getPointer(f);
+            }
             */
+              /*
+              if(!this.filter2) {
+                console.log("should be called ONCE");
+              this.filter2 = new this.Box2D.b2Filter();
+              this.filter2.set_categoryBits(CATS.NEIGHBOR);
+              this.filter2.set_maskBits(CATS.ROBOT);
+              this.sensorCircleShape = new this.Box2D.b2CircleShape();
+              this.sensorCircleShape.set_m_radius(NEIGHBOUR_DISTANCE);
+              this.fixtureSensor = new this.Box2D.b2FixtureDef();
+              this.fixtureSensor.set_shape(this.sensorCircleShape);
+              this.fixtureSensor.set_isSensor(true);
+              this.fixtureSensor.set_filter(this.filter2);
+              }
+              broadcastingBody.body.CreateFixture(this.fixtureSensor);
+              // this.Box2D.destroy(filter2);
+              // this.Box2D.destroy(sensorCircleShape);
+              */
+            }
+
+            {
+              let pos_x = broadcastingBody.body.GetPosition().get_x();
+              let pos_y = broadcastingBody.body.GetPosition().get_y();
+
+              lowerBound.set_x(pos_x-NEIGHBOUR_DISTANCE);
+              lowerBound.set_y(pos_y-NEIGHBOUR_DISTANCE);
+
+              upperBound.set_x(pos_x+NEIGHBOUR_DISTANCE);
+              upperBound.set_y(pos_y+NEIGHBOUR_DISTANCE);
+
+              aabb.set_lowerBound(lowerBound);
+              aabb.set_upperBound(upperBound);
+
+              queryCallback.message = message;
+              queryCallback.broadcastingBody = broadcastingBody;
+              queryCallback.Box2D = this.Box2D;
+              this.physics.world.QueryAABB(queryCallback, aabb);
+            }
           }
-
-          {
-            let pos_x = broadcastingBody.body.GetPosition().get_x();
-            let pos_y = broadcastingBody.body.GetPosition().get_y();
-
-            lowerBound.set_x(pos_x-NEIGHBOUR_DISTANCE);
-            lowerBound.set_y(pos_y-NEIGHBOUR_DISTANCE);
-
-            upperBound.set_x(pos_x+NEIGHBOUR_DISTANCE);
-            upperBound.set_y(pos_y+NEIGHBOUR_DISTANCE);
-
-            aabb.set_lowerBound(lowerBound);
-            aabb.set_upperBound(upperBound);
-
-            queryCallback.message = message;
-            queryCallback.broadcastingBody = broadcastingBody;
-            queryCallback.Box2D = this.Box2D;
-            this.physics.world.QueryAABB(queryCallback, aabb);
-          }
+          this.Box2D.destroy(lowerBound);
+          this.Box2D.destroy(upperBound);
+          this.Box2D.destroy(aabb);
+          this.Box2D.destroy(queryCallback);
         }
 
         if(DEV) {
@@ -880,23 +884,18 @@ export class Pitch {
           this.setDisplayedData('message_rx()/robot', Math.round(messageRxCount/this.bodyIDs.length * 100)/100);
         }
 
-        this.Box2D.destroy(lowerBound);
-        this.Box2D.destroy(upperBound);
-        this.Box2D.destroy(aabb);
-        this.Box2D.destroy(queryCallback);
-
         if(!recursive) {
           return;
         }
 
         {
-          let time0 = new Date();
+          let time0 = performance.now();
           if(false) {
             tickFunc(++frameCount, false);
 
             setTimeout(() => {
               tickFunc(++frameCount, true);
-              let dt = (new Date() - time0)/1000;
+              let dt = (performance.now() - time0)/1000;
               if(this.deltaTime == null) {
                 this.deltaTime = dt;
               } else {
@@ -909,7 +908,7 @@ export class Pitch {
                 tickFunc(++frameCount, false);
               }
               tickFunc(++frameCount, true);
-              let dt = (new Date() - time0)/1000;
+              let dt = (performance.now() - time0)/1000;
               if(this.deltaTime == null) {
                 this.deltaTime = dt;
               } else {
@@ -946,7 +945,7 @@ export class Pitch {
         }
       }
 
-      this.startDate = new Date();
+      this.startDate = performance.now();
       tickFunc(0, true);
     });
   }
