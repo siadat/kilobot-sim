@@ -99,6 +99,8 @@ export class Kilobot {
       // TODO
     }
 
+    // TODO: support values other than 255 (eg 155)
+
     if(left == right
       && left == this.kilo_straight_left
       && left == this.kilo_straight_right) {
