@@ -1044,12 +1044,15 @@ export class Pitch {
           g.drawCircle(0, 0, b.circleRadius * this.V.ZOOM - thickness/2);
 
           g.lineStyle(0);
-          if(false && b.robot.state == States.JoinedShape) {
-            g.beginFill(b.robot.led.toHex(), 0.9);
-          } else {
-            g.beginFill(b.robot.led.toHex(), 0.2);
-          }
-          g.drawCircle(0, 0, b.circleRadius * this.V.ZOOM - thickness/2);
+          g.beginFill(b.robot.led.toHex(), 0.4);
+
+          let glowRadius = b.circleRadius * this.V.ZOOM - thickness/2
+
+          // if(b.robot.led.r > 0 || b.robot.led.g > 0 || b.robot.led.b > 0) {
+          //   glowRadius = glowRadius * 2;
+          // }
+
+          g.drawCircle(0, 0, glowRadius);
 
           /*
           if(b.robot.led.toHex() != 0x000000) {
@@ -1061,17 +1064,18 @@ export class Pitch {
           }
           */
 
-          if(this.V.ZOOM * b.circleRadius > 10) { // line direction indicator
+          // line direction indicator
+          if(this.V.ZOOM * b.circleRadius > 10) {
             g.endFill();
-            g.lineStyle(b.circleRadius*this.V.ZOOM*0.25, 0x000000, 0.4);
+            g.lineStyle(b.circleRadius*this.V.ZOOM*0.25, 0x000000, 1.0);
             // g.lineStyle(b.circleRadius*this.V.ZOOM*0.25, b.robot.led.toHex(), 1);
             g.moveTo(0, 0);
             g.lineTo(b.circleRadius*this.V.ZOOM - thickness, 0);
           }
 
-          // legs direction indicator
+          // legs
           if(this.V.ZOOM * b.circleRadius > 10) {
-            g.beginFill(0x000000, 0.4);
+            g.beginFill(0x000000, 0.5);
             g.lineStyle(0);
             let r = b.circleRadius*this.V.ZOOM*0.15;
             let R = b.circleRadius*this.V.ZOOM - r;

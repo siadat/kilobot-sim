@@ -231,7 +231,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     if(this.isSeed) {
       this.set_color(this.RGB(3, 3, 3));
     } else {
-      this.set_color(this.RGB(2, 2, 2));
+      this.set_color(this.RGB(0, 0, 0));
     }
   }
 
@@ -1252,7 +1252,7 @@ window['ExperimentAssembly'] = class {
       });
     }
 
-    if(!false){ // neighbor area
+    if(false){ // neighbor area
       let g = new PIXI.Graphics()
       g.zIndex = zIndexOf('NeighborRegion');
       g.alpha = 1;
