@@ -6,7 +6,7 @@ const LOOP_PER_SECOND = 30;
 
 let DRAW_SHADOW = false;
 let DRAW_CONNS_AND_BOUNDS = false;
-let DARK_MODE = false;
+let DARK_MODE = true;
 let BENCHMARKING = true;
 
 
@@ -1087,12 +1087,13 @@ export class Pitch {
           if(true) { // led
             // g.lineStyle(thickness);
             // g.lineStyle(0);
+            let ledRadius = b.circleRadius * 0.4 * this.V.ZOOM;
             g.lineStyle(1, 0x000000, 0.5);
             g.beginFill(b.robot.led.toHex());
             g.drawCircle(
               0,
               0,
-              b.circleRadius * 0.4 * this.V.ZOOM,
+              ledRadius,
             );
           }
 

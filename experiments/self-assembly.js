@@ -919,7 +919,6 @@ window['ExperimentAssembly'] = class {
 
     const createNewRobot = (candidate) => {
       hexagrid[`${candidate.x}:${candidate.y}`] = TAKEN;
-
       let pos = gridPosToPhysPos(candidate);
 
       hexagridCursor.x = candidate.x;
