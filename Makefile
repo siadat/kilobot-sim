@@ -1,5 +1,8 @@
+SHELL := /bin/bash # reason: make "source" work (reason: avoid putting it in my ~/.bashrc)
+
 build:
-	emcc -O3 robustc.c -o robustc.html -s EXPORTED_FUNCTIONS='["_isTriangleRobustC"]'  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
+	source /home/sina/kilobot-sim/emsdk/emsdk_env.sh && \
+		emcc -O3 robustc.c -o robustc.html -s EXPORTED_FUNCTIONS='["_isTriangleRobustC"]'  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
 	# cp $(GOROOT)/misc/wasm/wasm_exec.js .
 	# GOARCH=wasm GOOS=js go build -o robust.wasm robust.go
 
