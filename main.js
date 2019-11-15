@@ -19,7 +19,7 @@ Box2D({
     return;
   }
 
-  let randomSeed = 55810; // Math.floor(Math.random()*1000000);
+  let randomSeed = 5811; // Math.floor(Math.random()*1000000);
   let perfectStart = false;
 
   let pitch = new Pitch(Box2D, perfectStart, randomSeed);

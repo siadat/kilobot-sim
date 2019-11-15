@@ -58,7 +58,7 @@ export class Pitch {
     if(true /*graphical*/) {
       PIXI.utils.skipHello();
       this.pixiApp = new PIXI.Application({
-        backgroundColor: DARK_MODE ? 0x222222 : 0xdddddd,
+        backgroundColor: DARK_MODE ? 0x111111 : 0xdddddd,
         autoStart: true,
         width: SIZE.w,
         height: SIZE.h,
@@ -269,9 +269,9 @@ export class Pitch {
         this.metaPixiGraphics.addChild(this.metaPixiText);
         this.pixiApp.stage.addChild(this.metaPixiGraphics);
 
-        this.pixiApp.ticker.add(() => {
-          this.setDisplayedData('Renderer frames/second', `${Math.floor(1/this.deltaTime)}/s`);
-        });
+        // this.pixiApp.ticker.add(() => {
+        //   this.setDisplayedData('Renderer frames/second', `${Math.floor(1/this.deltaTime)}/s`);
+        // });
       }
 
       {
@@ -522,6 +522,7 @@ export class Pitch {
         b.robot._Box2D = this.Box2D;
         b.robot._MathRandom = this.MathRandom;
         b.robot._RADIUS = RADIUS;
+        // b.robot._err_message_sending = this.MathRandom();
         // b.robot._PERFECT = this.perfectStart;
         b.robot._LOOP_PER_SECOND = LOOP_PER_SECOND ;
 
@@ -795,7 +796,7 @@ export class Pitch {
             }
             // if(frameCount > 60 * 5) { continue; }
 
-            b.lastMessageSentAt = frameCount;
+            b.lastMessageSentAt = frameCount - Math.floor(this.MathRandom() * 2);
 
             let broadcastingBody = b;
 

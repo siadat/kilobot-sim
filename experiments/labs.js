@@ -256,21 +256,176 @@ window['ExperimentLab7'] = class {
     }
   }
 
-  // TODO: this is not used, delete me
+  gradientNoise() {
+    if(this.perlinNoiseValue == null) {
+      this.perlinNoiseValue = 0.5;
+    }
+
+    this.perlinNoiseValue += (this.MathRandom()-0.5)/2;
+    if(this.perlinNoiseValue > 1) this.perlinNoiseValue = 1;
+    if(this.perlinNoiseValue < 0) this.perlinNoiseValue = 0;
+    return this.perlinNoiseValue;
+  }
+
+  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+    this.MathRandom = new Math.seedrandom(1234);
+    this.INITIAL_DIST = 4.0*RADIUS;
+
+    for(let i = -5; i < 5; i++) {
+      for(let j = -5; j < 5; j++) {
+        newRobot({
+          x: j * this.INITIAL_DIST + (this.gradientNoise()-0.5)*RADIUS*1,
+          y: i * this.INITIAL_DIST + (this.gradientNoise()-0.5)*RADIUS*1,
+        },
+          this.MathRandom() * 2*Math.PI,
+          new RobotLab7(),
+        );
+      }
+    }
+
+  }
+}
+
+// --
+class RobotGradientFormation extends Kilobot {
+  constructor(isSeed, INITIAL_DIST) {
+    super();
+    this.isSeed = isSeed;
+    this.INITIAL_DIST = INITIAL_DIST;
+    this.COLORS = [
+      this.RGB(3, 0, 0), // red
+      this.RGB(3, 0, 3), // magenta
+      this.RGB(0, 0, 3), // blue
+      this.RGB(0, 3, 3), // cyan
+      this.RGB(0, 3, 0), // green
+      this.RGB(3, 3, 0), // yellow
+    ];
+  }
+
+  setup() {
+    if(this.isSeed) {
+      // this.myGradient = 0;
+      this.setGradient(0);
+      // this.set_color(this.RGB(3, 3, 3));
+    } else {
+      this.myGradient = 1 + this.rand_soft();
+    }
+    this.gradientDist = 1.5*this.INITIAL_DIST;
+    this.minNeighborValue = Infinity;
+    this.updatedAt = this.rand_soft();
+    this.PERIOD = 60;
+  }
+
+  doGradientFormation() {
+    if(this.isSeed) {
+      return;
+    }
+
+    let grad = Infinity;
+
+    if(this.messageReceived) {
+      if(this.messageReceivedData < this.minNeighborValue) {
+        this.minNeighborValue = this.messageReceivedData;
+      }
+      this.messageReceived = false;
+    }
+
+    if(this.kilo_ticks > this.updatedAt + this.PERIOD) {
+      if(this.minNeighborValue < Infinity) {
+        this.setGradient(this.minNeighborValue + 1);
+        this.minNeighborValue = Infinity;
+      }
+      this.updatedAt = this.kilo_ticks
+    }
+  }
+
+  loop() {
+    this.doGradientFormation();
+  }
+
+  set_colors_for_gradient(g) {
+    if(g == null) {
+      return;
+    }
+    this.set_color(this.COLORS[g % this.COLORS.length]);
+  }
+
+  setGradient(newValue) {
+    if(this.myGradient == newValue) {
+      return;
+    }
+
+    this.myGradient = newValue;
+    this.set_colors_for_gradient(this.myGradient);
+  }
+
+  message_rx(message, distance) {
+    if(distance > this.gradientDist) {
+      return;
+    }
+
+    this.messageReceived = true;
+    this.messageReceivedData = message;
+    this.messageReceivedDist = distance;
+  }
+
+  message_tx() {
+    return this.myGradient;
+  }
+}
+
+window['ExperimentGradientFormation'] = class {
+  constructor() {
+    this.runnerOptions = {
+      limitSpeed: false,
+      traversedPath: false,
+    }
+  }
+  setupGraphics(
+    PIXI,
+    Box2D,
+    pixiApp,
+    platformGraphics,
+    bodies,
+    bodyIDs,
+    setDisplayedData,
+    zIndexOf,
+  ) {
+    for(let i = 0; i < bodyIDs.length; i++) {
+      let b = bodies[bodyIDs[i]];
+      let g = b.g;
+
+      g.interactive = true;
+      g.buttonMode = true;
+      g.on('pointerdown', (ev) => {
+        this.selectedUID = b.robot._uid;
+
+        console.log({
+          uid: b.robot._uid,
+          grad: b.robot.myGradient,
+          isSeed: b.robot.isSeed,
+          events: b.robot.events,
+        });
+        ev.stopPropagation();
+      });
+    }
+  }
+
+  gridPosToPhysPos (gridPos) {
+    let pos = {
+      x: (this.RootSeedPos.x + this.INITIAL_DIST/2),
+      y: (this.RootSeedPos.y + Math.sqrt(3) * this.INITIAL_DIST/2 + 2*this.INITIAL_DIST/2),
+    };
+
+    pos.x += gridPos.x * this.INITIAL_DIST + (gridPos.y%2==0 ? -this.INITIAL_DIST/2 : 0);
+    pos.y += gridPos.y * this.INITIAL_DIST * Math.sqrt(3)/2;
+    return pos;
+  }
+
   hexagridPositions(count) {
     const TAKEN = true;
     let hexagrid = {};
-    let RootSeedPos = {x: 0, y: 0};
-    let gridPosToPhysPos = (gridPos) => {
-      let pos = {
-        x: (RootSeedPos.x + this.INITIAL_DIST/2),
-        y: (RootSeedPos.y + Math.sqrt(3) * this.INITIAL_DIST/2 + 2*this.INITIAL_DIST/2),
-      };
-
-      pos.x += gridPos.x * this.INITIAL_DIST + (gridPos.y%2==0 ? -this.INITIAL_DIST/2 : 0);
-      pos.y += gridPos.y * this.INITIAL_DIST * Math.sqrt(3)/2;
-      return pos;
-    }
+    this.RootSeedPos = {x: 0, y: 0};
 
     let hexaNeighbors = [
                [0,   -1], [+1,-1],
@@ -345,10 +500,10 @@ window['ExperimentLab7'] = class {
       hexagridCursor.x = best.x;
       hexagridCursor.y = best.y;
 
-      if(true /*!PERFECT*/) {
-        pos.x += this.noise(0.2 * this.INITIAL_DIST);
-        pos.y += this.noise(0.2 * this.INITIAL_DIST);
-      }
+      // if(true /*!PERFECT*/) {
+      //   pos.x += this.noise(0.2 * this.INITIAL_DIST);
+      //   pos.y += this.noise(0.2 * this.INITIAL_DIST);
+      // }
 
       positions.push(pos);
     }
@@ -368,29 +523,48 @@ window['ExperimentLab7'] = class {
 
   createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     this.MathRandom = new Math.seedrandom(1234);
-    this.INITIAL_DIST = 4.0*RADIUS;
+    this.INITIAL_DIST = 2.5*RADIUS;
+    this.noise = function(magnitude) {
+      return magnitude * (this.MathRandom()-0.5);
+    }
+    this.RootSeedPos = {x: 0, y: 0};
 
-    for(let i = -5; i < 5; i++) {
-      for(let j = -5; j < 5; j++) {
+    let width = 32;
+    let height = 32;
+
+    for(let i = -Math.floor(height/2); i < +Math.floor(height/2); i++) {
+      for(let j = -Math.floor(width/2); j < +Math.floor(width/2); j++) {
+        let isSeed = false;
+        let pos = this.gridPosToPhysPos({x: j, y: i});
+
         newRobot({
-          x: j * this.INITIAL_DIST + (this.gradientNoise()-0.5)*RADIUS*1,
-          y: i * this.INITIAL_DIST + (this.gradientNoise()-0.5)*RADIUS*1,
+          x: pos.x, //  + (this.gradientNoise()-0.5)*RADIUS*0.3,
+          y: pos.y, //  + (this.gradientNoise()-0.5)*RADIUS*0.3,
         },
           this.MathRandom() * 2*Math.PI,
-          new RobotLab7(),
+          new RobotGradientFormation(isSeed, this.INITIAL_DIST),
         );
       }
     }
 
+    {
+      let isSeed = true;
+      newRobot(this.gridPosToPhysPos({x: -1-Math.floor(width/2), y: -1}),
+        this.MathRandom() * 2*Math.PI,
+        new RobotGradientFormation(true, this.INITIAL_DIST),
+      );
+    }
+
     /*
-    let positions = this.hexagridPositions(100);
+    let positions = this.hexagridPositions(512);
     for(let i = 0; i < positions.length; i++) {
+      let isSeed = i == positions.length-1;
       newRobot({
           x: positions[i].x,
           y: positions[i].y,
         },
-        MathRandom() * 2*Math.PI,
-        new RobotLab7(),
+        this.MathRandom() * 2*Math.PI,
+        new RobotGradientFormation(isSeed, this.INITIAL_DIST),
       );
     }
     */

@@ -125,11 +125,11 @@ export class Kilobot {
       let temp_cos = 0;
       let temp_sin = 0;
       if(right > left) {
-        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * this._RADIUS;
-        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * this._RADIUS;
+        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * (this._RADIUS*0.9);
+        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * (this._RADIUS*0.9);
       } else {
-        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * this._RADIUS;
-        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * this._RADIUS;
+        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * (this._RADIUS*0.9);
+        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * (this._RADIUS*0.9);
       }
 
       let newPos = new this._Box2D.b2Vec2(

@@ -556,6 +556,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     //   this.robotsIveEdgeFollowed.push(this.neighbors_id[nnIndex]);
 
     let tooClose = this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST;
+    let extremelyClose = this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST*0.65;
     let gettingFarther = this.prevNearestNeighDist < this.neighbors_dist[nnIndex];
     let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
     this.prevNearestNeighDist = this.neighbors_dist[nnIndex];
@@ -567,15 +568,20 @@ class GradientAndAssemblyRobot extends Kilobot {
       return;
     }
 
-    if(tooClose) {
+    if(extremelyClose) {
+      this.stats.action = 'left-get-farther';
+      this.stats.motors_left = this.kilo_turn_left;
+      this.stats.motors_right = 0;
+      this.set_motors(this.kilo_turn_left, 0);
+    } else if(tooClose) {
       if(gettingFarther) {
-        this.stats.action = 'stright';
+        this.stats.action = 'straight';
         this.stats.motors_left = this.kilo_straight_left;
         this.stats.motors_right = this.kilo_straight_right;
         this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
       } else {
         this.stats.action = 'left-get-farther';
-        this.stats.motors_left = this.kilo_straight_left;
+        this.stats.motors_left = this.kilo_turn_left;
         this.stats.motors_right = 0;
         this.set_motors(this.kilo_turn_left, 0);
       }
@@ -583,10 +589,10 @@ class GradientAndAssemblyRobot extends Kilobot {
       if(gettingFarther) {
         this.stats.action = 'right-get-close';
         this.stats.motors_left = 0;
-        this.stats.motors_right = this.kilo_straight_right;
+        this.stats.motors_right = this.kilo_turn_right;
         this.set_motors(0, this.kilo_turn_right);
       } else {
-        this.stats.action = 'stright';
+        this.stats.action = 'straight';
         this.stats.motors_left = this.kilo_straight_left;
         this.stats.motors_right = this.kilo_straight_right;
         this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
@@ -813,10 +819,10 @@ window['ExperimentAssembly'] = class {
   constructor() {
     this.selectedUID = null;
     this.drawLocalizationError = true;
-    this.COUNT = 4 + 256;
+    this.COUNT = 4 + 512;
 
     this.runnerOptions = {
-      limitSpeed: !true,
+      limitSpeed: true,
       traversedPath: false,
     }
   }
@@ -1095,7 +1101,7 @@ window['ExperimentAssembly'] = class {
             g.lineStyle(4, 0x440000);
           }
           switch(b.robot.stats.action) {
-            case 'stright':
+            case 'straight':
               g.moveTo(0, 0);
               g.lineTo(this.V.ZOOM * this.RADIUS, 0);
               break;
@@ -1144,7 +1150,7 @@ window['ExperimentAssembly'] = class {
         }
 
         g.lineStyle(0, 0x000000);
-        g.beginFill(0x000000, 0.4);
+        g.beginFill(0x888888, 0.5);
 
         for(let rowi = 0; rowi < this.ShapeDesc.length; rowi++) {
           let row = this.ShapeDesc[rowi];
