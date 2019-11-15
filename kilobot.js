@@ -5,7 +5,12 @@ export class Kilobot {
     this._uid = -1;
     this._startedAt = new Date();
     this._internalTicker = 0;
+    this._ambientlight = 0;
     this._faultiness = 0;
+  }
+
+  get_ambientlight() {
+    return this._ambientlight;
   }
 
   setFaultiness(faultiness) {

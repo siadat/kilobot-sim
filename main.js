@@ -33,6 +33,7 @@ Box2D({
     'ConnsAndBouns',
     '_Robots',
     'LocalizationError',
+    '_LightSources',
   ]);
   pitch.run(new ExperimentClass());
 });

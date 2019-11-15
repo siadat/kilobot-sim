@@ -831,7 +831,7 @@ window['ExperimentAssembly'] = class {
     this.selectedUID = null;
   }
 
-  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+  createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     this.NEIGHBOUR_DISTANCE = NEIGHBOUR_DISTANCE;
     const INITIAL_DIST = this.NEIGHBOUR_DISTANCE/11*3;
     const GRADIENT_DIST = 1.5*INITIAL_DIST;
@@ -906,7 +906,7 @@ window['ExperimentAssembly'] = class {
         shapePos.y += noise(0.2 * INITIAL_DIST);
       }
 
-      newRobot(
+      newRobotFunc(
         shapePosToPhysPos(shapePos),
         MathRandom() * 2*Math.PI,
         new GradientAndAssemblyRobot({
@@ -935,7 +935,7 @@ window['ExperimentAssembly'] = class {
         pos.y += noise(0.2 * INITIAL_DIST);
       }
 
-      newRobot(
+      newRobotFunc(
         pos,
         MathRandom() * 2*Math.PI,
         new GradientAndAssemblyRobot({

@@ -23,10 +23,10 @@ window.ExperimentLab0 = class {
     }
   }
 
-  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+  createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     let MathRandom = new Math.seedrandom(1234);
     for(let i = 0; i < 10; i++) {
-      newRobot({
+      newRobotFunc({
           x: MathRandom(),
           y: MathRandom(),
         },
@@ -76,10 +76,10 @@ window['ExperimentLab1.2'] = class {
     }
   }
 
-  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+  createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     let MathRandom = new Math.seedrandom(1234);
     for(let i = 0; i < 10; i++) {
-      newRobot({
+      newRobotFunc({
           x: MathRandom(),
           y: MathRandom(),
         },
@@ -138,10 +138,10 @@ window['ExperimentLab1.3'] = class {
     }
   }
 
-  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+  createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     let MathRandom = new Math.seedrandom(1234);
     for(let i = 0; i < 10; i++) {
-      newRobot({
+      newRobotFunc({
           x: MathRandom(),
           y: MathRandom(),
         },
@@ -267,13 +267,13 @@ window['ExperimentLab7'] = class {
     return this.perlinNoiseValue;
   }
 
-  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+  createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     this.MathRandom = new Math.seedrandom(1234);
     this.INITIAL_DIST = 4.0*RADIUS;
 
     for(let i = -5; i < 5; i++) {
       for(let j = -5; j < 5; j++) {
-        newRobot({
+        newRobotFunc({
           x: j * this.INITIAL_DIST + (this.gradientNoise()-0.5)*RADIUS*1,
           y: i * this.INITIAL_DIST + (this.gradientNoise()-0.5)*RADIUS*1,
         },
@@ -381,6 +381,7 @@ window['ExperimentGradientFormation'] = class {
       traversedPath: false,
     }
   }
+
   setupGraphics(
     PIXI,
     Box2D,
@@ -521,13 +522,14 @@ window['ExperimentGradientFormation'] = class {
     return this.perlinNoiseValue;
   }
 
-  createRobots(newRobot, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+  createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     this.MathRandom = new Math.seedrandom(1234);
     this.INITIAL_DIST = 2.5*RADIUS;
     this.noise = function(magnitude) {
       return magnitude * (this.MathRandom()-0.5);
     }
     this.RootSeedPos = {x: 0, y: 0};
+    // newLightFunc({x: 10 * this.INITIAL_DIST, y: 10 * this.INITIAL_DIST});
 
     let width = 32;
     let height = 32;
@@ -537,7 +539,7 @@ window['ExperimentGradientFormation'] = class {
         let isSeed = false;
         let pos = this.gridPosToPhysPos({x: j, y: i});
 
-        newRobot({
+        newRobotFunc({
           x: pos.x, //  + (this.gradientNoise()-0.5)*RADIUS*0.3,
           y: pos.y, //  + (this.gradientNoise()-0.5)*RADIUS*0.3,
         },
@@ -549,7 +551,7 @@ window['ExperimentGradientFormation'] = class {
 
     {
       let isSeed = true;
-      newRobot(this.gridPosToPhysPos({x: -1-Math.floor(width/2), y: -1}),
+      newRobotFunc(this.gridPosToPhysPos({x: -1-Math.floor(width/2), y: -1}),
         this.MathRandom() * 2*Math.PI,
         new RobotGradientFormation(true, this.INITIAL_DIST),
       );
@@ -559,7 +561,7 @@ window['ExperimentGradientFormation'] = class {
     let positions = this.hexagridPositions(512);
     for(let i = 0; i < positions.length; i++) {
       let isSeed = i == positions.length-1;
-      newRobot({
+      newRobotFunc({
           x: positions[i].x,
           y: positions[i].y,
         },
@@ -568,5 +570,107 @@ window['ExperimentGradientFormation'] = class {
       );
     }
     */
+  }
+}
+
+// phototaxis
+class RobotPhototaxis extends Kilobot {
+  setup() {
+    this.direction = 0;
+    this.last_value = 0;
+    this.last_updated = this.rand_soft();
+    this.PERIOD = 0;
+  }
+
+  doPhototaxis() {
+    switch(this.direction) {
+      case 0: this.set_motors(0, this.kilo_turn_right); break;
+      case 1: this.set_motors(this.kilo_turn_left, 0); break;
+    }
+
+    if(this.kilo_ticks < this.last_updated + this.PERIOD)
+      return;
+
+
+    this.last_updated = this.kilo_ticks;
+    let value = this.get_ambientlight();
+
+    if(value < this.last_value) {
+      this.direction = (this.direction + 1) % 2;
+      this.PERIOD = (this.PERIOD + 1) % 2;
+    }
+
+    this.last_value = value;
+  }
+
+  loop() {
+    this.doPhototaxis();
+  }
+}
+
+window['ExperimentPhototaxis'] = class {
+  constructor() {
+    this.runnerOptions = {
+      limitSpeed: true,
+      traversedPath: false,
+    }
+  }
+
+  setupGraphics(
+    PIXI,
+    Box2D,
+    pixiApp,
+    platformGraphics,
+    bodies,
+    bodyIDs,
+    setDisplayedData,
+    zIndexOf,
+  ) {
+    for(let i = 0; i < bodyIDs.length; i++) {
+      let b = bodies[bodyIDs[i]];
+      let g = b.g;
+
+      g.interactive = true;
+      g.buttonMode = true;
+      g.on('pointerdown', (ev) => {
+        this.selectedUID = b.robot._uid;
+
+        console.log({
+          uid: b.robot._uid,
+          direction: b.robot.direction,
+          last_value: b.robot.last_value,
+          events: b.robot.events,
+        });
+        ev.stopPropagation();
+      });
+    }
+  }
+
+  createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+    this.MathRandom = new Math.seedrandom(1234);
+    this.INITIAL_DIST = 5*RADIUS;
+
+
+    let width = 10;
+    let height = 10;
+
+    newLightFunc({x: width*this.INITIAL_DIST, y: -height/10/2*this.INITIAL_DIST});
+    // newLightFunc({x: -width*this.INITIAL_DIST, y: -height/10/2*this.INITIAL_DIST});
+
+    // newLightFunc({x: width*this.INITIAL_DIST, y: -height/2*this.INITIAL_DIST});
+    // newLightFunc({x: width*this.INITIAL_DIST, y: +height/2*this.INITIAL_DIST});
+
+    for(let i = -Math.floor(height/2); i < +Math.floor(height/2); i++) {
+      for(let j = -Math.floor(width/2); j < +Math.floor(width/2); j++) {
+
+        newRobotFunc({
+          x: j * this.INITIAL_DIST,
+          y: i * this.INITIAL_DIST,
+        },
+          this.MathRandom() * 2*Math.PI,
+          new RobotPhototaxis(),
+        );
+      }
+    }
   }
 }

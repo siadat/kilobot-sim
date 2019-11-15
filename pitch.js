@@ -2,11 +2,12 @@ const RADIUS = 1; // best performance
 const NEIGHBOUR_DISTANCE = 11 * RADIUS;
 
 const TICKS_BETWEEN_MSGS = 30/2;
+const TICKS_BETWEEN_AMB_LIGHT = 3;
 const LOOP_PER_SECOND = 30;
 
-let DRAW_SHADOW = false;
+let DRAW_SHADOW = !false;
 let DRAW_CONNS_AND_BOUNDS = false;
-let DARK_MODE = true;
+let DARK_MODE = !true;
 let BENCHMARKING = true;
 
 
@@ -32,6 +33,7 @@ export class Pitch {
 
     this.destroyFuncs = [];
 
+    this.lightSources = [];
     this.connections = [];
     this.deltaTime = null;
     this.speedX = null;
@@ -45,6 +47,7 @@ export class Pitch {
       '_Shadow',
       '_TraversedPath',
       '_Robots',
+      '_LightSources',
     ];
 
     this.V = {
@@ -324,26 +327,106 @@ export class Pitch {
         });
       }
 
+      { // light sources
+        let g = new PIXI.Graphics()
+        g.alpha = 0.5;
+        g.lastLightSources = JSON.stringify(this.lightSources);
+
+        /*
+        g.clickArea.cursor = 'grab';
+        g.on('pointerdown', (ev) => {
+          g.clickArea.cursor = 'grabbing';
+          g.startPos = {
+            x: ev.data.global.x,
+            y: ev.data.global.y,
+          };
+          g.startTouch = {
+            x: ev.data.global.x,
+            y: ev.data.global.y,
+          };
+        });
+
+        g.on('pointermove', (ev) => {
+          g.clickArea.cursor = 'grab';
+
+          g.position.x = ev.data.global.x
+
+          delete(g.startTouch);
+        });
+        */
+
+        this.platformGraphics.addChild(g);
+        this.pixiApp.ticker.add(() => {
+          if(g.lastLightSources == JSON.stringify(this.lightSources))
+            return;
+
+          g.clear();
+          g.zIndex = this.zIndexOf('_LightSources');
+
+          let count = 5;
+          // g.beginFill(0x0fBfF0, 1);
+          g.beginFill(0xffff00, 1);
+          this.lightSources.forEach(ls => {
+            g.lineStyle(0);
+            g.drawCircle(
+              ls.pos.x * this.V.ZOOM,
+              ls.pos.y * this.V.ZOOM,
+              2 * RADIUS * this.V.ZOOM,
+            );
+
+            g.lineStyle(2*RADIUS*this.V.ZOOM, 0xffff00);
+            for(let i = 0; i < count; i++) {
+              g.moveTo(
+                (ls.pos.x-10*RADIUS*Math.cos(i/count * Math.PI)) * this.V.ZOOM,
+                (ls.pos.y-10*RADIUS*Math.sin(i/count * Math.PI)) * this.V.ZOOM,
+              );
+
+              g.lineTo(
+                (ls.pos.x+10*RADIUS*Math.cos(i/count * Math.PI)) * this.V.ZOOM,
+                (ls.pos.y+10*RADIUS*Math.sin(i/count * Math.PI)) * this.V.ZOOM,
+              );
+            }
+          });
+        });
+      }
+
+      // TODO: create a layer here, but move drawing's to the robot's graphics loop
       if(DRAW_SHADOW) {
         // position vectors
         let g = new PIXI.Graphics()
         g.zIndex = this.zIndexOf('_Shadow');
-        g.alpha = 0.3;
+        g.alpha = 0.5;
 
         this.platformGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
           g.clear();
           if(!DRAW_SHADOW) return;
 
+          g.beginFill(0x000000, 0.5);
+
           this.forEachBody(b => {
 
-            let shadowOffset = {
-              x: + (b.body.GetPosition().get_x() + b.circleRadius*0.25) * this.V.ZOOM,
-              y: + (b.body.GetPosition().get_y() + b.circleRadius*0.25) * this.V.ZOOM,
-            }
+            this.lightSources.forEach(ls => {
+              let pos = {
+                x: b.body.GetPosition().get_x(),
+                y: b.body.GetPosition().get_y(),
+              };
 
-            g.beginFill(0x000000)
-            g.drawCircle(shadowOffset.x, shadowOffset.y, b.circleRadius * this.V.ZOOM);
+              let dx = pos.x - ls.pos.x;
+              let dy = pos.y - ls.pos.y;
+              let d = Math.sqrt(dx*dx + dy*dy);
+              if(d < 1) d = 1; // do not scale up
+
+              let offset = {
+                x: (dx/d) * b.circleRadius*0.75,
+                y: (dy/d) * b.circleRadius*0.75,
+              }
+              g.drawCircle(
+                (pos.x + offset.x) * this.V.ZOOM,
+                (pos.y + offset.y) * this.V.ZOOM,
+                b.circleRadius * this.V.ZOOM,
+              );
+            });
           });
         });
       }
@@ -511,9 +594,16 @@ export class Pitch {
     this.experiment.V = this.V;
     this.experiment.equalZooms = equalZooms;
     this.experiment.copyView = copyView;
-
     let uidCounter = 0;
-    experiment.createRobots((pos, angle, robot) => {
+
+    let newLightFunc = (pos) => {
+      this.lightSources.push({
+        pos: pos,
+        // intensity: intensity,
+      })
+    }
+
+    let newRobotFunc = (pos, angle, robot) => {
         uidCounter++;
         let b = this.physics.circle(pos, angle, RADIUS, uidCounter);
         b.robot = robot;
@@ -528,7 +618,10 @@ export class Pitch {
 
         this.bodies[b.robot._uid] = b;
         this.createBodyGraphic(b);
-    },
+    };
+    experiment.createRobots(
+      newRobotFunc,
+      newLightFunc,
       RADIUS,
       NEIGHBOUR_DISTANCE,
       TICKS_BETWEEN_MSGS,
@@ -784,6 +877,34 @@ export class Pitch {
         }
 
         // ---
+        for(let i = 0; i < this.bodyIDs.length; i++) {
+          let b = this.bodies[this.bodyIDs[i]];
+          if(frameCount < b.lastAmbientLightSetAt + TICKS_BETWEEN_AMB_LIGHT) {
+            continue;
+          }
+
+          let v = 1024 * this.lightSources.length;
+
+          this.lightSources.forEach(ls => {
+            let pos = {
+              x: b.body.GetPosition().get_x(),
+              y: b.body.GetPosition().get_y(),
+            };
+
+            let dx = pos.x - ls.pos.x;
+            let dy = pos.y - ls.pos.y;
+            let d = Math.sqrt(dx*dx + dy*dy);
+            v -= d;
+          });
+
+          b.lastAmbientLightSetAt = frameCount;
+
+          let newValue = v|0;
+          if(newValue < 0|0)
+            newValue = 0|0;
+
+          b.robot._ambientlight = newValue|0;
+        }
 
         if(true) {
           let aabb = new this.Box2D.b2AABB();
@@ -1239,6 +1360,7 @@ class Body {
     this.circleRadius = radius;
     this.posHistory = [];
     this.lastMessageSentAt = Math.floor(MathRandom() * 60);
+    this.lastAmbientLightSetAt = Math.floor(MathRandom() * 60);
   }
 
   getData () {
