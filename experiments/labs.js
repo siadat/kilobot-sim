@@ -674,3 +674,253 @@ window['ExperimentPhototaxis'] = class {
     }
   }
 }
+
+// follow the leader
+class RobotFollowTheLeader extends Kilobot {
+  constructor(id, RADIUS) {
+    super();
+    this.id = id;
+    this.States = {
+      Move: 'Move',
+      Wait: 'Wait',
+    };
+    this.RADIUS = RADIUS;
+  }
+
+  setup() {
+    if(this.id == 1) {
+      this.amLeader = true;
+      this.amTail = false;
+    } else {
+      this.amLeader = false;
+      this.amTail = true; // until proven otherwise
+    }
+
+    if(this.amLeader) {
+      this.set_color(this.RGB(0, 3, 0));
+    } else {
+      this.set_color(this.RGB(3, 3, 3));
+    }
+
+    if(this.id % 2 == 0) {
+      this.switchState(this.States.Wait);
+      this.frontRobotState = this.States.Move;
+      this.backRobotState = this.States.Move;
+    } else {
+      this.switchState(this.States.Move);
+      this.frontRobotState = this.States.Wait;
+      this.backRobotState = this.States.Wait;
+    }
+
+    this.direction = 0;
+    this.PERIOD = 0;
+    this.last_updated = 30 * this.rand_soft()/255;
+    this.stateChangedAt = 30 * this.rand_soft()/255;
+    this.last_value = 0;
+  }
+
+  message_rx(message, distance) {
+    if(message.id > this.id) {
+      this.amTail = false;
+    }
+
+    if(message.id == this.id + 1) {
+      this.backRobotState = message.state;
+      this.backRobotDist = distance;
+    } else if(message.id == this.id - 1) {
+      this.frontRobotState = message.state;
+      this.frontRobotDist = distance;
+    }
+
+    // if(this.kilo_ticks < this.stateChangedAt + 30)
+    //   return;
+    // this.stateChangedAt = this.kilo_ticks;
+
+    switch(this.state) {
+      case this.States.Wait:
+        if(
+          (
+            (this.amLeader && this.backRobotDist < 3.5 * this.RADIUS)
+            ||
+            (!this.amLeader && this.frontRobotDist > 3.5 * this.RADIUS)
+          )
+          &&
+          (this.frontRobotState == this.States.Wait || this.amLeader)
+          &&
+          (this.backRobotState == this.States.Wait || this.amTail)
+        ){
+          this.switchState(this.States.Move);
+        }
+        break;
+      case this.States.Move:
+        if(this.amLeader && this.backRobotDist > 3.5 * this.RADIUS) {
+          this.switchState(this.States.Wait);
+        }
+
+        if(!this.amLeader && this.frontRobotDist < 3.5 * this.RADIUS) {
+          this.switchState(this.States.Wait);
+        }
+        break;
+    }
+  }
+
+  switchState(newState) {
+    switch(newState) {
+      case this.States.Move:
+        if(this.amLeader) {
+          this.set_color(this.RGB(3, 0, 0));
+        } else if(this.amTail) {
+          this.set_color(this.RGB(0, 0, 3));
+        } else {
+          this.set_color(this.RGB(0, 3, 0));
+        }
+        break;
+      case this.States.Wait:
+        if(this.amLeader) {
+          this.set_color(this.RGB(1, 0, 0));
+        } else if(this.amTail) {
+          this.set_color(this.RGB(0, 0, 1));
+        } else {
+          this.set_color(this.RGB(0, 1, 0));
+        }
+        break;
+    }
+    this.state = newState;
+  }
+
+  moveLeader() {
+    // // random:
+    // switch((3*this.rand_soft()/255)|0) {
+    //   case 0: this.set_motors(0, this.kilo_turn_right); break;
+    //   case 1: this.set_motors(this.kilo_turn_left, 0); break;
+    //   case 2: this.set_motors(this.kilo_straight_left, this.kilo_straight_right); break;
+    // }
+
+    // orbit around -10*RADIUS,0
+    if(this.kilo_ticks % 100 == 0) {
+      this.set_motors(this.kilo_turn_left, 0);
+    } else {
+      this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
+    }
+  }
+
+  getCloserToFrontRobot() {
+    switch(this.direction) {
+      case 0: this.set_motors(0, this.kilo_turn_right); break;
+      case 1: this.set_motors(this.kilo_turn_left, 0); break;
+      case 2: this.set_motors(this.kilo_straight_left, this.kilo_straight_right); break;
+    }
+
+    if(this.kilo_ticks < this.last_updated + this.PERIOD)
+      return;
+    this.last_updated = this.kilo_ticks;
+
+    let value = this.frontRobotDist;
+
+    if(value > this.last_value) {
+      this.direction = (this.direction + 1) % 2;
+      this.PERIOD = (this.PERIOD + 1) % 2;
+    }
+
+    this.last_value = value;
+  }
+
+  loop() {
+    if(this.kilo_ticks % 4 != 0)
+      return;
+
+    if(this.state == this.States.Move) {
+      if(this.amLeader) {
+        this.moveLeader();
+      } else {
+        this.getCloserToFrontRobot();
+      }
+    }
+
+  }
+
+  message_tx() {
+    return {
+      id: this.id,
+      state: this.state,
+    }
+  }
+}
+
+window['ExperimentFollowTheLeader'] = class {
+  constructor() {
+    this.runnerOptions = {
+      limitSpeed: !true,
+      traversedPath: false,
+    }
+  }
+
+  setupGraphics(
+    PIXI,
+    Box2D,
+    pixiApp,
+    platformGraphics,
+    bodies,
+    bodyIDs,
+    setDisplayedData,
+    zIndexOf,
+  ) {
+    for(let i = 0; i < bodyIDs.length; i++) {
+      let b = bodies[bodyIDs[i]];
+      let g = b.g;
+
+      g.interactive = true;
+      g.buttonMode = true;
+      g.on('pointerdown', (ev) => {
+        console.log({
+          uid: b.robot._uid,
+          state: b.robot.state,
+          amLeader: b.robot.amLeader,
+          amTail: b.robot.amTail,
+        });
+        ev.stopPropagation();
+      });
+    }
+
+    return;
+
+    let g = new PIXI.Graphics()
+    g.zIndex = zIndexOf('FollowTheLeader');
+    g.alpha = 0.75;
+
+    platformGraphics.addChild(g);
+    pixiApp.ticker.add(() => {
+      g.clear();
+
+      for(let i = 0; i < bodyIDs.length-1; i++) {
+        let b1 = bodies[bodyIDs[i+0]];
+        let b2 = bodies[bodyIDs[i+1]];
+        g.lineStyle(1, 0x000000);
+        g.moveTo(
+          b1.body.GetPosition().get_x() * this.V.ZOOM,
+          b1.body.GetPosition().get_y() * this.V.ZOOM,
+        );
+        g.lineTo(
+          b2.body.GetPosition().get_x() * this.V.ZOOM,
+          b2.body.GetPosition().get_y() * this.V.ZOOM,
+        );
+      }
+    });
+  }
+
+  createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+    this.MathRandom = new Math.seedrandom(1234);
+    this.INITIAL_DIST = 3*RADIUS;
+
+    for(let i = 0; i < 6; i++) {
+      let id = i+1;
+      newRobotFunc({
+        x: i * this.INITIAL_DIST,
+        y: 0,
+      },
+        Math.PI, // this.MathRandom() * 2*Math.PI,
+        new RobotFollowTheLeader(id, RADIUS),
+      );
+    }
+  }
+}

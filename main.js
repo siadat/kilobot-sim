@@ -28,6 +28,7 @@ Box2D({
     'Shape',
     '_Shadow',
     'NeighborRegion',
+    'FollowTheLeader',
     '_TraversedPath',
     'RobustQuadlateral',
     'ConnsAndBouns',
