@@ -282,7 +282,7 @@ export class Pitch {
         let g = new PIXI.Graphics()
         g.zIndex = this.zIndexOf('_TraversedPath');
         g.alpha = 0.5;
-        // g.beginFill(b.robot.led.toHexDark());
+        // g.beginFill(toHexDark(b.robot.led));
         g.endFill();
 
         this.platformGraphics.addChild(g);
@@ -290,7 +290,7 @@ export class Pitch {
           g.clear();
           if(!this.experiment.runnerOptions.traversedPath) return;
           this.forEachBody(b => {
-            g.lineStyle(2, b.robot.led.toHexDark());
+            g.lineStyle(2, toHexDark(b.robot.led));
 
             let lastPos = null;
             b.posHistory.forEach(p => {
@@ -320,7 +320,7 @@ export class Pitch {
             });
 
             if(lastPos != null) {
-              g.lineStyle(2, b.robot.led.toHex());
+              g.lineStyle(2, toHex(b.robot.led));
               g.lineTo(+ b.body.GetPosition().get_x() * this.V.ZOOM, + b.body.GetPosition().get_y() * this.V.ZOOM);
             }
           });
@@ -479,7 +479,7 @@ export class Pitch {
             }
             let pos1 = bodies[conn.from].body.GetPosition();
             let pos2 = bodies[conn.to].body.GetPosition();
-            connGraphics.lineStyle(this.V.ZOOM * RADIUS/4, bodies[conn.from].robot.led.toHex());
+            connGraphics.lineStyle(this.V.ZOOM * RADIUS/4, toHex(bodies[conn.from].robot.led));
             connGraphics.moveTo(+ pos1.get_x() * this.V.ZOOM, + pos1.get_y() * this.V.ZOOM);
             connGraphics.lineTo(+ pos2.get_x() * this.V.ZOOM, + pos2.get_y() * this.V.ZOOM);
           });
@@ -763,7 +763,7 @@ export class Pitch {
               return;
             }
 
-            newPos.color = b.robot.led.toHex();
+            newPos.color = toHex(b.robot.led);
             b.posHistory.push(newPos);
             if(b.posHistory.length > max) {
               b.posHistory = b.posHistory.slice(b.posHistory.length-max, b.posHistory.length);
@@ -1110,9 +1110,9 @@ export class Pitch {
 
             g.lineStyle(0);
             if(false && b.robot.state == States.JoinedShape) {
-              g.beginFill(b.robot.led.toHex(), 1.0);
+              g.beginFill(toHex(b.robot.led), 1.0);
             } else {
-              g.beginFill(b.robot.led.toHex(), 0.5);
+              g.beginFill(toHex(b.robot.led), 0.5);
             }
             g.drawCircle(0, 0, b.circleRadius * this.V.ZOOM);
 
@@ -1158,7 +1158,7 @@ export class Pitch {
             g.beginFill(0x000000);
           } else {
             thickness = 1;
-            g.lineStyle(thickness, 0x000000, 0.6); // b.robot.led.toHexDark());
+            g.lineStyle(thickness, 0x000000, 0.6); // toHexDark(b.robot.led));
             g.beginFill(0xffffff);
             // g.beginFill(0x000000);
           }
@@ -1166,7 +1166,7 @@ export class Pitch {
           g.drawCircle(0, 0, b.circleRadius * this.V.ZOOM - thickness/2);
 
           g.lineStyle(0);
-          g.beginFill(b.robot.led.toHex(), 0.4);
+          g.beginFill(toHex(b.robot.led), 0.4);
 
           let glowRadius = b.circleRadius * this.V.ZOOM - thickness/2
 
@@ -1177,9 +1177,9 @@ export class Pitch {
           g.drawCircle(0, 0, glowRadius);
 
           /*
-          if(b.robot.led.toHex() != 0x000000) {
+          if(toHex(b.robot.led)) != 0x000000) {
             g.filters = [
-              new PIXI.filters.GlowFilter(2, 2, 1, b.robot.led.toHex(), 0.5),
+              new PIXI.filters.GlowFilter(2, 2, 1, toHex(b.robot.led), 0.5),
             ];
           } else {
             g.filters = [];
@@ -1190,7 +1190,7 @@ export class Pitch {
           if(this.V.ZOOM * b.circleRadius > 10) {
             g.endFill();
             g.lineStyle(b.circleRadius*this.V.ZOOM*0.25, 0x000000, 1.0);
-            // g.lineStyle(b.circleRadius*this.V.ZOOM*0.25, b.robot.led.toHex(), 1);
+            // g.lineStyle(b.circleRadius*this.V.ZOOM*0.25, toHex(b.robot.led), 1);
             g.moveTo(0, 0);
             g.lineTo(b.circleRadius*this.V.ZOOM - thickness, 0);
           }
@@ -1211,7 +1211,7 @@ export class Pitch {
             // g.lineStyle(0);
             let ledRadius = b.circleRadius * 0.4 * this.V.ZOOM;
             g.lineStyle(1, 0x000000, 0.5);
-            g.beginFill(b.robot.led.toHex());
+            g.beginFill(toHex(b.robot.led));
             g.drawCircle(
               0,
               0,
@@ -1228,8 +1228,8 @@ export class Pitch {
             }
             g.addChild(t);
           }
-
         };
+
         this.pixiApp.ticker.add(() => {
           if(!agentGraphicsTick) {
             return;
@@ -1434,4 +1434,24 @@ const calcDistBox2D = function(pos1, pos2) {
   return Math.sqrt(
     Math.pow(pos1.get_x() - pos2.get_x(), 2) + Math.pow(pos1.get_y() - pos2.get_y(), 2)
   );
+}
+
+function toHex(led) {
+  let r = Math.floor(0xff * led.r / 3.0).toString(16);
+  let g = Math.floor(0xff * led.g / 3.0).toString(16);
+  let b = Math.floor(0xff * led.b / 3.0).toString(16);
+  if(r.length == 1) r = `0${r}`;
+  if(g.length == 1) g = `0${g}`;
+  if(b.length == 1) b = `0${b}`;
+  return `0x${r}${g}${b}`;
+}
+
+function toHexDark(led) {
+  let r = Math.floor(0xff * led.r / 3.0 / 2).toString(16);
+  let g = Math.floor(0xff * led.g / 3.0 / 2).toString(16);
+  let b = Math.floor(0xff * led.b / 3.0 / 2).toString(16);
+  if(r.length == 1) r = `0${r}`;
+  if(g.length == 1) g = `0${g}`;
+  if(b.length == 1) b = `0${b}`;
+  return `0x${r}${g}${b}`;
 }

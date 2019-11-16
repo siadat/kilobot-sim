@@ -1,6 +1,6 @@
 export class Kilobot {
   constructor() {
-    this.led = new RGBClass(0, 0, 0);
+    this.led = {r: 0, g: 0, b: 0};
     this._graphics_must_update = true;
     this._uid = -1;
     this._startedAt = new Date();
@@ -129,12 +129,13 @@ export class Kilobot {
 
       let temp_cos = 0;
       let temp_sin = 0;
+      let legRadius = this._RADIUS*0.9;
       if(right > left) {
-        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * (this._RADIUS*0.9);
-        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * (this._RADIUS*0.9);
+        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * legRadius;
+        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * legRadius;
       } else {
-        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * (this._RADIUS*0.9);
-        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * (this._RADIUS*0.9);
+        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * legRadius;
+        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * legRadius;
       }
 
       let newPos = new this._Box2D.b2Vec2(
@@ -186,12 +187,16 @@ export class Kilobot {
       && b == this.led.b) {
       return;
     }
-    this.led = new RGBClass(r, g, b);
+    this.led = {
+      r: r,
+      g: g,
+      b: b,
+    };
     this._graphics_must_update = true;
   }
 }
 
-
+  /*
 class RGBClass {
   constructor(r, g, b) {
     if(r < 0 || r > 3) {
@@ -212,22 +217,5 @@ class RGBClass {
     this.b = b;
   }
 
-  toHex() {
-    let r = Math.floor(0xff * this.r / 3.0).toString(16);
-    let g = Math.floor(0xff * this.g / 3.0).toString(16);
-    let b = Math.floor(0xff * this.b / 3.0).toString(16);
-    if(r.length == 1) r = `0${r}`;
-    if(g.length == 1) g = `0${g}`;
-    if(b.length == 1) b = `0${b}`;
-    return `0x${r}${g}${b}`;
-  }
-  toHexDark() {
-    let r = Math.floor(0xff * this.r / 3.0 / 2).toString(16);
-    let g = Math.floor(0xff * this.g / 3.0 / 2).toString(16);
-    let b = Math.floor(0xff * this.b / 3.0 / 2).toString(16);
-    if(r.length == 1) r = `0${r}`;
-    if(g.length == 1) g = `0${g}`;
-    if(b.length == 1) b = `0${b}`;
-    return `0x${r}${g}${b}`;
-  }
 }
+  */
