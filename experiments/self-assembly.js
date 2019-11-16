@@ -825,7 +825,7 @@ window['ExperimentAssembly'] = class {
   constructor() {
     this.selectedUID = null;
     this.drawLocalizationError = true;
-    this.COUNT = 4 + 195;
+    this.COUNT = 4 + 194;
 
     this.runnerOptions = {
       limitSpeed: !true,
@@ -1054,8 +1054,8 @@ window['ExperimentAssembly'] = class {
     for(let rowi = 0; assemblyCount > 0; rowi++) {
       // let colCount = Math.pow(rowi, 1.1);
 
-      let left = -Math.floor(rowi/2);
-      let right = rowi + 2;
+      let left = -Math.floor(rowi/1);
+      let right = Math.pow(rowi, 1.1) + 2;
 
       for(let coli = left; coli < right && assemblyCount > 0; coli++) {
         assemblyCount--;
