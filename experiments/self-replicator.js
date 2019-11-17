@@ -500,14 +500,12 @@ class GradientAndReplicatorRobot extends Kilobot {
     let C = pow2(r[1]) - pow2(r[2]) - pow2(x[1]) + pow2(x[2]) - pow2(y[1]) + pow2(y[2]);
     let F = pow2(r[2]) - pow2(r[3]) - pow2(x[2]) + pow2(x[3]) - pow2(y[2]) + pow2(y[3]);
 
-    let newPos = {
-      x: (C*E - F*B) / (A*E - B*D),
-      y: (C*D - F*A) / (B*D - A*E),
-    };
+    let newPosX = (C*E - F*B) / (A*E - B*D);
+    let newPosY = (C*D - F*A) / (B*D - A*E);
 
-    if(!isNaN(newPos.x) && !isNaN(newPos.y)) {
-      this.shapePos.x = newPos.x;
-      this.shapePos.y = newPos.y;
+    if(!isNaN(newPosX) && !isNaN(newPosY)) {
+      this.shapePos.x = newPosX;
+      this.shapePos.y = newPosY;
     }
 	}
 
@@ -534,15 +532,13 @@ class GradientAndReplicatorRobot extends Kilobot {
       let i = closestNeighborIndexes[j];
       let nx = this.neighbors_pos_x[i];
       let ny = this.neighbors_pos_y[i];
+      let v = {x: 0, y: 0};
 
       let c = Math.sqrt((posx-nx)*(posx-nx) + (posy-ny)*(posy-ny));
 
-      let v = {x: 0, y: 0};
       if(c != 0) {
-        v = {
-          x: (posx - nx)/c,
-          y: (posy - ny)/c,
-        };
+        v.x = (posx - nx)/c;
+        v.y = (posy - ny)/c;
       }
 
       let nd = this.neighbors_dist[i];
