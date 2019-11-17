@@ -617,7 +617,7 @@ class GradientAndReplicatorRobot extends Kilobot {
     }
 
     this.myGradient = newValue;
-    if(!this.isSeed && !this.isCenter) {
+    if(this.state != States.JoinedShape && !this.isSeed && !this.isCenter) {
       this.set_colors_for_gradient(this.myGradient);
     }
   }
@@ -859,6 +859,7 @@ class GradientAndReplicatorRobot extends Kilobot {
         this.unmark();
         this.isStationary = STATIONARY;
         this.localize();
+        this.set_color(this.RGB(0, 0, 0));
 
         // if(!this.isSeed) {
         //   this.set_color(this.COLORS_INTENSE[this.myGradient % this.COLORS_INTENSE.length]);

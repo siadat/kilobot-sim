@@ -665,7 +665,7 @@ export class Pitch {
     }, this.experiment.runnerOptions);
 
     this.darkMode = this.experiment.runnerOptions.darkMode;
-    this.pixiApp.renderer.backgroundColor = this.darkMode ? 0x111111 : 0xdddddd;
+    this.pixiApp.renderer.backgroundColor = this.darkMode ? 0x111111 : 0xeeeeee;
 
     this.experiment.V = this.V;
     this.experiment.equalZooms = equalZooms;
@@ -1251,7 +1251,7 @@ export class Pitch {
             g.beginFill(0x000000);
           } else {
             thickness = 1;
-            g.lineStyle(thickness, 0x000000, 0.6); // toHexDark(b.robot.led));
+            g.lineStyle(thickness, toHexDark(b.robot.led), 0.5); // toHexDark(b.robot.led));
             g.beginFill(0xffffff);
             // g.beginFill(0x000000);
           }
@@ -1259,15 +1259,18 @@ export class Pitch {
           g.drawCircle(0, 0, b.circleRadius * this.V.ZOOM - thickness/2);
 
           g.lineStyle(0);
-          g.beginFill(toHex(b.robot.led), 0.4);
-
-          let glowRadius = b.circleRadius * this.V.ZOOM - thickness/2
-
-          // if(b.robot.led.r > 0 || b.robot.led.g > 0 || b.robot.led.b > 0) {
-          //   glowRadius = glowRadius * 2;
-          // }
-
-          g.drawCircle(0, 0, glowRadius);
+          if(this.darkMode){
+            g.beginFill(toHex(b.robot.led), 0.4);
+            let glowRadius = b.circleRadius * this.V.ZOOM - thickness/2
+            // if(b.robot.led.r > 0 || b.robot.led.g > 0 || b.robot.led.b > 0) {
+            //   glowRadius = glowRadius * 2;
+            // }
+            g.drawCircle(0, 0, glowRadius);
+          } else {
+            g.beginFill(toHex(b.robot.led), 0.2);
+            let glowRadius = b.circleRadius * this.V.ZOOM - thickness/2
+            g.drawCircle(0, 0, glowRadius);
+          }
 
           /*
           if(toHex(b.robot.led)) != 0x000000) {
@@ -1303,8 +1306,14 @@ export class Pitch {
             // g.lineStyle(thickness);
             // g.lineStyle(0);
             let ledRadius = b.circleRadius * 0.4 * this.V.ZOOM;
-            g.lineStyle(1, 0x000000, 0.5);
-            g.beginFill(toHex(b.robot.led));
+            // g.lineStyle(0.1 * this.V.ZOOM, 0x000000, 0.5);
+            g.lineStyle(2, 0x000000, 0.5);
+            if(this.darkMode) {
+              g.beginFill(toHex(b.robot.led));
+            } else {
+              // g.beginFill(0x000000);
+              g.beginFill(toHex(b.robot.led));
+            }
             g.drawCircle(
               0,
               0,
