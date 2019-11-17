@@ -249,9 +249,8 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   set_colors_for_gradient(g) {
-    if(g == NO_GRAD) {
-      return;
-    }
+    if(g == NO_GRAD) return;
+
     this.set_color(this.COLORS[g % this.COLORS.length]);
   }
 
@@ -376,6 +375,9 @@ class GradientAndAssemblyRobot extends Kilobot {
 
 
   gradientFormation() {
+    // this.setGradient((this.myGradient||0) + 1);
+    // return;
+
     if(this.myGradient == NO_GRAD) {
       this.hesitate("movement");
       this.isStationary = STATIONARY;
@@ -662,11 +664,11 @@ class GradientAndAssemblyRobot extends Kilobot {
     // this._cached_robust_quad = false;
     this.counter++;
 
-    if(false){
+    if(false) {
       if(this.kilo_uid % 2 == 0)
-        this.set_motors(this.kilo_straight_left, 0);
+        this.set_motors(this.kilo_turn_left, 0);
       else
-        this.set_motors(0, this.kilo_straight_right);
+        this.set_motors(0, this.kilo_turn_right);
       this.gradientFormation();
       this.localize();
       return;
@@ -873,6 +875,7 @@ window['ExperimentAssembly'] = class {
     this.selectedUID = null;
     this.drawLocalizationError = true;
     // this.COUNT = 4 + 140;
+    // this.COUNT = 4 + 196/2 - 2 - 30;
     this.COUNT = 4 + 196/2 - 2;
 
     this.runnerOptions = {

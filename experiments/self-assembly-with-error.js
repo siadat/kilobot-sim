@@ -245,9 +245,8 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
   }
 
   set_colors_for_gradient(g) {
-    if(g == NO_GRAD) {
-      return;
-    }
+    if(g == NO_GRAD) return;
+
     this.set_color(this.COLORS[g % this.COLORS.length]);
   }
 
@@ -659,9 +658,9 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
 
     if(false){
       if(this.kilo_uid % 2 == 0)
-        this.set_motors(this.kilo_straight_left, 0);
+        this.set_motors(this.kilo_turn_left, 0);
       else
-        this.set_motors(0, this.kilo_straight_right);
+        this.set_motors(0, this.kilo_turn_right);
       this.gradientFormation();
       this.localize();
       return;

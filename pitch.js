@@ -750,6 +750,28 @@ export class Pitch {
         b.robot._started = true;
       });
     }
+      /*
+    for(let i = 0; i < this.bodyIDs.length; i++) {
+      let b = this.bodies[this.bodyIDs[i]];
+      b.toStartAt = 5 + (this.perfectStart ? 0 : Math.floor(30 * this.MathRandom()));
+    }
+    for(let i = 0; i < this.bodyIDs.length; i++) {
+      let b = this.bodies[this.bodyIDs[i]];
+
+      if(b.toStartAt == frameCount) {
+        b.robot.setup();
+        b.robot._started = true;
+      }
+
+      if(b.robot._started) {
+        b.robot.loop();
+        b.robot._internal_loop();
+        continue;
+      }
+
+    }
+    */
+
 
     this.setDisplayedData('Count', `${this.bodyIDs.length} ${this.bodyIDs.length == 1 ? 'robot' : 'robots'}`);
     this.setDisplayedData('Random seed', `${this.randomSeed}`);
@@ -794,7 +816,57 @@ export class Pitch {
       */
     }
 
+    let messageTxCount = 0;
+    let messageRxCount = 0;
 
+    let aabb = new this.Box2D.b2AABB();
+    let lowerBound = new this.Box2D.b2Vec2(0, 0);
+    let upperBound = new this.Box2D.b2Vec2(0, 0);
+
+    let queryCallback = new this.Box2D.JSQueryCallback();
+    queryCallback.ReportFixture = function(fixturePtr) {
+      let fixture = this.Box2D.wrapPointer(fixturePtr, this.Box2D.b2Fixture);
+      let id = fixture.GetBody().GetUserData();
+      if(id == BODY_ID_IGNORE) {
+        return ContinueQuery;
+      }
+      sendMessage(this.broadcastingBody, id, this.message);
+      return ContinueQuery;
+    }
+
+    const sendMessage = (broadcastingBody, receiverID, message) => {
+      if(receiverID == broadcastingBody.body.GetUserData()) {
+        // same body
+        return;
+      }
+
+      let receiverBody = this.bodies[receiverID];
+      if(!receiverBody) {
+        console.error(`body id not found id=${receiverID}`);
+        return;
+      }
+      if(!receiverBody.robot._started) {
+        return;
+      }
+
+      let p1 = broadcastingBody.body.GetPosition();
+      let p2 = receiverBody.body.GetPosition();
+      let distance = calcDistBox2D(p1, p2);
+
+      if(distance > NEIGHBOUR_DISTANCE) {
+        return;
+      }
+
+      messageRxCount++;
+      receiverBody.robot.message_rx(message, distance);
+
+      if(DRAW_CONNS_AND_BOUNDS) {
+        this.connections.push({
+          from: broadcastingBody.body.GetUserData(),
+          to: receiverBody.body.GetUserData(),
+        });
+      }
+    };
 
     return new Promise((resolve, reject) => {
       const tickFunc = (frameCount, recursive) => {
@@ -881,53 +953,8 @@ export class Pitch {
 
         // ******
         this.connections = [];
-        let messageTxCount = 0;
-        let messageRxCount = 0;
-
-        const sendMessage = (broadcastingBody, receiverID, message) => {
-          if(receiverID == broadcastingBody.body.GetUserData()) {
-            // same body
-            return;
-          }
-
-          let receiverBody = this.bodies[receiverID];
-          if(!receiverBody) {
-            console.error(`body id not found id=${receiverID}`);
-            return;
-          }
-          if(!receiverBody.robot._started) {
-            return;
-          }
-
-          let p1 = broadcastingBody.body.GetPosition();
-          let p2 = receiverBody.body.GetPosition();
-          let distance = calcDistBox2D(p1, p2);
-
-          if(distance > NEIGHBOUR_DISTANCE) {
-            return;
-          }
-
-          messageRxCount++;
-          receiverBody.robot.message_rx(message, distance);
-
-          if(DRAW_CONNS_AND_BOUNDS) {
-            this.connections.push({
-              from: broadcastingBody.body.GetUserData(),
-              to: receiverBody.body.GetUserData(),
-            });
-          }
-        };
-
-        let queryCallback = new this.Box2D.JSQueryCallback();
-        queryCallback.ReportFixture = function(fixturePtr) {
-          let fixture = this.Box2D.wrapPointer(fixturePtr, this.Box2D.b2Fixture);
-          let id = fixture.GetBody().GetUserData();
-          if(id == BODY_ID_IGNORE) {
-            return ContinueQuery;
-          }
-          sendMessage(this.broadcastingBody, id, this.message);
-          return ContinueQuery;
-        }
+        messageTxCount = 0;
+        messageRxCount = 0;
 
         {
           /*
@@ -1000,9 +1027,6 @@ export class Pitch {
         }
 
         if(true) {
-          let aabb = new this.Box2D.b2AABB();
-          let lowerBound = new this.Box2D.b2Vec2(0, 0);
-          let upperBound = new this.Box2D.b2Vec2(0, 0);
           for(let i = 0; i < this.bodyIDs.length; i++) {
             let b = this.bodies[this.bodyIDs[i]];
             if(frameCount < b.lastMessageSentAt + TICKS_BETWEEN_MSGS) {
@@ -1086,10 +1110,6 @@ export class Pitch {
               this.physics.world.QueryAABB(queryCallback, aabb);
             }
           }
-          this.Box2D.destroy(lowerBound);
-          this.Box2D.destroy(upperBound);
-          this.Box2D.destroy(aabb);
-          this.Box2D.destroy(queryCallback);
         }
 
         if(DEV) {
@@ -1163,6 +1183,11 @@ export class Pitch {
       this.startDate = performance.now();
       tickFunc(0, true);
     });
+
+    // this.Box2D.destroy(queryCallback);
+    // this.Box2D.destroy(lowerBound);
+    // this.Box2D.destroy(upperBound);
+    // this.Box2D.destroy(aabb);
   }
 
   toggleLimitSpeed() {
