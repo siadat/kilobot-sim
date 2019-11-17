@@ -26,7 +26,7 @@ class RobotRandom extends Kilobot {
   }
 }
 
-window.ExperimentRandom = class {
+window['ExperimentRandom'] = class {
   constructor() {
     this.runnerOptions = {
       limitSpeed: true,

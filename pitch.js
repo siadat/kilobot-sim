@@ -367,6 +367,12 @@ export class Pitch {
         // this.pixiApp.ticker.add(() => {
         //   this.setDisplayedData('Renderer frames/second', `${Math.floor(1/this.deltaTime)}/s`);
         // });
+
+        // // speed diagram
+        // this.graph = new PIXI.Graphics()
+        // this.graph.zIndex = 2;
+        // this.graph.position = {x: 0, y: 0};
+        // this.metaPixiGraphics.addChild(this.graph);
       }
 
       {
@@ -439,7 +445,7 @@ export class Pitch {
             }
 
             if(lastPosX != null) {
-              g.lineStyle(10, toHex(b.robot.led));
+              g.lineStyle(counter * RADIUS * this.V.ZOOM, toHex(b.robot.led));
               g.lineTo(+ b.body.GetPosition().get_x() * this.V.ZOOM, + b.body.GetPosition().get_y() * this.V.ZOOM);
             }
           });

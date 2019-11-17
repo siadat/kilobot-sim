@@ -234,6 +234,10 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
     // this.localizeCounter = 0;
 
     this.set_color(this.RGB(0, 0, 0));
+
+    if(this.isSeed) {
+      this.posConfidence = 10;
+    }
   }
 
 
@@ -499,10 +503,7 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
 	}
 
   localize() {
-    if(this.isSeed) {
-      this.posConfidence = 10;
-      return;
-    }
+    if(this.isSeed) return;
 
     let closestNeighborIndexes = this.getFirstRobustQuadrilateralIndexes();
 
@@ -517,18 +518,21 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
       return;
     }
 
+    let posx = this.shapePos.x;
+    let posy = this.shapePos.y;
+
     for(let j = 0; j < closestNeighborIndexes.length; j++) {
       let i = closestNeighborIndexes[j];
       let nx = this.neighbors_pos_x[i];
       let ny = this.neighbors_pos_y[i];
 
-      let c = calculateDistance(this.shapePos, {x: nx, y: ny});
+      let c = Math.sqrt((posx-nx)*(posx-nx) + (posy-ny)*(posy-ny));
 
       let v = {x: 0, y: 0};
       if(c != 0) {
         v = {
-          x: (this.shapePos.x - nx)/c,
-          y: (this.shapePos.y - ny)/c,
+          x: (posx - nx)/c,
+          y: (posy - ny)/c,
         };
       }
 
@@ -537,11 +541,11 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
         x: nx + nd * v.x,
         y: ny + nd * v.y,
       }
-      this.shapePos = {
-        x: this.shapePos.x + (n.x - this.shapePos.x)/4,
-        y: this.shapePos.y + (n.y - this.shapePos.y)/4,
-      };
+      posx = posx + (n.x - posx)/4;
+      posy = posy + (n.y - posy)/4;
     }
+    this.shapePos.x = posx;
+    this.shapePos.y = posy;
     this.posConfidence += 1;
   }
 

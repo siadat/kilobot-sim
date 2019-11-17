@@ -22,12 +22,12 @@ const calculateDistance = function(pos1, pos2) {
   );
 }
 
-const pow2 = x => x*x;
-
 const round = function(x) {
   // radius is 1, so a resolution of 0.1 is good enough
   return Math.round(x * 10)/10.0;
 }
+
+const pow2 = x => x*x;
 
 if(false){
 	function fetchAndInstantiate(url, importObject) {
@@ -173,7 +173,6 @@ class GradientAndReplicatorRobot extends Kilobot {
     this.stats = {};
     this.events = [];
     this.lastExpireCheck = -1;
-    // this.isInsideShape = opts.isInsideShape;
     this.edgeFollowingStartedAt = null;
     // this.robotsIveEdgeFollowed = [];
     this.robotsIveEdgeFollowed = {};
@@ -187,8 +186,8 @@ class GradientAndReplicatorRobot extends Kilobot {
       this.neighbors_id = new Int32Array(MAX_NEIGHBOURS);
       this.neighbors_grad = new Int32Array(MAX_NEIGHBOURS);
       this.neighbors_seen_at = new Int32Array(MAX_NEIGHBOURS);
-      this.neighbors_replicaID = new Int32Array(MAX_NEIGHBOURS);
       this.neighbors_pos_confidence = new Int32Array(MAX_NEIGHBOURS);
+      this.neighbors_replicaID = new Int32Array(MAX_NEIGHBOURS);
 
       // floats:
       this.neighbors_dist = new Float64Array(MAX_NEIGHBOURS);
@@ -243,10 +242,12 @@ class GradientAndReplicatorRobot extends Kilobot {
 
     if(this.isSeed) {
       this.set_color(this.RGB(3, 3, 3));
-    } else if(this.isCenter) {
-      this.set_color(this.RGB(2, 2, 2));
     } else {
       this.set_color(this.RGB(0, 0, 0));
+    }
+
+    if(this.isSeed) {
+      this.posConfidence = 10;
     }
   }
 
@@ -259,9 +260,8 @@ class GradientAndReplicatorRobot extends Kilobot {
   }
 
   set_colors_for_gradient(g) {
-    if(g == NO_GRAD) {
-      return;
-    }
+    if(g == NO_GRAD) return;
+
     this.set_color(this.COLORS[g % this.COLORS.length]);
   }
 
@@ -357,14 +357,6 @@ class GradientAndReplicatorRobot extends Kilobot {
             }
 
             if(robustTriangles == 4) {
-              // let d1 = this.neighbors_dist[indexes[i]]; 
-              // let d2 = this.neighbors_dist[indexes[j]]; 
-              // let d3 = this.neighbors_dist[indexes[k]]; 
-              // let d4 = this.neighbors_dist[indexes[l]]; 
-
-              // if(d1 == d2 || d1 == d3 || d1 == d4 || d2 == d3 || d2 == d4 || d3 == d4)
-              //   continue;
-
               this._cached_robust_quad = true;
               this.robust_quad = [
                 indexes[i],
@@ -390,8 +382,6 @@ class GradientAndReplicatorRobot extends Kilobot {
 
     return indexes.map(i => this.neighbors_id[i]);
   }
-
-
 
   gradientFormation() {
     if(this.myGradient == NO_GRAD) {
@@ -516,28 +506,18 @@ class GradientAndReplicatorRobot extends Kilobot {
     };
 
     if(!isNaN(newPos.x) && !isNaN(newPos.y)) {
-      this.shapePos = newPos;
+      this.shapePos.x = newPos.x;
+      this.shapePos.y = newPos.y;
     }
 	}
 
   localize() {
-    if(this.isSeed) {
-      this.posConfidence = 10;
-      return;
-    }
-
-    // if(this.shapePos.x == NO_POS || this.shapePos.y == NO_POS) {
-    //   // not starting from 0,0
-    //   // because 0,0 is always inside the shape!
-    //   this.shapePos = {
-    //     x: 0,
-    //     y: 0,
-    //   };
-    // }
+    if(this.isSeed) return;
 
     let closestNeighborIndexes = this.getFirstRobustQuadrilateralIndexes();
 
     if(!closestNeighborIndexes || closestNeighborIndexes.length < 3) {
+      // this.posConfidence -= 1;
       return;
     }
 
@@ -547,27 +527,21 @@ class GradientAndReplicatorRobot extends Kilobot {
       return;
     }
 
-    // if(this.kilo_uid == 13 && this.counter < 300) {
-    //   console.log("-------");
-    // }
-    // closestNeighborIndexes.sort((a, b) => this.rand_soft() - 255/2);
+    let posx = this.shapePos.x;
+    let posy = this.shapePos.y;
+
     for(let j = 0; j < closestNeighborIndexes.length; j++) {
       let i = closestNeighborIndexes[j];
       let nx = this.neighbors_pos_x[i];
       let ny = this.neighbors_pos_y[i];
 
-      // if(this.kilo_uid == 13 && this.counter < 300) {
-      //   console.log('pos', this.shapePos.x, this.shapePos.y);
-      //   console.log('neighbor', this.neighbors_id[i], nx, ny);
-      // }
-
-      let c = calculateDistance(this.shapePos, {x: nx, y: ny});
+      let c = Math.sqrt((posx-nx)*(posx-nx) + (posy-ny)*(posy-ny));
 
       let v = {x: 0, y: 0};
       if(c != 0) {
         v = {
-          x: (this.shapePos.x - nx)/c,
-          y: (this.shapePos.y - ny)/c,
+          x: (posx - nx)/c,
+          y: (posy - ny)/c,
         };
       }
 
@@ -576,18 +550,12 @@ class GradientAndReplicatorRobot extends Kilobot {
         x: nx + nd * v.x,
         y: ny + nd * v.y,
       }
-
-      let rnd = 0.3; // 0.8 * this.rand_soft()/255;
-      this.shapePos = {
-        x: this.shapePos.x + (n.x - this.shapePos.x)*(0.2 + rnd),
-        y: this.shapePos.y + (n.y - this.shapePos.y)*(0.2 + rnd),
-      };
+      posx = posx + (n.x - posx)/4;
+      posy = posy + (n.y - posy)/4;
     }
+    this.shapePos.x = posx;
+    this.shapePos.y = posy;
     this.posConfidence += 1;
-
-    // if(this.kilo_uid == 13 && this.counter < 300) {
-    //   console.log('pos', this.shapePos.x, this.shapePos.y);
-    // }
   }
 
   seenRecentMovingNeighborsIndex() {

@@ -1,13 +1,16 @@
 SHELL := /bin/bash # reason: make "source" work (reason: avoid putting it in my ~/.bashrc)
 
+dev: update_version
+	npx webpack -w --config webpack.dev.js
+
+all:
+	ag -o --js 'window..(Experiment\w+)' | tee | grep -Po 'Experiment\w+' | sort | uniq
+
 build:
 	source /home/sina/kilobot-sim/emsdk/emsdk_env.sh && \
 		emcc -O3 robustc.c -o robustc.html -s EXPORTED_FUNCTIONS='["_isTriangleRobustC"]'  -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
 	# cp $(GOROOT)/misc/wasm/wasm_exec.js .
 	# GOARCH=wasm GOOS=js go build -o robust.wasm robust.go
-
-dev: update_version
-	npx webpack -w --config webpack.dev.js
 
 deploy: update_version
 	npx webpack --config webpack.prod.js
