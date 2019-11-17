@@ -44,6 +44,7 @@ export class Pitch {
     this.MathRandom = new Math.seedrandom(this.randomSeed);
     this.perfectStart = perfectStart;
     this.LayersOrder = [
+      '_Origin',
       '_Shadow',
       '_TraversedPath',
       '_Robots',
@@ -75,7 +76,7 @@ export class Pitch {
 
       let updateZoom = (nextZoom, screenCenter) => {
         if(nextZoom < 2) nextZoom = 2;
-        if(nextZoom > 20) nextZoom = 20;
+        if(nextZoom > 40) nextZoom = 40;
 
         let centerWithoutZoom = {
           // x: (this.V.PAN.x-SIZE.w/2)/this.V.ZOOM,
@@ -389,6 +390,40 @@ export class Pitch {
           });
         });
       }
+
+      if(!true) { // origin grid
+        let g = new PIXI.Graphics()
+        g.zIndex = this.zIndexOf('_Origin');
+        g.alpha = 0.5;
+        // g.lastView = null;
+
+        this.platformGraphics.addChild(g);
+        this.pixiApp.ticker.add(() => {
+          // if(equalZooms(g.lastView, this.V)) return;
+          g.clear();
+          g.endFill();
+
+          let s = 1;
+          let max = 30; 
+          for(let i = -max; i <= max; i++) {
+            if(i % 5 == 0) {
+              g.lineStyle(0.5*0.2*this.V.ZOOM, 0x000000);
+            } else {
+              g.lineStyle(0.5*0.1*this.V.ZOOM, 0x000000);
+            }
+            if(i == 0) {
+              g.lineStyle(0.5*0.4*this.V.ZOOM, 0x000000);
+            }
+
+            g.moveTo(-max * s * this.V.ZOOM, i*s*this.V.ZOOM);
+            g.lineTo(+max * s * this.V.ZOOM, i*s*this.V.ZOOM)
+
+            g.moveTo(i*s*this.V.ZOOM, -max * s * this.V.ZOOM);
+            g.lineTo(i*s*this.V.ZOOM, +max * s * this.V.ZOOM);
+          }
+        });
+      }
+
 
       // TODO: create a layer here, but move drawing's to the robot's graphics loop
       if(DRAW_SHADOW) {

@@ -6,6 +6,12 @@ Box2D({
 }).then(Box2D => {
   console.log("Loaded.");
 
+  if(!true) {
+    let imageEditor = new ImageEditor();
+    setTimeout(() => { console.log(JSON.stringify(imageEditor.convert())); }, 500);
+    return true;
+  }
+
   if(window.location.search == "") {
     // redirect to a default experiment:
     window.location.search = '?ExperimentRandom';
@@ -19,13 +25,14 @@ Box2D({
     return;
   }
 
-  let randomSeed = 5811; // Math.floor(Math.random()*1000000);
+  let randomSeed = 5810; // Math.floor(Math.random()*1000000);
   let perfectStart = false;
 
   let pitch = new Pitch(Box2D, perfectStart, randomSeed);
   window.pitch = pitch;
   pitch.setLayersOrder([
     'Shape',
+    '_Origin',
     '_Shadow',
     'NeighborRegion',
     'FollowTheLeader',

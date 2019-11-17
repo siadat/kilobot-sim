@@ -1,9 +1,11 @@
 class ImageEditor {
   constructor() {
     this.size = {
-      w: 160,
-      h: 420,
+      w: 600,
+      h: 600,
     }
+
+    PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
     this.app = new PIXI.Application({
       width: this.size.w,
       height: this.size.h,
@@ -12,13 +14,16 @@ class ImageEditor {
     });
     this.app.stage.sortableChildren = true;
 
-
     document.body.appendChild(this.app.view);
     const container = new PIXI.Container();
     this.app.stage.addChild(container);
 
-    const texture = PIXI.Texture.from('/pattern1.png');
+    // const texture = PIXI.Texture.from('/pattern1.png');
+    const texture = PIXI.Texture.from('/starfish.png');
     this.sprite = new PIXI.Sprite(texture);
+
+    this.sprite.scale.x = 2;
+    this.sprite.scale.y = 2;
     this.sprite.anchor.set(0);
     this.sprite.alpha = 1; // 0.75;
     this.sprite.zIndex = 1;
@@ -77,12 +82,12 @@ class ImageEditor {
 
     console.log(this.sprite.height);
 
-    let unit = 6;
+    let unit = 14;
 
     let asciiShape = [];
     let root = {row: 0, col: 0};
 
-    let offset = {x: 0, y: unit/2};
+    let offset = {x: -4, y: 0};
     for(let y = offset.y; y < this.sprite.height; y+=unit) {
       let row = [];
       for(let x = offset.x; x < this.sprite.width; x+=unit) {
@@ -95,11 +100,11 @@ class ImageEditor {
           a: pixels[k+3],
         };
 
-        if(pixel.r < 255*0.5 && pixel.g < 255*0.5 && pixel.b < 255*0.5) {
+        if(pixel.r < 255*0.9 && pixel.g < 255*0.9 && pixel.b < 255*0.9) {
           row.push('#');
           img.beginFill(0x00ff00);
-          img.lineStyle(1, 0x000000);
-          img.drawRect(x, y, 6.35, 6.35);
+          // img.lineStyle(1, 0x000000);
+          img.drawRect(x, y, unit-1, unit-1);
 
           if(root.row != asciiShape.length) {
             root.row = asciiShape.length;
