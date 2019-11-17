@@ -118,9 +118,8 @@ class ImageEditor {
     }
 
     asciiShape[root.row][root.col] = 'R';
-    console.log(root, asciiShape);
-    return asciiShape;
-
+    console.log(root);
+    console.log(asciiShape.map(line => line.join('')).join("\n"));
 
     /*
     let pixels = this.app.renderer.extract.pixels(this.app.stage);

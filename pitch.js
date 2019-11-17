@@ -1307,7 +1307,7 @@ export class Pitch {
             // g.lineStyle(0);
             let ledRadius = b.circleRadius * 0.4 * this.V.ZOOM;
             // g.lineStyle(0.1 * this.V.ZOOM, 0x000000, 0.5);
-            g.lineStyle(2, 0x000000, 0.5);
+            g.lineStyle(2, 0x000000, 0.3);
             if(this.darkMode) {
               g.beginFill(toHex(b.robot.led));
             } else {

@@ -155,7 +155,7 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
     this.initialDist = opts.initialDist;
     this.HESITATE_DURATION = 2 * opts.ticksBetweenMsgs;
     this.NEIGHBOUR_EXPIRY = 2 * opts.ticksBetweenMsgs;
-    this.DESIRED_SHAPE_DIST = 3.2*opts.radius;
+    this.DESIRED_SHAPE_DIST = 3.1*opts.radius;
     this.NEARBY_MOVING_DISTANCE = 4*this.DESIRED_SHAPE_DIST;
 
     this.shapeDesc = opts.shapeDesc;
@@ -233,11 +233,7 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
     // this.posHistory = [];
     // this.localizeCounter = 0;
 
-    if(this.isSeed) {
-      this.set_color(this.RGB(3, 3, 3));
-    } else {
-      this.set_color(this.RGB(0, 0, 0));
-    }
+    this.set_color(this.RGB(0, 0, 0));
   }
 
 
@@ -383,7 +379,8 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
     }
 
     if(this.isGradientSeed) {
-      this.myGradient = 0;
+      this.setGradient(0);
+      // this.myGradient = 0;
       return;
     }
 
@@ -576,9 +573,7 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
     }
 
     this.myGradient = newValue;
-    if(!this.isSeed) {
-      this.set_colors_for_gradient(this.myGradient);
-    }
+    this.set_colors_for_gradient(this.myGradient);
   }
 
   doEdgeFollow() {
@@ -780,6 +775,7 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
         this.unmark();
         this.isStationary = STATIONARY;
         this.localize();
+        this.set_color(this.RGB(3, 1, 1));
 
         // if(!this.isSeed) {
         //   this.set_color(this.COLORS_INTENSE[this.myGradient % this.COLORS_INTENSE.length]);
@@ -873,7 +869,7 @@ window['ExperimentAssemblyWithError'] = class {
     this.selectedUID = null;
     this.drawLocalizationError = true;
     // this.COUNT = 4 + 140;
-    this.COUNT = 4 + 196/2 + 17;
+    this.COUNT = 4 + 196/2 + 30;
 
     this.runnerOptions = {
       limitSpeed: !true,
@@ -892,77 +888,48 @@ window['ExperimentAssemblyWithError'] = class {
     const GRADIENT_DIST = 1.5*INITIAL_DIST;
     this.RADIUS = RADIUS;
     // this._ShapeScale = 1.25*this.RADIUS; // 1.5*this.RADIUS
-    this._ShapeScale = 1*this.RADIUS; // 1.5*this.RADIUS
+    this._ShapeScale = 1.2*this.RADIUS; // 1.5*this.RADIUS
     let ShapeDescReadable = [
-			"       ###                 ",
-			"      ####                 ",
-			"     #####            ##   ",
-			"    #####             ###  ",
-			"    #####             ###  ",
-			"   ######            ####  ",
-			"   ######            ####  ",
-			"   #####             ####  ",
-			"  ######             ##### ",
-			"  ######            ###### ",
-			"  ######            ###### ",
-			"  ######            ###### ",
-			"  ########         ####### ",
-			"  ############   ######### ",
-			"  ######################## ",
-			"   ######################  ",
-			"    ####################   ",
-			"    ####################   ",
-			"    ####################   ",
-			"     ##################    ",
-			"      #################    ",
-			"       ###############     ",
-			"       ##############      ",
-			"        #############      ",
-			"        #############      ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        ############       ",
-			"        #############      ",
-			"       ##############      ",
-			"      ################     ",
-			"     ##################    ",
-			"    ###################    ",
-			"    ####################   ",
-			"   ######################  ",
-			"   ######################  ",
-			"  #######################  ",
-			"  #########    ##########  ",
-			" #######           ####### ",
-			" #######           ####### ",
-			" #######           ####### ",
-			" ######             ###### ",
-			" ######             ###### ",
-			" ######             #####  ",
-			" #####             #####   ",
-			" #####             #####   ",
-			"  ####            #####    ",
-			"  ####            #####    ",
-			"   ###            ####     ",
-			"                  ##       ",
+      "           ###                                      ",
+      "          #####                                     ",
+      "          #####                                     ",
+      "          ######                   ####             ",
+      "          ######                 ######             ",
+      "          #######               #######             ",
+      "          ########            #########             ",
+      "           #########       ############             ",
+      "           ###########  #############               ",
+      "           ##########################               ",
+      "           #########################                ",
+      "            ######################                  ",
+      "            #####################                   ",
+      "            ####################                    ",
+      "            ####################                    ",
+      "           #####################                    ",
+      "         #######################                    ",
+      "        #######################                     ",
+      "      #########################                     ",
+      "    ###########################                     ",
+      "  #############################                     ",
+      " ###############################                    ",
+      "################################                    ",
+      "#################################                   ",
+      " #####   #########################                  ",
+      "            #######################                 ",
+      "             #######################                ",
+      "              #######################               ",
+      "              #########################             ",
+      "              ############   ###########            ",
+      "              #########         ########            ",
+      "              ########            ######            ",
+      "              #######               ####            ",
+      "             #######                 ###            ",
+      "             #######                                ",
+      "             ######                                 ",
+      "             ######                                 ",
+      "             #####                                  ",
+      "             #####                                  ",
+      "             ####                                   ",
     ];
     this.ShapeDesc = ShapeDescReadable.map(line => line.split(''));
 
@@ -1262,7 +1229,7 @@ window['ExperimentAssemblyWithError'] = class {
       pixiApp.ticker.add(() => { agentGraphicsTick(b) });
     }
 
-    const DRAW_SHAPE_DESCRIPTION = true;
+    const DRAW_SHAPE_DESCRIPTION = !true;
     if(DRAW_SHAPE_DESCRIPTION) {
       // position vectors
       let g = new PIXI.Graphics()
