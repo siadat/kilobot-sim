@@ -438,10 +438,10 @@ export class Pitch {
               g.moveTo(+ px * this.V.ZOOM, + py * this.V.ZOOM);
             }
 
-            //  if(lastPosX != null) {
-            //    g.lineStyle(10, toHex(b.robot.led));
-            //    g.lineTo(+ b.body.GetPosition().get_x() * this.V.ZOOM, + b.body.GetPosition().get_y() * this.V.ZOOM);
-            //  }
+            if(lastPosX != null) {
+              g.lineStyle(10, toHex(b.robot.led));
+              g.lineTo(+ b.body.GetPosition().get_x() * this.V.ZOOM, + b.body.GetPosition().get_y() * this.V.ZOOM);
+            }
           });
         });
       }
@@ -822,7 +822,7 @@ export class Pitch {
 
         this.physics.update();
 
-        if(this.experiment.runnerOptions.traversedPath && frameCount % 60 == 0) {
+        if(this.experiment.runnerOptions.traversedPath && frameCount % 30 == 0) {
           let max = this.experiment.runnerOptions.traversedPathLen;
 
           this.forEachBody(b => {
