@@ -168,7 +168,7 @@ class GradientAndReplicatorRobot extends Kilobot {
     this.shapePos = opts.shapePos;
 
     this.isStationary = STATIONARY;
-    this.posConfidence = 0.0;
+    this.posConfidence = 0;
     this.prevNearestNeighDist = Infinity;
     this.stats = {};
     this.events = [];
@@ -188,12 +188,12 @@ class GradientAndReplicatorRobot extends Kilobot {
       this.neighbors_grad = new Int32Array(MAX_NEIGHBOURS);
       this.neighbors_seen_at = new Int32Array(MAX_NEIGHBOURS);
       this.neighbors_replicaID = new Int32Array(MAX_NEIGHBOURS);
+      this.neighbors_pos_confidence = new Int32Array(MAX_NEIGHBOURS);
 
       // floats:
       this.neighbors_dist = new Float64Array(MAX_NEIGHBOURS);
       this.neighbors_pos_x = new Float64Array(MAX_NEIGHBOURS);
       this.neighbors_pos_y = new Float64Array(MAX_NEIGHBOURS);
-      this.neighbors_pos_confidence = new Float64Array(MAX_NEIGHBOURS);
 
       // boolean:
       this.neighbors_is_seed = new Int32Array(MAX_NEIGHBOURS);
@@ -280,7 +280,7 @@ class GradientAndReplicatorRobot extends Kilobot {
         continue;
       }
 
-      if(this.neighbors_pos_confidence[i] < 1.0)
+      if(this.neighbors_pos_confidence[i] < 10)
         continue;
 
       if(this.neighbors_pos_x[i] == NO_POS)
@@ -522,7 +522,7 @@ class GradientAndReplicatorRobot extends Kilobot {
 
   localize() {
     if(this.isSeed) {
-      this.posConfidence = 1.0;
+      this.posConfidence = 10;
       return;
     }
 
@@ -583,7 +583,7 @@ class GradientAndReplicatorRobot extends Kilobot {
         y: this.shapePos.y + (n.y - this.shapePos.y)*(0.2 + rnd),
       };
     }
-    this.posConfidence += 0.1;
+    this.posConfidence += 1;
 
     // if(this.kilo_uid == 13 && this.counter < 300) {
     //   console.log('pos', this.shapePos.x, this.shapePos.y);
@@ -928,8 +928,8 @@ class GradientAndReplicatorRobot extends Kilobot {
     this.neighbors_is_seed[index] = message.isSeed;
     this.neighbors_is_stationary[index] = message.isStationary;
     this.neighbors_robotsIveEdgeFollowed[index] = message.robotsIveEdgeFollowed;
+    this.neighbors_pos_confidence[index] = message.posConfidence;
     this.neighbors_replicaID[index] = message.replicaID;
-    this.neighbors_pos_confidence[index] = message.posConsidence;
 
     // this.replicaMates[message.robotUID] = {x: message.shapePos.x, y: message.shapePos.y};
     if(this.replicaID != NO_REPLICA && this.replicaID == message.replicaID) {
@@ -960,7 +960,7 @@ class GradientAndReplicatorRobot extends Kilobot {
       isStationary: this.isStationary,
       robotUID: this.kilo_uid,
       shapePos: this.shapePos,
-      posConsidence: this.posConsidence,
+      posConfidence: this.posConfidence,
       isSeed: this.isSeed,
       state: this.state,
       // edgeFollowingAge: this.edgeFollowingAge,
