@@ -878,6 +878,7 @@ window['ExperimentAssemblyWithError'] = class {
     this.runnerOptions = {
       limitSpeed: !true,
       traversedPath: false,
+      darkMode: false,
     }
   }
 

@@ -7,7 +7,6 @@ const LOOP_PER_SECOND = 30;
 
 let DRAW_SHADOW = !false;
 let DRAW_CONNS_AND_BOUNDS = false;
-let DARK_MODE = !true;
 let BENCHMARKING = true;
 
 
@@ -59,10 +58,102 @@ export class Pitch {
       ZOOM: (1*localStorage.getItem('V.ZOOM')) || 20.0,
     };
 
+  }
+
+  setDrawConnsAndBounds(v) {
+    DRAW_CONNS_AND_BOUNDS = v;
+  }
+
+  // setDarkMode(v) {
+  //   this.darkMode = v;
+  // }
+
+  setDrawShadow(v) {
+    DRAW_SHADOW = v;
+  }
+
+  getLayersOrder() {
+    return this.LayersOrder;
+  }
+
+  setLayersOrder(v) {
+    this.LayersOrder = v;
+  }
+
+  zIndexOf(name) {
+    let zIndex = this.LayersOrder.indexOf(name);
+    if(zIndex == -1) {
+      console.error(`name=${name} not found in order list`, this.LayersOrder);
+    }
+    return zIndex;
+  }
+
+  setDisplayedData(key, value) {
+    if(this.metaData[key] == value) {
+      return;
+    }
+
+    this.metaData[key] = value;
+    let newText = Object
+      .keys(this.metaData)
+      .sort((a, b) => a.length - b.length)
+      .map(key => `${key}: ${this.metaData[key]}`)
+      .join('\n');
+
+    if(this.metaPixiText.text == newText) {
+      return;
+    }
+
+    let textMetricsOld = new PIXI.TextMetrics.measureText(
+      this.metaPixiText.text,
+      this.metaPixiText.style,
+    );
+
+    let textMetricsNew = new PIXI.TextMetrics.measureText(
+      newText,
+      this.metaPixiText.style,
+    );
+
+    if(
+      textMetricsOld.lines.length != textMetricsNew.lines.length
+      ||
+      this.metaPixiGraphics.lastDarkMode != this.darkMode
+    ) {
+      let lineCount = textMetricsNew.lines.length;
+      this.metaPixiGraphics.clear();
+      if(this.darkMode) {
+        this.metaPixiGraphics.beginFill(0x000000, 0.75);
+        this.metaPixiText.style.fill = 0xcccccc;
+      } else {
+        this.metaPixiGraphics.beginFill(0xffffff, 0.75);
+        this.metaPixiText.style.fill = 0x000000;
+      }
+      this.metaPixiGraphics.drawRect(
+        MetaOpts.margin, MetaOpts.margin,
+        textMetricsNew.width + 2*MetaOpts.padding, MetaOpts.lineHeight*lineCount + 2*MetaOpts.padding,
+      );
+      this.metaPixiGraphics.lastDarkMode = this.darkMode;
+    }
+
+    this.metaPixiText.text = newText;
+  }
+
+  destroy() {
+    this.destroyFuncs.forEach(cb => cb());
+  }
+
+  forEachBody(f) {
+    for(let i = 0; i < this.bodyIDs.length; i++) {
+      let id = this.bodyIDs[i];
+      f(this.bodies[id], id, i)
+    }
+  }
+
+  setup() {
     if(true /*graphical*/) {
       PIXI.utils.skipHello();
       this.pixiApp = new PIXI.Application({
-        backgroundColor: DARK_MODE ? 0x111111 : 0xdddddd,
+        backgroundColor: 0xffffff,
         autoStart: true,
         width: SIZE.w,
         height: SIZE.h,
@@ -264,7 +355,7 @@ export class Pitch {
           fontSize: MetaOpts.fontSize,
           align: 'left',
           lineHeight: MetaOpts.lineHeight,
-          fill: DARK_MODE ? 0xffffff : 0x000000
+          fill: this.darkMode ? 0xffffff : 0x000000
         });
         this.metaPixiText.position = {
           x: MetaOpts.margin + MetaOpts.padding,
@@ -282,7 +373,7 @@ export class Pitch {
         // position vectors
         let g = new PIXI.Graphics()
         g.zIndex = this.zIndexOf('_TraversedPath');
-        g.alpha = 0.5;
+        g.alpha = 0.3;
         // g.beginFill(toHexDark(b.robot.led));
         g.endFill();
 
@@ -293,37 +384,64 @@ export class Pitch {
           this.forEachBody(b => {
             g.lineStyle(2, toHexDark(b.robot.led));
 
-            let lastPos = null;
-            b.posHistory.forEach(p => {
-              if(lastPos == null) {
-                lastPos = p;
-                g.moveTo(+ p.x * this.V.ZOOM, + p.y * this.V.ZOOM);
-                return;
-              }
-              // g.drawCircle(+ p.x * this.V.ZOOM, + p.y * this.V.ZOOM, 2);
-              g.lineStyle(2, p.color);
-              g.moveTo(+ lastPos.x * this.V.ZOOM, + lastPos.y * this.V.ZOOM);
-              g.lineTo(+ p.x * this.V.ZOOM, + p.y * this.V.ZOOM);
+            let lastPosX = null;
+            let lastPosY = null;
+            let len = b.posHistoryX.length;
 
+            let indexFirst = 0;
+            let indexLast = b.posHistoryCursor;
+
+            if(b.posHistoryFilled) {
+              indexFirst = (b.posHistoryCursor + 1) % len;
+              indexLast = b.posHistoryCursor;
+            }
+
+            // if(b.robot.kilo_uid == 1) {
+            //   console.log(indexFirst, indexLast, b.posHistoryFilled, len);
+            // }
+
+            let counter = 0;
+            for(let i = indexFirst; (i%len) != indexLast; i++) {
+              counter += 1.0/len;
+              let index = i % len;
+              let px = b.posHistoryX[index];
+              let py = b.posHistoryY[index];
+              let color = b.posHistoryColor[index];
+              let angle = b.posHistoryAngle[index];
+
+              if(lastPosX == null) {
+                lastPosX = px;
+                lastPosY = py;
+                g.moveTo(+ px * this.V.ZOOM, + py * this.V.ZOOM);
+                continue;
+              }
+              // g.drawCircle(+ px * this.V.ZOOM, + py * this.V.ZOOM, 2);
+              g.lineStyle(counter * RADIUS * this.V.ZOOM, color);
+              g.moveTo(+ lastPosX * this.V.ZOOM, + lastPosY * this.V.ZOOM);
+              g.lineTo(+ px * this.V.ZOOM, + py * this.V.ZOOM);
+
+              /*
               {
                 g.moveTo(
-                  + p.x * this.V.ZOOM - Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
-                  + p.y * this.V.ZOOM - Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
+                  + px * this.V.ZOOM - Math.cos(angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
+                  + py * this.V.ZOOM - Math.sin(angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
                 );
                 g.lineTo(
-                  + p.x * this.V.ZOOM + Math.cos(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
-                  + p.y * this.V.ZOOM + Math.sin(p.angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
+                  + px * this.V.ZOOM + Math.cos(angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
+                  + py * this.V.ZOOM + Math.sin(angle * Math.PI/180.0 + Math.PI/2) * RADIUS * this.V.ZOOM * 0.1,
                 );
               }
+              */
 
-              g.moveTo(+ p.x * this.V.ZOOM, + p.y * this.V.ZOOM);
-              lastPos = p;
-            });
-
-            if(lastPos != null) {
-              g.lineStyle(2, toHex(b.robot.led));
-              g.lineTo(+ b.body.GetPosition().get_x() * this.V.ZOOM, + b.body.GetPosition().get_y() * this.V.ZOOM);
+              lastPosX = px;
+              lastPosY = py;
+              g.moveTo(+ px * this.V.ZOOM, + py * this.V.ZOOM);
             }
+
+            //  if(lastPosX != null) {
+            //    g.lineStyle(10, toHex(b.robot.led));
+            //    g.lineTo(+ b.body.GetPosition().get_x() * this.V.ZOOM, + b.body.GetPosition().get_y() * this.V.ZOOM);
+            //  }
           });
         });
       }
@@ -534,97 +652,20 @@ export class Pitch {
     this.destroyFuncs.push(() => this.physics.destroy());
   }
 
-  setDrawConnsAndBounds(v) {
-    DRAW_CONNS_AND_BOUNDS = v;
-  }
-
-  setDarkMode(v) {
-    DARK_MODE = v;
-  }
-
-  setDrawShadow(v) {
-    DRAW_SHADOW = v;
-  }
-
-  getLayersOrder() {
-    return this.LayersOrder;
-  }
-
-  setLayersOrder(v) {
-    this.LayersOrder = v;
-  }
-
-  zIndexOf(name) {
-    let zIndex = this.LayersOrder.indexOf(name);
-    if(zIndex == -1) {
-      console.error(`name=${name} not found in order list`, this.LayersOrder);
-    }
-    return zIndex;
-  }
-
-
-  setDisplayedData(key, value) {
-    if(this.metaData[key] == value) {
-      return;
-    }
-
-    this.metaData[key] = value;
-    let newText = Object
-      .keys(this.metaData)
-      .sort((a, b) => a.length - b.length)
-      .map(key => `${key}: ${this.metaData[key]}`)
-      .join('\n');
-
-    if(this.metaPixiText.text == newText) {
-      return;
-    }
-
-    let textMetricsOld = new PIXI.TextMetrics.measureText(
-      this.metaPixiText.text,
-      this.metaPixiText.style,
-    );
-
-    let textMetricsNew = new PIXI.TextMetrics.measureText(
-      newText,
-      this.metaPixiText.style,
-    );
-
-    if(textMetricsOld.lines.length != textMetricsNew.lines.length) {
-      let lineCount = textMetricsNew.lines.length;
-      this.metaPixiGraphics.clear();
-      if(DARK_MODE) {
-        this.metaPixiGraphics.beginFill(0x000000, 0.75);
-      } else {
-        this.metaPixiGraphics.beginFill(0xffffff, 0.75);
-      }
-      this.metaPixiGraphics.drawRect(
-        MetaOpts.margin, MetaOpts.margin,
-        textMetricsNew.width + 2*MetaOpts.padding, MetaOpts.lineHeight*lineCount + 2*MetaOpts.padding,
-      );
-    }
-
-    this.metaPixiText.text = newText;
-  }
-
-  destroy() {
-    this.destroyFuncs.forEach(cb => cb());
-  }
-
-  forEachBody(f) {
-    for(let i = 0; i < this.bodyIDs.length; i++) {
-      let id = this.bodyIDs[i];
-      f(this.bodies[id], id, i)
-    }
-  }
-
   run(experiment) {
-		this.bodies = {};
+    this.setup();
+
+    this.bodies = {};
     this.experiment = experiment;
     this.experiment.runnerOptions = Object.assign({
       limitSpeed: false,
       traversedPath: false,
       traversedPathLen: 20,
+      darkMode: false,
     }, this.experiment.runnerOptions);
+
+    this.darkMode = this.experiment.runnerOptions.darkMode;
+    this.pixiApp.renderer.backgroundColor = this.darkMode ? 0x111111 : 0xdddddd;
 
     this.experiment.V = this.V;
     this.experiment.equalZooms = equalZooms;
@@ -781,28 +822,45 @@ export class Pitch {
 
         this.physics.update();
 
-        if(this.experiment.runnerOptions.traversedPath && frameCount % 30 == 0) {
+        if(this.experiment.runnerOptions.traversedPath && frameCount % 60 == 0) {
           let max = this.experiment.runnerOptions.traversedPathLen;
+
           this.forEachBody(b => {
+            if(b.posHistoryX == null) {
+              b.posHistoryCursor = -1;
+              b.posHistoryFilled = false;
+              b.posHistoryX = new Float64Array(max);
+              b.posHistoryY = new Float64Array(max);
+              b.posHistoryAngle = new Float64Array(max);
+              b.posHistoryColor = new Array(); // string
+            }
+
             let pos = b.body.GetPosition();
-            let lastPos = b.posHistory[b.posHistory.length-1];
             let newPos = {
               x: pos.get_x(),
               y: pos.get_y(),
               angle: b.body.GetAngle(),
             };
-            if(lastPos
-              && newPos.x == lastPos.x
-              && newPos.y == lastPos.y
-              && newPos.angle) {
+
+            /*
+            if(newPos.x == b.posHistoryX[b.posHistoryCursor]
+              && newPos.y == b.posHistoryY[b.posHistoryCursor]
+              // && newPos.angle == b.posHistoryAngle[b.posHistoryCursor]
+            ) {
               return;
             }
+            */
 
-            newPos.color = toHex(b.robot.led);
-            b.posHistory.push(newPos);
-            if(b.posHistory.length > max) {
-              b.posHistory = b.posHistory.slice(b.posHistory.length-max, b.posHistory.length);
+            if(b.posHistoryCursor == max - 1) {
+              b.posHistoryFilled = true;
             }
+
+            b.posHistoryCursor = (b.posHistoryCursor+1) % max;
+
+            b.posHistoryX[b.posHistoryCursor] = newPos.x;
+            b.posHistoryY[b.posHistoryCursor] = newPos.y;
+            b.posHistoryAngle[b.posHistoryCursor] = newPos.angle;
+            b.posHistoryColor[b.posHistoryCursor] = toHex(b.robot.led);
           });
         }
 
@@ -1189,7 +1247,7 @@ export class Pitch {
 
           let thickness = 0;
 
-          if(DARK_MODE) {
+          if(this.darkMode) {
             g.beginFill(0x000000);
           } else {
             thickness = 1;
@@ -1393,7 +1451,11 @@ class Body {
     this.body = body;
     this.label = 'Circle Body';
     this.circleRadius = radius;
-    this.posHistory = [];
+    this.posHistoryCursor = null;
+    this.posHistoryFilled = false;
+    this.posHistoryX = null;
+    this.posHistoryY = null;
+    this.posHistoryAngle = null;
     this.lastMessageSentAt = Math.floor(MathRandom() * 60);
     this.lastAmbientLightSetAt = Math.floor(MathRandom() * 60);
   }

@@ -876,8 +876,9 @@ window['ExperimentAssembly'] = class {
     this.COUNT = 4 + 196/2 - 2;
 
     this.runnerOptions = {
-      limitSpeed: !true,
+      limitSpeed: false,
       traversedPath: false,
+      darkMode: false,
     }
   }
 

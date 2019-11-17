@@ -982,6 +982,7 @@ window['ExperimentReplicator'] = class {
     this.runnerOptions = {
       limitSpeed: !true,
       traversedPath: false,
+      darkMode: false,
     }
   }
 

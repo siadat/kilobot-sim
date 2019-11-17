@@ -20,6 +20,7 @@ window.ExperimentLab0 = class {
       limitSpeed: true,
       traversedPath: true,
       traversedPathLen: 1000,
+      darkMode: false,
     }
   }
 
@@ -73,6 +74,7 @@ window['ExperimentLab1.2'] = class {
       limitSpeed: true,
       traversedPath: true,
       traversedPathLen: 1000,
+      darkMode: false,
     }
   }
 
@@ -135,6 +137,7 @@ window['ExperimentLab1.3'] = class {
     this.runnerOptions = {
       limitSpeed: true,
       traversedPath: false,
+      darkMode: false,
     }
   }
 
@@ -253,6 +256,7 @@ window['ExperimentLab7'] = class {
     this.runnerOptions = {
       limitSpeed: true,
       traversedPath: false,
+      darkMode: true,
     }
   }
 
@@ -271,8 +275,25 @@ window['ExperimentLab7'] = class {
     this.MathRandom = new Math.seedrandom(1234);
     this.INITIAL_DIST = 4.0*RADIUS;
 
-    for(let i = -5; i < 5; i++) {
-      for(let j = -5; j < 5; j++) {
+    let s = 5;
+    for(let i = -s; i < s; i++) {
+
+      let jInc = null;
+      let jCheck = null;
+
+      let j = null;
+
+      if(i % 2 == 1) {
+        j = -s;
+        jCheck = () => j < +s;
+        jInc = () => j++;
+      } else {
+        j = +s-1;
+        jCheck = () => j >= -s;
+        jInc = () => j--;
+      }
+
+      for(; jCheck(); jInc()) {
         newRobotFunc({
           x: j * this.INITIAL_DIST + (this.gradientNoise()-0.5)*RADIUS*1,
           y: i * this.INITIAL_DIST + (this.gradientNoise()-0.5)*RADIUS*1,
@@ -378,7 +399,7 @@ window['ExperimentGradientFormation'] = class {
   constructor() {
     this.runnerOptions = {
       limitSpeed: false,
-      traversedPath: false,
+      darkMode: true,
     }
   }
 
@@ -613,6 +634,7 @@ window['ExperimentPhototaxis'] = class {
     this.runnerOptions = {
       limitSpeed: true,
       traversedPath: false,
+      darkMode: false,
     }
   }
 
@@ -765,24 +787,17 @@ class RobotFollowTheLeader extends Kilobot {
   }
 
   switchState(newState) {
+    if(this.amLeader) {
+      this.set_color(this.RGB(3, 0, 0));
+    } else if(this.amTail) {
+      this.set_color(this.RGB(0, 0, 3));
+    } else {
+      this.set_color(this.RGB(0, 2, 0));
+    }
     switch(newState) {
       case this.States.Move:
-        if(this.amLeader) {
-          this.set_color(this.RGB(3, 0, 0));
-        } else if(this.amTail) {
-          this.set_color(this.RGB(0, 0, 3));
-        } else {
-          this.set_color(this.RGB(0, 3, 0));
-        }
         break;
       case this.States.Wait:
-        if(this.amLeader) {
-          this.set_color(this.RGB(1, 0, 0));
-        } else if(this.amTail) {
-          this.set_color(this.RGB(0, 0, 1));
-        } else {
-          this.set_color(this.RGB(0, 1, 0));
-        }
         break;
     }
     this.state = newState;
@@ -850,8 +865,10 @@ class RobotFollowTheLeader extends Kilobot {
 window['ExperimentFollowTheLeader'] = class {
   constructor() {
     this.runnerOptions = {
-      limitSpeed: !true,
-      traversedPath: false,
+      limitSpeed: false,
+      traversedPath: true,
+      traversedPathLen: 100,
+      darkMode: false,
     }
   }
 

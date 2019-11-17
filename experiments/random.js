@@ -32,6 +32,7 @@ window.ExperimentRandom = class {
       limitSpeed: true,
       traversedPath: true,
       traversedPathLen: 1000,
+      darkMode: false,
     }
   }
 
