@@ -454,7 +454,7 @@ export class Pitch {
 
       { // light sources
         let g = new PIXI.Graphics()
-        g.alpha = 0.5;
+        g.alpha = 0.75;
         g.lastLightSources = JSON.stringify(this.lightSources);
 
         /*
@@ -488,27 +488,33 @@ export class Pitch {
           g.clear();
           g.zIndex = this.zIndexOf('_LightSources');
 
-          let count = 5;
+          let count = 6;
+          let r = 2 * RADIUS;
+
           // g.beginFill(0x0fBfF0, 1);
           g.beginFill(0xffff00, 1);
           this.lightSources.forEach(ls => {
-            g.lineStyle(0);
-            g.drawCircle(
-              ls.pos.x * this.V.ZOOM,
-              ls.pos.y * this.V.ZOOM,
-              2 * RADIUS * this.V.ZOOM,
-            );
+            // g.lineStyle(0);
+            // g.drawCircle(
+            //   ls.pos.x * this.V.ZOOM,
+            //   ls.pos.y * this.V.ZOOM,
+            //   2 * RADIUS * this.V.ZOOM,
+            // );
 
-            g.lineStyle(2*RADIUS*this.V.ZOOM, 0xffff00);
             for(let i = 0; i < count; i++) {
+
+              g.lineStyle(0.5*RADIUS*this.V.ZOOM, 0xffff00);
+
+              // if(i % 2 == 0) { g.lineStyle(0.5*RADIUS*this.V.ZOOM, 0xffff00); }
+
               g.moveTo(
-                (ls.pos.x-10*RADIUS*Math.cos(i/count * Math.PI)) * this.V.ZOOM,
-                (ls.pos.y-10*RADIUS*Math.sin(i/count * Math.PI)) * this.V.ZOOM,
+                (ls.pos.x-r*Math.cos(i/count * Math.PI)) * this.V.ZOOM,
+                (ls.pos.y-r*Math.sin(i/count * Math.PI)) * this.V.ZOOM,
               );
 
               g.lineTo(
-                (ls.pos.x+10*RADIUS*Math.cos(i/count * Math.PI)) * this.V.ZOOM,
-                (ls.pos.y+10*RADIUS*Math.sin(i/count * Math.PI)) * this.V.ZOOM,
+                (ls.pos.x+r*Math.cos(i/count * Math.PI)) * this.V.ZOOM,
+                (ls.pos.y+r*Math.sin(i/count * Math.PI)) * this.V.ZOOM,
               );
             }
           });
@@ -554,18 +560,31 @@ export class Pitch {
         // position vectors
         let g = new PIXI.Graphics()
         g.zIndex = this.zIndexOf('_Shadow');
-        g.alpha = 0.5;
+        g.alpha = 0.25;
+        g.graphicShadoes = {};
 
         this.platformGraphics.addChild(g);
         this.pixiApp.ticker.add(() => {
-          g.clear();
-          if(!DRAW_SHADOW) return;
-
-          g.beginFill(0x000000, 0.5);
+          if(g.children.length == 0) {
+            this.forEachBody(b => {
+              this.lightSources.forEach((_, i) => {
+                let gsh = new PIXI.Graphics()
+                let key = `${b.robot._uid}:${i}`;
+                gsh.beginFill(0x000000, 1.0);
+                gsh.drawCircle(0, 0, b.circleRadius);
+                g.graphicShadoes[key] = gsh;
+                g.addChild(gsh);
+              });
+            });
+          }
 
           this.forEachBody(b => {
+            this.lightSources.forEach((ls, i) => {
+              let key = `${b.robot._uid}:${i}`;
+              let gsh = g.graphicShadoes[key];
 
-            this.lightSources.forEach(ls => {
+              // let gsh = new PIXI.Graphics()
+
               let pos = {
                 x: b.body.GetPosition().get_x(),
                 y: b.body.GetPosition().get_y(),
@@ -576,15 +595,20 @@ export class Pitch {
               let d = Math.sqrt(dx*dx + dy*dy);
               if(d < 1) d = 1; // do not scale up
 
-              let offset = {
-                x: (dx/d) * b.circleRadius*0.75,
-                y: (dy/d) * b.circleRadius*0.75,
-              }
-              g.drawCircle(
-                (pos.x + offset.x) * this.V.ZOOM,
-                (pos.y + offset.y) * this.V.ZOOM,
-                b.circleRadius * this.V.ZOOM,
-              );
+              let scale = d * 0.1;
+              if(scale < 1) scale = 1;
+              else if(scale > 1000) scale = 1000;
+
+              gsh.scale.x = scale * this.V.ZOOM;
+              gsh.scale.y = this.V.ZOOM;
+              gsh.angle = Math.atan(dy/dx) * 180 / Math.PI;
+              gsh.alpha = 2/scale;
+
+              let newWidth = scale * b.circleRadius * this.V.ZOOM;
+
+              gsh.position.x = pos.x*this.V.ZOOM + (dx/d)*newWidth - (dx/d)*b.circleRadius * this.V.ZOOM;
+              gsh.position.y = pos.y*this.V.ZOOM + (dy/d)*newWidth - (dy/d)*b.circleRadius * this.V.ZOOM;
+
             });
           });
         });
@@ -747,7 +771,7 @@ export class Pitch {
       this.bodyIDs,
       this.setDisplayedData.bind(this),
       this.zIndexOf.bind(this),
-      // this.V,
+      this.V,
     );
 
     if(this.perfectStart) {

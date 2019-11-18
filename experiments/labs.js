@@ -594,14 +594,14 @@ window['ExperimentGradientFormation'] = class {
   }
 }
 
-// phototaxis
-class RobotPhototaxis extends Kilobot {
+// phototaxis 2
+class RobotPhototaxis2 extends Kilobot {
   setup() {
     this.direction = this.rand_soft() % 2;
     this.last_value = 0;
     this.last_updated = this.rand_soft();
     this.PERIOD = 0;
-    this.set_color(this.RGB(0, 3, 0));
+    this.set_color(this.RGB(3, 3, 3));
   }
 
   loop() {
@@ -627,7 +627,7 @@ class RobotPhototaxis extends Kilobot {
 
 window['ExperimentPhototaxis2'] = class {
   constructor() {
-    this.runnerOptions = {
+   this.runnerOptions = {
       limitSpeed: true,
       traversedPath: false,
       darkMode: false,
@@ -686,15 +686,15 @@ window['ExperimentPhototaxis2'] = class {
           y: i * this.INITIAL_DIST,
         },
           this.MathRandom() * 2*Math.PI,
-          new RobotPhototaxis(),
+          new RobotPhototaxis2(),
         );
       }
     }
   }
 }
 
-// phototaxis 2
-class RobotPhototaxis2 extends Kilobot {
+// phototaxis
+class RobotPhototaxis extends Kilobot {
   setup() {
     this.direction = this.rand_soft() % 2;
     this.last_value = 0;
@@ -790,7 +790,7 @@ window['ExperimentPhototaxis'] = class {
           y: i * this.INITIAL_DIST,
         },
           this.MathRandom() * 2*Math.PI,
-          new RobotPhototaxis2(),
+          new RobotPhototaxis(),
         );
       }
     }

@@ -43,5 +43,6 @@ Box2D({
     'LocalizationError',
     '_LightSources',
   ]);
-  pitch.run(new ExperimentClass());
+  window.experiment = new ExperimentClass();
+  pitch.run(window.experiment);
 });

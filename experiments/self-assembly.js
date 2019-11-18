@@ -1239,32 +1239,6 @@ window['ExperimentAssembly'] = class {
         });
         ev.stopPropagation();
       });
-
-      const agentGraphicsTick = (b) => {
-        if(false && b.robot.stats) {
-          g.endFill();
-          if(b.robot.stats.tooClose) {
-            g.lineStyle(4, 0xff6666);
-          } else {
-            g.lineStyle(4, 0x440000);
-          }
-          switch(b.robot.stats.action) {
-            case 'straight':
-              g.moveTo(0, 0);
-              g.lineTo(this.V.ZOOM * this.RADIUS, 0);
-              break;
-            case 'left-get-farther':
-              g.moveTo(0, 0);
-              g.lineTo(0, -this.V.ZOOM * this.RADIUS);
-              break;
-            case 'right-get-close':
-              g.moveTo(0, 0);
-              g.lineTo(0, +this.V.ZOOM * this.RADIUS);
-              break;
-          }
-        }
-      };
-      pixiApp.ticker.add(() => { agentGraphicsTick(b) });
     }
 
     const DRAW_SHAPE_DESCRIPTION = true;

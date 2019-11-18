@@ -140,15 +140,13 @@ window.isTriangleRobustASMJS = (points_x, points_y) => {
 }
 
 const States = {
-  Start                  : 'Start',
-  WaitToMove             : 'WaitToMove',
-  MoveWhileOutside       : 'MoveWhileOutside',
-  MoveWhileInside        : 'MoveWhileInside',
-  // MoveWhileInsideParking: 'MoveWhileInsideParking',
-  JoinedShape            : 'JoinedShape',
+  LocAndGrad       : 'LocAndGrad',
+  DoPhototaxis     : 'DoPhototaxis',
+  DoAntiphototaxis : 'Antiphototaxis',
+  JoinedShape      : 'JoinedShape',
 }
 
-class GradientAndAssemblyWithErrorRobot extends Kilobot {
+class GradientAndDisassemblyRobot extends Kilobot {
   constructor(opts) {
     super();
     this.gradientDist = opts.gradientDist;
@@ -204,7 +202,7 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
       }
     }
 
-    this.switchToState(States.Start);
+    this.switchToState(States.LocAndGrad);
 
     this.COLORS = [
       this.RGB(3, 0, 0), // red
@@ -230,10 +228,24 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
     this.myGradient = NO_GRAD;
     this.hesitateData = {};
     this.counter = 0;
+
+    {
+      // for phototaxis
+      this.direction = 0;
+      this.last_value = 0;
+      this.last_updated = this.rand_soft();
+      this.PERIOD = 0;
+    }
     // this.posHistory = [];
     // this.localizeCounter = 0;
 
-    this.set_color(this.RGB(0, 0, 0));
+    if(this.isGradientSeed) {
+      this.set_color(this.RGB(0, 0, 0));
+    } else if(this.isSeed) {
+      this.set_color(this.RGB(3, 3, 3));
+    } else {
+      this.set_color(this.RGB(0, 0, 0));
+    }
 
     if(this.isSeed) {
       this.posConfidence = 10;
@@ -446,8 +458,8 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
       if(this.neighbors_grad[i] == NO_GRAD)
         continue;
 
-      if(this.neighbors_state[i] != States.WaitToMove)
-        continue;
+      // if(this.neighbors_state[i] != States.WaitToMove)
+      //   continue;
 
       if(bestIndex == null) {
         bestIndex = i;
@@ -574,7 +586,9 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
     }
 
     this.myGradient = newValue;
-    this.set_colors_for_gradient(this.myGradient);
+    if(!this.isSeed) {
+      this.set_colors_for_gradient(this.myGradient);
+    }
   }
 
   doEdgeFollow() {
@@ -654,136 +668,60 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
     }
   }
 
+  doPhototaxis(anti) {
+    switch(this.direction) {
+      case 0: this.set_motors(0, this.kilo_turn_right); break;
+      case 1: this.set_motors(this.kilo_turn_left, 0); break;
+    }
+
+    if(this.kilo_ticks < this.last_updated + this.PERIOD)
+      return;
+
+    this.last_updated = this.kilo_ticks;
+    let value = this.get_ambientlight();
+
+    if(
+      (!anti && value < this.last_value)
+      ||
+      (anti && value > this.last_value)
+    ) {
+      this.direction = (this.direction + 1) % 2;
+      this.PERIOD = (this.PERIOD + 1) % 2;
+    }
+
+    this.last_value = value;
+  }
+
   loop() {
     // this._cached_robust_quad = false;
     this.counter++;
 
-    if(false){
-      if(this.kilo_uid % 2 == 0)
-        this.set_motors(this.kilo_turn_left, 0);
-      else
-        this.set_motors(0, this.kilo_turn_right);
-      this.gradientFormation();
-      this.localize();
-      return;
-    }
-
     switch(this.state) {
 
-      case States.Start:
+      case States.LocAndGrad:
         this.gradientFormation();
         this.localize();
-
-        if(this.isSeed) {
-          this.switchToState(States.JoinedShape, "isSeed");
-          return;
-        }
-
-        this.switchToState(States.WaitToMove);
-        break;
-
-      case States.WaitToMove:
-        this.isStationary = STATIONARY;
-        this.gradientFormation();
-        this.localize();
-        // break; // <
-
-        if(this.isHesitating("movement")) {
-          return;
-        }
-
-        //  if(this.seenRecentMovingOrPausedNeighbors())
-        if(this.seenRecentMovingNeighborsIndex() != null) {
-          // if(this.seenRecentMovingNeighborsIndex())
-          // this.edgeFollowingAge = this._uid;
-          this.hesitate("movement");
-          this.isStationary = STATIONARY;
-          this.unmark();
-          return;
-        }
-
-        {
-          let hgnIndex = this.getMostCompetitiveWaitingNeighborIndex();
-          if(hgnIndex == null) {
-            this.switchToState(States.MoveWhileOutside, "no competing neighbors");
-            break;
-          }
-
-          if(this.myGradient > this.neighbors_grad[hgnIndex]) {
-            this.switchToState(States.MoveWhileOutside, `my grad > my neighbors, ie ${this.neighbors_id[hgnIndex]}`);
-          } else if(this.myGradient == this.neighbors_grad[hgnIndex]) {
-            if(this.kilo_uid > this.neighbors_id[hgnIndex]) {
-              this.switchToState(States.MoveWhileOutside, `equal grads, but my ID is larger than ${this.neighbors_id[hgnIndex]}`);
-            }
+        if(this.counter > 500) {
+          if(this.isInsideShape(this.shapePos.x, this.shapePos.y)) {
+            this.switchToState(States.JoinedShape);
           } else {
-            this.newEvent(`still waiting, because either ${this.neighbors_id[hgnIndex]} ruled!`);
+            this.switchToState(States.DoAntiphototaxis);
           }
         }
         break;
-      case States.MoveWhileOutside:
-        this.localize();
-        this.gradientFormation();
 
-        if(this.isInsideShape(this.shapePos)) {
-          // this.myGradient = NO_GRAD;
-          this.switchToState(States.MoveWhileInside, "inside shape");
-        }
-
-        // let movingNeighborIndex = this.seenRecentMovingNeighborsIndex();
-        // if(movingNeighborIndex != null) {
-        //   this.switchToState(States.WaitToMove, `saw someone  else moving: ${this.neighbors_id[movingNeighborIndex]}`);
-        //   // this.edgeFollowingAge = this._uid;
-        //   // this.hesitate("movement");
-        //   this.isStationary = STATIONARY;
-        //   this.unmark();
-        //   return;
-        // }
-
-        this.mark();
-        this.isStationary = NOT_STATIONARY;
-        this.doEdgeFollow();
+      case States.DoPhototaxis:
+        this.set_color(this.RGB(3, 0, 0));
+        this.doPhototaxis(false);
         break;
-      case States.MoveWhileInside:
-        this.localize();
-        this.gradientFormation();
-        this.mark();
-        this.isStationary = NOT_STATIONARY;
-        this.doEdgeFollow();
-
-        /*
-        {
-          this.switchToState(States.JoinedShape, "just joined");
-          return
-        }
-        */
-
-
-        if(!this.isInsideShape(this.shapePos)) {
-          this.switchToState(States.JoinedShape, "went out");
-          return;
-        }
-
-        {
-          let nnIndex = this.getNearestNeighborIndex();
-          if(nnIndex != null && this.neighbors_grad[nnIndex] >= this.myGradient /*&& this.neighbors_grad[nnIndex] != 1*/) {
-            this.switchToState(States.JoinedShape, `my grad ${this.myGradient} >= closest neighbor ${this.neighbors_grad[nnIndex]}`);
-            return;
-          }
-        }
-
+      case States.DoAntiphototaxis:
+        this.set_color(this.RGB(0, 3, 0));
+        this.doPhototaxis(true);
         break;
       case States.JoinedShape:
         this.unmark();
         this.isStationary = STATIONARY;
-        this.localize();
-        this.set_color(this.RGB(3, 1, 1));
-
-        // if(!this.isSeed) {
-        //   this.set_color(this.COLORS_INTENSE[this.myGradient % this.COLORS_INTENSE.length]);
-        // }
-
-        if(this.isSeed)
-          this.gradientFormation();
+        this.set_color(this.RGB(0, 0, 3));
         break;
     }
   }
@@ -865,16 +803,16 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
 
 // ----
 
-window['ExperimentAssemblyWithError'] = class {
+window['ExperimentDisassembly'] = class {
   constructor() {
     this.selectedUID = null;
-    this.drawLocalizationError = true;
+    this.drawLocalizationError = false;
     // this.COUNT = 4 + 140;
     this.COUNT = 4 + 196/2 + 30;
 
     this.runnerOptions = {
       limitSpeed: !true,
-      traversedPath: true,
+      traversedPath: false,
       darkMode: false,
     }
   }
@@ -883,274 +821,204 @@ window['ExperimentAssemblyWithError'] = class {
     this.selectedUID = null;
   }
 
+  // node_modules/pixi.js/dist/pixi.js: Polygon.prototype.contains
+  isPointInPolygon(polygonPoints, x, y) {
+    let inside = false;
+
+    // use some raycasting to test hits
+    // https://github.com/substack/point-in-polygon/blob/master/index.js
+    let length = polygonPoints.length / 2;
+
+    for (let i = 0, j = length - 1; i < length; j = i++)
+    {
+      let xi = polygonPoints[i * 2];
+      let yi = polygonPoints[(i * 2) + 1];
+      let xj = polygonPoints[j * 2];
+      let yj = polygonPoints[(j * 2) + 1];
+      let intersect = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * ((y - yi) / (yj - yi))) + xi);
+
+      if (intersect)
+      {
+        inside = !inside;
+      }
+    }
+
+    return inside;
+  }
+
   createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     this.NEIGHBOUR_DISTANCE = NEIGHBOUR_DISTANCE;
     const INITIAL_DIST = this.NEIGHBOUR_DISTANCE/11*3;
     const GRADIENT_DIST = 1.5*INITIAL_DIST;
     this.RADIUS = RADIUS;
     // this._ShapeScale = 1.25*this.RADIUS; // 1.5*this.RADIUS
-    this._ShapeScale = 1.2*this.RADIUS; // 1.5*this.RADIUS
+    this._ShapeScale = 2.9; // * this.RADIUS;
     let ShapeDescReadable = [
-      "           ###                                      ",
-      "          #####                                     ",
-      "          #####                                     ",
-      "          ######                   ####             ",
-      "          ######                 ######             ",
-      "          #######               #######             ",
-      "          ########            #########             ",
-      "           #########       ############             ",
-      "           ###########  #############               ",
-      "           ##########################               ",
-      "           #########################                ",
-      "            ######################                  ",
-      "            #####################                   ",
-      "            ####################                    ",
-      "            ####################                    ",
-      "           #####################                    ",
-      "         #######################                    ",
-      "        #######################                     ",
-      "      #########################                     ",
-      "    ###########################                     ",
-      "  #############################                     ",
-      " ###############################                    ",
-      "################################                    ",
-      "#################################                   ",
-      " #####   #########################                  ",
-      "            #######################                 ",
-      "             #######################                ",
-      "              #######################               ",
-      "              #########################             ",
-      "              ############   ###########            ",
-      "              #########         ########            ",
-      "              ########            ######            ",
-      "              #######               ####            ",
-      "             #######                 ###            ",
-      "             #######                                ",
-      "             ######                                 ",
-      "             ######                                 ",
-      "             #####                                  ",
-      "             #####                                  ",
-      "             ####                                   ",
+    // 012340123401234012340
+      "                     ", // 0
+      "         .4.         ", // 1
+      "        .   .        ", // 2
+      "        .   .        ", // 2
+      "        .   .        ", // 2
+      "        .   .        ", // 2
+      "  2 ... 3   5 ... 6  ", // 3
+      "   .            .    ", // 4
+      "    .          .     ", // 4
+      "     .    L   .      ", // 4
+      "      1   C   7      ", // 5
+      "     .         .     ", // 6
+      "     .    9    .     ", // 6
+      "     .   . .   .     ", // 6
+      "     .  .   .  .     ", // 6
+      "     . .     . .     ", // 7
+      "     0.       .8     ", // 8
+      "                     ", // 9
     ];
-    this.ShapeDesc = ShapeDescReadable.map(line => line.split(''));
 
-    this.RootSeedPos = {
-      x: 0,
-      y: 0,
-    };
+    console.log(ShapeDescReadable.join("\n"));
 
-    this.ShapePosOffset = {x: 0, y: 0};
-    let _ShapePosRootIndexes = {x: 0, y: 0};
-
-    if(true) {
-      let trimmed = false;
-      let rowCount = this.ShapeDesc.length;
-      for(let rowi = rowCount-1; rowi >= 0; rowi--) {
-        if(trimmed) {
-          break;
-        }
-        for(let coli = 0; coli < this.ShapeDesc[rowi].length; coli++) {
-          if(this.ShapeDesc[rowi][coli] == '#') {
-            this.ShapeDesc = this.ShapeDesc.slice(0, rowi+1);
-            _ShapePosRootIndexes = {
-              x: coli,
-              y: 0,
-            };
-            this.ShapePosOffset = {
-              x: this.RootSeedPos.x - _ShapePosRootIndexes.x*this._ShapeScale,
-              y: this.RootSeedPos.y - _ShapePosRootIndexes.y*this._ShapeScale,
-            };
-            trimmed = true;
+    let unorderedPoints = {};
+    this.disassemblyLigt = {x: null, y: null};
+    this.disassemblyCenter = {x: null, y: null};
+    for(let rowi = 0; rowi < ShapeDescReadable.length; rowi++) {
+      let line = ShapeDescReadable[rowi];
+      let chars = line.split('');
+      for(let coli = 0; coli < chars.length; coli++) {
+        let ch = chars[coli];
+        switch(ch) {
+          case 'C':
+            this.disassemblyCenter.x = coli;
+            this.disassemblyCenter.y = rowi;
             break;
-          }
+          case 'L':
+            this.disassemblyLigt.x = coli;
+            this.disassemblyLigt.y = rowi;
+            break;
+          case ' ': break;
+          case '.': break;
+          default: // numbers
+            unorderedPoints[ch*1] = {
+              x: coli,
+              y: rowi,
+            }
+            break;
         }
       }
     }
+
+    {
+      // adjust light's position with center's position
+      this.disassemblyLigt.x -= this.disassemblyCenter.x;
+      this.disassemblyLigt.y -= this.disassemblyCenter.y;
+      this.disassemblyLigt.x *= this._ShapeScale;
+      this.disassemblyLigt.y *= this._ShapeScale;
+    }
+
+    this.disassemblyPolygon = new Array(2 * Object.keys(unorderedPoints).length);
+    for(let i = 0; i < Object.keys(unorderedPoints).length; i++) {
+      let x = unorderedPoints[i].x - this.disassemblyCenter.x;
+      let y = unorderedPoints[i].y - this.disassemblyCenter.y;
+      x *= this._ShapeScale;
+      y *= this._ShapeScale;
+      this.disassemblyPolygon[2 * i] = x;
+      this.disassemblyPolygon[2 * i + 1] = y;
+    }
+    // window.experiment.isPointInPolygon(window.experiment.disassemblyPolygon, 10, 6)
 
     let MathRandom = new Math.seedrandom(1234);
     const noise = function(magnitude) {
       return magnitude * (MathRandom()-0.5);
     }
-    const shapePosToPhysPos = (shapePos) => {
-      return {
-        x: this.RootSeedPos.x + shapePos.x,
-        y: this.RootSeedPos.y + shapePos.y,
-      };
-    }
 
-    const isInsideShape = (pos) => {
-      if(pos.x == NO_POS || pos.y == NO_POS) return false;
-      let i = Math.floor(+(pos.x-this.ShapePosOffset.x)/this._ShapeScale);
-      let j = Math.floor(-(pos.y-this.ShapePosOffset.y)/this._ShapeScale);
-      j = this.ShapeDesc.length - 1 - j;
-      return this.ShapeDesc[j] && this.ShapeDesc[j][i] == '#';
-    }
-
-    let PERFECT = false;
-    let bodyCounter = 0;
-    [
-      {isSeed: true, isRoot: true,  x: 0*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
-      {isSeed: true, isRoot: false, x: 2*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
-      {isSeed: true, isRoot: false, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * +Math.sqrt(3)},
-      {isSeed: true, isRoot: false, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * -Math.sqrt(3)},
-    ].forEach(shapePos => {
-      bodyCounter++;
-
-      if(!PERFECT) {
-        shapePos.x += noise(0.2 * INITIAL_DIST);
-        shapePos.y += noise(0.2 * INITIAL_DIST);
+    const gradientNoise = () => {
+      if(this.perlinNoiseValue == null) {
+        this.perlinNoiseValue = 0.5;
       }
 
-      newRobotFunc(
-        shapePosToPhysPos(shapePos),
-        MathRandom() * 2*Math.PI,
-        new GradientAndAssemblyWithErrorRobot({
-          gradientDist: GRADIENT_DIST,
-          initialDist: INITIAL_DIST,
-          ticksBetweenMsgs: TICKS_BETWEEN_MSGS,
-          radius: this.RADIUS,
-
-          isInsideShape: isInsideShape,
-          shapePos: shapePos.isSeed ? {x: shapePos.x, y: shapePos.y} : {x: NO_POS, y: NO_POS},
-          isGradientSeed: shapePos.isSeed && shapePos.isRoot,
-          isSeed: shapePos.isSeed,
-        }),
-      );
-    });
-
-    const createNewRobot = (pos) => {
-      // hexagrid[`${candidate.x}:${candidate.y}`] = TAKEN;
-      // hexagridCursor.x = candidate.x;
-      // hexagridCursor.y = candidate.y;
-      // let pos = gridPosToPhysPos(candidate);
-
-      // if(!PERFECT) {
-      //   pos.x += noise(0.2 * INITIAL_DIST);
-      //   pos.y += noise(0.2 * INITIAL_DIST);
-      // }
-
-      newRobotFunc(
-        pos,
-        MathRandom() * 2*Math.PI,
-        new GradientAndAssemblyWithErrorRobot({
-          gradientDist: GRADIENT_DIST,
-          initialDist: INITIAL_DIST,
-          ticksBetweenMsgs: TICKS_BETWEEN_MSGS,
-          radius: this.RADIUS,
-
-          isInsideShape: isInsideShape,
-          shapePos: {x: NO_POS, y: NO_POS},
-          isSeed: false,
-        }),
-      );
+      this.perlinNoiseValue += (MathRandom()-0.5)/2;
+      if(this.perlinNoiseValue > 1) this.perlinNoiseValue = 1;
+      if(this.perlinNoiseValue < 0) this.perlinNoiseValue = 0;
+      return this.perlinNoiseValue;
     }
 
-    let gridPosToPhysPos = (gridPos) => {
+    const isInsideShape = (x, y) => this.isPointInPolygon(this.disassemblyPolygon, x, y);
+
+    let PERFECT = false;
+    const gridPosToPhysPos = (gPos, row) => {
       let pos = {
-        x: (this.RootSeedPos.x + INITIAL_DIST/2),
-        y: (this.RootSeedPos.y + Math.sqrt(3) * INITIAL_DIST/2 + 2*INITIAL_DIST/2),
+        x: gPos.x * INITIAL_DIST*1.0 + INITIAL_DIST*(row%2==0 ? 0.5 : 0.0),
+        y: gPos.y * INITIAL_DIST*0.5 * +Math.sqrt(3),
       };
 
-      pos.x += gridPos.x * INITIAL_DIST + (gridPos.y%2==0 ? -INITIAL_DIST/2 : 0);
-      pos.y += gridPos.y * INITIAL_DIST * Math.sqrt(3)/2;
+      if(!PERFECT) {
+        pos.x += gradientNoise() * (0.2 * INITIAL_DIST);
+        pos.y += gradientNoise() * (0.2 * INITIAL_DIST);
+      }
+
       return pos;
     }
 
-    if(false) {
+    let rowCount = 20;
+    let colCount = 20;
 
-      const TAKEN = true;
-      let hexagrid = {
-        // '-1:0': TAKEN,
-        // '-2:0': TAKEN,
-        // '-3:0': TAKEN,
-        // '2:0': TAKEN,
-        // '3:0': TAKEN,
-      };
-      let hexagridCursor = {
-        x: 0,
-        y: 0,
-      };
+    let rootPos = {
+      x: -colCount/2 + 0,
+      y: -rowCount/2 + 0,
+    };
 
+    let seedPoses = [
+      {
+        x: -colCount/2 + 0,
+        y: -rowCount/2 + 0,
+      },
+      {
+        x: -colCount/2,
+        y: -rowCount/2 + 2,
+      },
+      {
+        x: -colCount/2 + 0,
+        y: -rowCount/2 + 1,
+      },
+      {
+        x: -colCount/2 + 1,
+        y: -rowCount/2 + 1,
+      },
+    ];
 
-      let assemblyCount = this.COUNT - bodyCounter;
-      let hexaNeighbors = [
-        [0,   -1], [+1,-1],
-        [-1, 0], /*cursor*/ [+1, 0],
-        [0,   +1], [+1,+1],
-      ];
+    let rowCounter = -1;
+    for(let rowi = -rowCount/2; rowi < +rowCount/2; rowi++) {
+      rowCounter++;
+      for(let coli = -colCount/2; coli < +colCount/2; coli++) {
 
-      createNewRobot(hexagridCursor);
-      for(let i = 0; i < assemblyCount; i++) {
-        let candidates = hexaNeighbors.map(adjacentPoint => {
-          let candidate = {
-            x: hexagridCursor.x + adjacentPoint[0],
-            y: hexagridCursor.y + adjacentPoint[1],
+        let isRoot = rowi == rootPos.y && coli == rootPos.x;
+        let isSeed = false;
+        for(let i = 0; i < seedPoses.length; i++) {
+          if(rowi == seedPoses[i].y && coli == seedPoses[i].x) {
+            isSeed = true;
+            break;
           }
-
-          if(hexagrid[`${candidate.x}:${candidate.y}`] == TAKEN)
-            return null;
-
-          if(true) {
-            if(candidate.y < 0) return null;
-          } else {
-            let seedAreaWidth = Math.floor(this.NEIGHBOUR_DISTANCE/INITIAL_DIST) * 2;
-            if(candidate.x < -seedAreaWidth/2 || candidate.x > +seedAreaWidth/2 || candidate.y < 0) {
-              for(let rowi = 0; rowi < this.ShapeDesc.length; rowi++) {
-                let row = this.ShapeDesc[rowi];
-                for(let coli = 0; coli < row.length; coli++) {
-                  if(row[coli] != '#')
-                    continue;
-                  let p = {
-                    x: this.ShapePosOffset.x + coli*this._ShapeScale,
-                    y: this.ShapePosOffset.y - (this.ShapeDesc.length-1 - rowi)*this._ShapeScale,
-                  }
-                  let d = calculateDistance(gridPosToPhysPos(candidate), p);
-                  if(d < 4*INITIAL_DIST) {
-                    return null;
-                    // let distToOrigin = calculateDistance(gridPosToPhysPos(candidate), gridPosToPhysPos({x: 0, y: 0}));
-                    // return {
-                    //   x: candidate.x,
-                    //   y: candidate.y,
-                    //   dist: distToOrigin * 10000,
-                    // };
-                  }
-                }
-              }
-            }
-          }
-
-          let distToOrigin = calculateDistance(gridPosToPhysPos(candidate), gridPosToPhysPos({x: 0, y: 0}));
-
-          return {
-            x: candidate.x,
-            y: candidate.y,
-            dist: distToOrigin,
-          };
-        }).filter(x => x != null).sort((a, b) => a.dist - b.dist);
-
-        let best = candidates[0];
-
-        if(best == null) {
-          console.error("'best' should not be null");
-          return;
         }
 
-        createNewRobot(best);
+        let pos = gridPosToPhysPos({x: coli, y: rowi}, rowCounter);
+        newRobotFunc(
+          pos,
+          MathRandom() * 2*Math.PI,
+          new GradientAndDisassemblyRobot({
+            gradientDist: GRADIENT_DIST,
+            initialDist: INITIAL_DIST,
+            ticksBetweenMsgs: TICKS_BETWEEN_MSGS,
+            radius: this.RADIUS,
+
+            isInsideShape: isInsideShape,
+            shapePos: isSeed ? pos : {x: NO_POS, y: NO_POS},
+            isGradientSeed: isSeed && isRoot,
+            isSeed: isSeed,
+          }),
+        );
       }
     }
 
-    let assemblyCount = this.COUNT - bodyCounter;
-    for(let rowi = 0; assemblyCount > 0; rowi++) {
-      // let colCount = Math.pow(rowi, 1.1);
-
-      let left = -Math.floor(rowi/1);
-      let right = Math.pow(rowi, 1.1) + 2;
-
-      for(let coli = left; coli < right && assemblyCount > 0; coli++) {
-        assemblyCount--;
-        createNewRobot(gridPosToPhysPos({x: coli, y: rowi}));
-      }
-    }
+    newLightFunc(this.disassemblyLigt);
   }
 
   setupGraphics(
@@ -1162,6 +1030,7 @@ window['ExperimentAssemblyWithError'] = class {
     bodyIDs,
     setDisplayedData,
     zIndexOf,
+    V,
   ) {
     for(let i = 0; i < bodyIDs.length; i++) {
       let b = bodies[bodyIDs[i]];
@@ -1204,63 +1073,23 @@ window['ExperimentAssemblyWithError'] = class {
       });
     }
 
-    const DRAW_SHAPE_DESCRIPTION = !true;
-    if(DRAW_SHAPE_DESCRIPTION) {
-      // position vectors
+    if(false) {
       let g = new PIXI.Graphics()
       g.zIndex = zIndexOf('Shape');
       g.alpha = 0.3;
-      g.lastView = null;
+      // g.lastView = null;
 
       platformGraphics.addChild(g);
       pixiApp.ticker.add(() => {
-        if(this.equalZooms(g.lastView, this.V)) return;
-        g.lastView = this.copyView(this.V);
+        // if(this.equalZooms(g.lastView, this.V)) return;
+        // g.lastView = this.copyView(this.V);
 
         g.clear();
-        if(!DRAW_SHAPE_DESCRIPTION) return;
 
-        let highlightJoined = false;
+        g.lineStyle(1, 0x000000, 1);
+        g.beginFill(0x888888, 1);
 
-        let shapeMarks = {};
-        if(highlightJoined) {
-          for(let i = 0; i < bodyIDs.length; i++) {
-            let b = bodies[bodyIDs[i]];
-            let p = b.body.GetPosition();
-            let i = Math.floor(+(p.get_x() - this.ShapePosOffset.x)/this._ShapeScale);
-            let j = Math.floor(-(p.get_y() - this.ShapePosOffset.y)/this._ShapeScale);
-            let key = `${this.ShapeDesc.length - 1 - j}:${i}`;
-            shapeMarks[key] = (shapeMarks[key] || 0) + 1
-          }
-        }
-
-        g.lineStyle(0, 0x000000);
-        g.beginFill(0x888888, 0.5);
-
-        for(let rowi = 0; rowi < this.ShapeDesc.length; rowi++) {
-          let row = this.ShapeDesc[rowi];
-          for(let coli = 0; coli < row.length; coli++) {
-            if(row[coli] != '#') {
-              continue;
-            }
-            if(highlightJoined) {
-              if(shapeMarks[`${rowi}:${coli}`]) {
-                g.beginFill(0x008800);
-              } else {
-                g.beginFill(0x888888);
-              }
-            }
-
-            let x = this.ShapePosOffset.x + coli*this._ShapeScale;
-            let y = this.ShapePosOffset.y - (this.ShapeDesc.length-1 - rowi)*this._ShapeScale;
-            g.drawRect(
-              +this.V.ZOOM * x,
-              +this.V.ZOOM * y - this.V.ZOOM * this._ShapeScale,
-              +(this.V.ZOOM * this._ShapeScale - 1),
-              +(this.V.ZOOM * this._ShapeScale - 1),
-            );
-          }
-        }
+        g.drawPolygon(this.disassemblyPolygon.map(n => n * V.ZOOM));
       });
     }
 
@@ -1293,8 +1122,8 @@ window['ExperimentAssemblyWithError'] = class {
             y: + pos.y * this.V.ZOOM,
           }
           let posEstimated = {
-            x: + (this.RootSeedPos.x + shapePos.x) * this.V.ZOOM,
-            y: + (this.RootSeedPos.y + shapePos.y) * this.V.ZOOM,
+            x: + (shapePos.x) * this.V.ZOOM,
+            y: + (shapePos.y) * this.V.ZOOM,
           }
           let dist = calculateDistancePerf(posActual.x, posEstimated.x, posActual.y, posEstimated.y);
           if(dist < this.RADIUS*this.V.ZOOM) correctlyLocalizedCount++;
