@@ -7,6 +7,8 @@ const NO_POS = 100000;
 
 const STATIONARY = 1;
 const NOT_STATIONARY = 0;
+const CONSENSUS_FINAL = 50;
+const POS_CONFIDENCE_FINAL = 10;
 
 const calculateDistancePerf = function(x1, x2, y1, y2) {
   return Math.sqrt(
@@ -179,6 +181,7 @@ class GradientAndDisassemblyRobot extends Kilobot {
       this.neighbors_grad = new Int32Array(MAX_NEIGHBOURS);
       this.neighbors_seen_at = new Int32Array(MAX_NEIGHBOURS);
       this.neighbors_pos_confidence = new Int32Array(MAX_NEIGHBOURS);
+      this.neighbors_consensus_counter = new Int32Array(MAX_NEIGHBOURS);
 
       // floats:
       this.neighbors_dist = new Float64Array(MAX_NEIGHBOURS);
@@ -228,6 +231,7 @@ class GradientAndDisassemblyRobot extends Kilobot {
     this.myGradient = NO_GRAD;
     this.hesitateData = {};
     this.counter = 0;
+    this.consensusCounter = 0;
 
     {
       // for phototaxis
@@ -248,7 +252,8 @@ class GradientAndDisassemblyRobot extends Kilobot {
     }
 
     if(this.isSeed) {
-      this.posConfidence = 10;
+      this.posConfidence = POS_CONFIDENCE_FINAL;
+      this.consensusCounter = 1;
     }
   }
 
@@ -281,7 +286,7 @@ class GradientAndDisassemblyRobot extends Kilobot {
         continue;
       }
 
-      if(this.neighbors_pos_confidence[i] < 10)
+      if(this.neighbors_pos_confidence[i] < POS_CONFIDENCE_FINAL)
         continue;
 
       if(this.neighbors_pos_x[i] == NO_POS)
@@ -692,6 +697,29 @@ class GradientAndDisassemblyRobot extends Kilobot {
     this.last_value = value;
   }
 
+  doConsensus() {
+    if(this.posConfidence < POS_CONFIDENCE_FINAL) {
+      this.consensusCounter = 0;
+      return;
+    }
+
+    let grad = Infinity;
+
+    for(let i = 0; i < MAX_NEIGHBOURS; i++) {
+      if(this.neighbors_id[i] == VACANT) continue;
+      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
+
+      if(this.neighbors_dist[i] > this.gradientDist)
+        continue;
+
+      if(this.neighbors_consensus_counter[i] < grad)
+        grad = this.neighbors_consensus_counter[i]; 
+    }
+
+    if(grad < Infinity)
+      this.consensusCounter = grad + 1;
+  }
+
   loop() {
     // this._cached_robust_quad = false;
     this.counter++;
@@ -701,7 +729,8 @@ class GradientAndDisassemblyRobot extends Kilobot {
       case States.LocAndGrad:
         this.gradientFormation();
         this.localize();
-        if(this.counter > 500) {
+        this.doConsensus();
+        if(this.consensusCounter > CONSENSUS_FINAL) {
           if(this.isInsideShape(this.shapePos.x, this.shapePos.y)) {
             this.switchToState(States.JoinedShape);
           } else {
@@ -709,7 +738,6 @@ class GradientAndDisassemblyRobot extends Kilobot {
           }
         }
         break;
-
       case States.DoPhototaxis:
         this.set_color(this.RGB(3, 0, 0));
         this.doPhototaxis(false);
@@ -719,6 +747,7 @@ class GradientAndDisassemblyRobot extends Kilobot {
         this.doPhototaxis(true);
         break;
       case States.JoinedShape:
+        this.doConsensus();
         this.unmark();
         this.isStationary = STATIONARY;
         this.set_color(this.RGB(0, 0, 3));
@@ -783,6 +812,7 @@ class GradientAndDisassemblyRobot extends Kilobot {
     this.neighbors_is_stationary[index] = message.isStationary;
     this.neighbors_robotsIveEdgeFollowed[index] = message.robotsIveEdgeFollowed;
     this.neighbors_pos_confidence[index] = message.posConfidence;
+    this.neighbors_consensus_counter[index] = message.consensusCounter;
   }
 
   message_tx() {
@@ -794,6 +824,7 @@ class GradientAndDisassemblyRobot extends Kilobot {
       posConfidence: this.posConfidence,
       isSeed: this.isSeed,
       state: this.state,
+      consensusCounter: this.consensusCounter,
       // edgeFollowingAge: this.edgeFollowingAge,
       robotsIveEdgeFollowed: this.robotsIveEdgeFollowed,
       // lastRobotIveEdgeFollowed: this.lastRobotIveEdgeFollowed,
@@ -1046,6 +1077,7 @@ window['ExperimentDisassembly'] = class {
             return {
               id: b.robot.neighbors_id[i],
               grad: b.robot.neighbors_grad[i],
+              consensusCounter: b.robot.neighbors_consensus_counter[i],
               seen_at: b.robot.neighbors_seen_at[i],
               is_stationary: b.robot.neighbors_is_stationary[i],
               dist: b.robot.neighbors_dist[i],
@@ -1057,6 +1089,7 @@ window['ExperimentDisassembly'] = class {
           uid: b.robot._uid,
           state: b.robot.state,
           grad: b.robot.myGradient,
+          consensusCounter: b.robot.consensusCounter,
           counter: b.robot.counter,
           isSeed: b.robot.isSeed,
           hesitateData: b.robot.hesitateData,
