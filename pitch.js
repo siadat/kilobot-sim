@@ -96,7 +96,7 @@ export class Pitch {
     this.metaData[key] = value;
     let newText = Object
       .keys(this.metaData)
-      .sort((a, b) => a.length - b.length)
+      .sort()
       .map(key => `${key}: ${this.metaData[key]}`)
       .join('\n');
 
@@ -254,6 +254,7 @@ export class Pitch {
 
           let clicked = this.pointerDownStart.x == ev.data.global.x && this.pointerDownStart.y == ev.data.global.y;
           if(clicked) {
+            this.selectedUID = null;
             this.experiment.clickedOutside && this.experiment.clickedOutside();
           }
 
@@ -919,7 +920,20 @@ export class Pitch {
           if(DEV) {
             this.setDisplayedData('Duration (render)', `${formatSeconds(ourSeconds, true)}`);
           }
-          this.setDisplayedData('Simulation speed', `${Math.round(this.speedX*10)/10}x`);
+          this.setDisplayedData('Simulation speed', `${this.speedX > 2 ? Math.round(this.speedX) : Math.round(this.speedX*10)/10}x`);
+        }
+
+        {
+          if(this.selectedUID) {
+            this.setDisplayedData('Last selected: ID', this.selectedUID)
+            // STRANGE: any of these two lines improves performance!
+            this.setDisplayedData('Last selected: State', this.bodies[this.selectedUID].robot.state)
+            this.setDisplayedData('Last selected: Robot', this.bodies[this.selectedUID].robot.toString())
+          } else {
+            this.setDisplayedData('Last selected: ID', null);
+            this.setDisplayedData('Last selected: State', null);
+            this.setDisplayedData('Last selected: Robot', null);
+          }
         }
 
         this.physics.update();
@@ -1231,6 +1245,10 @@ export class Pitch {
         const g = new PIXI.Graphics();
         g.lastView = null;
         b.g = g;
+
+        g.on('pointerdown', (ev) => {
+          this.selectedUID = b.robot._uid;
+        });
 
         // SIMPLIFIED GRAPHICS
         if(false && BENCHMARKING) {
