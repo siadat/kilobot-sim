@@ -651,7 +651,7 @@ class GradientAndAssemblyRobot extends Kilobot {
         msg += `, reason: ${reason}`;
       }
       this.newEvent(msg);
-      this._graphics_must_update = true;
+      // this._graphics_must_update = true;
       this.state = newState;
     }
   }
