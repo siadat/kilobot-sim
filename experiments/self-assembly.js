@@ -155,7 +155,7 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.initialDist = opts.initialDist;
     this.HESITATE_DURATION = 2 * opts.ticksBetweenMsgs;
     this.NEIGHBOUR_EXPIRY = 2 * opts.ticksBetweenMsgs;
-    this.DESIRED_SHAPE_DIST = 3.6*opts.radius;
+    this.DESIRED_SHAPE_DIST = 3.2*opts.radius;
     this.NEARBY_MOVING_DISTANCE = 4*this.DESIRED_SHAPE_DIST;
 
     this.shapeDesc = opts.shapeDesc;
@@ -253,7 +253,10 @@ class GradientAndAssemblyRobot extends Kilobot {
   }
 
   set_colors_for_gradient(g) {
-    if(g == NO_GRAD) return;
+    if(g == NO_GRAD) {
+      this.set_color(this.RGB(3, 3, 3));
+      return;
+    }
 
     this.set_color(this.COLORS[g % this.COLORS.length]);
   }
@@ -442,7 +445,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
 
       // TODO: why limit to this.gradientDist???
-      if(this.neighbors_dist[i] > this.gradientDist) continue;
+      // if(this.neighbors_dist[i] > this.gradientDist) continue;
 
       if(this.neighbors_grad[i] == NO_GRAD)
         continue;
@@ -598,8 +601,15 @@ class GradientAndAssemblyRobot extends Kilobot {
     // if(this.robotsIveEdgeFollowed[this.robotsIveEdgeFollowed.length - 1] != this.neighbors_id[nnIndex])
     //   this.robotsIveEdgeFollowed.push(this.neighbors_id[nnIndex]);
 
-    let tooClose = this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST;
-    let extremelyClose = this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST*0.65;
+    let desiredDist = this.DESIRED_SHAPE_DIST;
+    if(this.neighbors_grad[nnIndex] < 1) {
+      desiredDist = this.DESIRED_SHAPE_DIST * 1.5;
+    }
+    if(this.neighbors_grad[nnIndex] > 5 && this.neighbors_state[nnIndex] == States.JoinedShape) {
+      desiredDist = this.DESIRED_SHAPE_DIST * 0.9;
+    }
+
+    let tooClose = this.neighbors_dist[nnIndex] < desiredDist;
     let gettingFarther = this.prevNearestNeighDist < this.neighbors_dist[nnIndex];
     let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
     this.prevNearestNeighDist = this.neighbors_dist[nnIndex];
@@ -611,12 +621,7 @@ class GradientAndAssemblyRobot extends Kilobot {
       return;
     }
 
-    if(extremelyClose) {
-      this.stats.action = 'left-get-farther';
-      this.stats.motors_left = this.kilo_turn_left;
-      this.stats.motors_right = 0;
-      this.set_motors(this.kilo_turn_left, 0);
-    } else if(tooClose) {
+    if(tooClose) {
       if(gettingFarther) {
         this.stats.action = 'straight';
         this.stats.motors_left = this.kilo_straight_left;
@@ -878,7 +883,7 @@ window['ExperimentAssembly'] = class {
     this.drawLocalizationError = true;
     // this.COUNT = 4 + 140;
     // this.COUNT = 4 + 196/2 - 2 - 30;
-    this.COUNT = 4 + 196/2 - 2;
+    this.COUNT = 4 + 196/2 - 2 + 40;
 
     this.runnerOptions = {
       limitSpeed: false,
@@ -894,7 +899,7 @@ window['ExperimentAssembly'] = class {
   createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     this.NEIGHBOUR_DISTANCE = NEIGHBOUR_DISTANCE;
     const INITIAL_DIST = this.NEIGHBOUR_DISTANCE/11*3;
-    const GRADIENT_DIST = 1.5*INITIAL_DIST;
+    const GRADIENT_DIST = 1.3*INITIAL_DIST;
     this.RADIUS = RADIUS;
     // this._ShapeScale = 1.25*this.RADIUS; // 1.5*this.RADIUS
     this._ShapeScale = 1*this.RADIUS; // 1.5*this.RADIUS

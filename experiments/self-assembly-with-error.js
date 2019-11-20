@@ -249,7 +249,10 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
   }
 
   set_colors_for_gradient(g) {
-    if(g == NO_GRAD) return;
+    if(g == NO_GRAD) {
+      this.set_color(this.RGB(3, 3, 3));
+      return;
+    }
 
     this.set_color(this.COLORS[g % this.COLORS.length]);
   }
@@ -441,7 +444,7 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
       if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
 
       // TODO: why limit to this.gradientDist???
-      if(this.neighbors_dist[i] > this.gradientDist) continue;
+      // if(this.neighbors_dist[i] > this.gradientDist) continue;
 
       if(this.neighbors_grad[i] == NO_GRAD)
         continue;
@@ -596,8 +599,16 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
     // if(this.robotsIveEdgeFollowed[this.robotsIveEdgeFollowed.length - 1] != this.neighbors_id[nnIndex])
     //   this.robotsIveEdgeFollowed.push(this.neighbors_id[nnIndex]);
 
-    let tooClose = this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST;
-    let extremelyClose = this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST*0.65;
+    let desiredDist = this.DESIRED_SHAPE_DIST;
+    if(this.neighbors_grad[nnIndex] < 1) {
+      desiredDist = this.DESIRED_SHAPE_DIST * 1.5;
+    }
+    // if(this.neighbors_grad[nnIndex] > 5 && this.neighbors_state[nnIndex] == States.JoinedShape) {
+    //   desiredDist = this.DESIRED_SHAPE_DIST * 0.9;
+    // }
+
+    let tooClose = this.neighbors_dist[nnIndex] < desiredDist;
+    let extremelyClose = false; //this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST*0.65;
     let gettingFarther = this.prevNearestNeighDist < this.neighbors_dist[nnIndex];
     let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
     this.prevNearestNeighDist = this.neighbors_dist[nnIndex];

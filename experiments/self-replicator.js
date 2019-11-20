@@ -5,9 +5,11 @@ const VACANT = -1;
 const NO_GRAD = 10000;
 const NO_POS = 100000;
 const NO_REPLICA = 0;
+const ADJACENT_DIST_FACTOR = 1.4;
 
 const STATIONARY = 1;
 const NOT_STATIONARY = 0;
+let polygons = [];
 
 const calculateDistancePerf = function(x1, x2, y1, y2) {
   return Math.sqrt(
@@ -156,7 +158,7 @@ class GradientAndReplicatorRobot extends Kilobot {
     this.initialDist = opts.initialDist;
     this.HESITATE_DURATION = 2 * opts.ticksBetweenMsgs;
     this.NEIGHBOUR_EXPIRY = 2 * opts.ticksBetweenMsgs;
-    this.DESIRED_SHAPE_DIST = 3.6*opts.radius; // opts.initialDist; // 3.6*opts.radius;
+    this.DESIRED_SHAPE_DIST = 3.2*opts.radius; // opts.initialDist; // 3.6*opts.radius;
     this.radius = opts.radius;
     this.NEARBY_MOVING_DISTANCE = 4*this.DESIRED_SHAPE_DIST;
 
@@ -179,8 +181,8 @@ class GradientAndReplicatorRobot extends Kilobot {
     // this.lastRobotIveEdgeFollowed = null;
 
     {
-      this.replicaMates = {};
-      this.replicaFirst = {};
+      // this.replicaMates = {};
+      this.replicaFirstObj = {};
 
       // ints:
       this.neighbors_id = new Int32Array(MAX_NEIGHBOURS);
@@ -240,11 +242,7 @@ class GradientAndReplicatorRobot extends Kilobot {
     // this.posHistory = [];
     // this.localizeCounter = 0;
 
-    if(this.isSeed) {
-      this.set_color(this.RGB(3, 3, 3));
-    } else {
-      this.set_color(this.RGB(0, 0, 0));
-    }
+    this.set_color(this.RGB(3, 3, 3));
 
     if(this.isSeed) {
       this.posConfidence = 10;
@@ -260,7 +258,10 @@ class GradientAndReplicatorRobot extends Kilobot {
   }
 
   set_colors_for_gradient(g) {
-    if(g == NO_GRAD) return;
+    if(g == NO_GRAD) {
+      this.set_color(this.RGB(3, 3, 3));
+      return;
+    }
 
     this.set_color(this.COLORS[g % this.COLORS.length]);
   }
@@ -416,6 +417,8 @@ class GradientAndReplicatorRobot extends Kilobot {
 
     if(grad < Infinity)
       this.setGradient(grad + 1);
+    else
+      this.setGradient(NO_GRAD);
   }
 
   getNearestNeighborIndex() {
@@ -449,7 +452,7 @@ class GradientAndReplicatorRobot extends Kilobot {
       if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
 
       // TODO: why limit to this.gradientDist???
-      if(this.neighbors_dist[i] > this.gradientDist) continue;
+      // if(this.neighbors_dist[i] > this.gradientDist) continue;
 
       if(this.neighbors_grad[i] == NO_GRAD)
         continue;
@@ -581,9 +584,9 @@ class GradientAndReplicatorRobot extends Kilobot {
     }
 
     this.myGradient = newValue;
-    if(this.state != States.JoinedShape && !this.isSeed && !this.isCenter) {
+    // if(this.state != States.JoinedShape && !this.isSeed && !this.isCenter) {
       this.set_colors_for_gradient(this.myGradient);
-    }
+    // }
   }
 
   doEdgeFollow() {
@@ -605,8 +608,13 @@ class GradientAndReplicatorRobot extends Kilobot {
     // if(this.robotsIveEdgeFollowed[this.robotsIveEdgeFollowed.length - 1] != this.neighbors_id[nnIndex])
     //   this.robotsIveEdgeFollowed.push(this.neighbors_id[nnIndex]);
 
-    let tooClose = this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST;
-    let extremelyClose = this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST*0.65;
+    let desiredDist = this.DESIRED_SHAPE_DIST;
+    // if(this.neighbors_grad[nnIndex] < 3) {
+    //   desiredDist = this.DESIRED_SHAPE_DIST * 2;
+    // }
+
+    let tooClose = this.neighbors_dist[nnIndex] < desiredDist;
+    let extremelyClose = false; // this.neighbors_dist[nnIndex] < desiredDist*0.65;
     let gettingFarther = this.prevNearestNeighDist < this.neighbors_dist[nnIndex];
     let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
     this.prevNearestNeighDist = this.neighbors_dist[nnIndex];
@@ -658,39 +666,177 @@ class GradientAndReplicatorRobot extends Kilobot {
         msg += `, reason: ${reason}`;
       }
       this.newEvent(msg);
-      this._graphics_must_update = true;
+      // this._graphics_must_update = true;
       this.state = newState;
     }
+  }
+
+  // node_modules/pixi.js/dist/pixi.js: Polygon.prototype.contains
+  isPointInPolygon(polygonPoints, x, y) {
+    let inside = false;
+
+    // use some raycasting to test hits
+    // https://github.com/substack/point-in-polygon/blob/master/index.js
+    let length = polygonPoints.length / 2;
+
+    for (let i = 0, j = length - 1; i < length; j = i++)
+    {
+      let xi = polygonPoints[i * 2];
+      let yi = polygonPoints[(i * 2) + 1];
+      let xj = polygonPoints[j * 2];
+      let yj = polygonPoints[(j * 2) + 1];
+      let intersect = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * ((y - yi) / (yj - yi))) + xi);
+
+      if (intersect)
+      {
+        inside = !inside;
+      }
+    }
+
+    return inside;
+  }
+
+  rotatePoint(angle, origin, pos) {
+
+    const translate = function translate (m, x, y) {
+      m.tx += x;
+      m.ty += y;
+    };
+
+    const rotate = function rotate (m, angle) {
+      var cos = Math.cos(angle);
+      var sin = Math.sin(angle);
+
+      var a1 = m.a;
+      var c1 = m.c;
+      var tx1 = m.tx;
+
+      m.a = (a1 * cos) - (m.b * sin);
+      m.b = (a1 * sin) + (m.b * cos);
+      m.c = (c1 * cos) - (m.d * sin);
+      m.d = (c1 * sin) + (m.d * cos);
+      m.tx = (tx1 * cos) - (m.ty * sin);
+      m.ty = (tx1 * sin) + (m.ty * cos);
+    };
+
+    const apply = function apply (m, pos) {
+        let newPos = {x: 0, y: 0};
+
+        var x = pos.x;
+        var y = pos.y;
+
+        newPos.x = (m.a * x) + (m.c * y) + m.tx;
+        newPos.y = (m.b * x) + (m.d * y) + m.ty;
+
+        return newPos;
+    };
+
+    let m = {
+      a: 1,
+      b: 0,
+      c: 0,
+      d: 1,
+      tx: 0,
+      ty: 0,
+    };
+
+    translate(m, -origin.x, -origin.y)
+    rotate(m, angle);
+    let newPos = apply(m, pos);
+    translate(m, +origin.x, +origin.y)
+    return apply(m, pos);
   }
 
   isInsideShape() {
     if(this.shapePos.x == NO_POS || this.shapePos.y == NO_POS) return false;
 
-    let patternMinY = null;
-    // let patternMaxY = null;
-    for(let i = 0; i < Object.keys(this.replicaFirst).length; i++) {
-      let id = Object.keys(this.replicaFirst)[i];
-      let pos = this.replicaFirst[id];
-      if(patternMinY==null || patternMinY > pos.y) patternMinY = pos.y;
-      // if(patternMaxY==null || patternMaxY < pos.y) patternMaxY = pos.y;
-    }
-    // console.log(patternMinY);
+    if(this.counter < 700)
+      return false;
 
-    for(let i = 0; i < Object.keys(this.replicaFirst).length; i++) {
-      let id = Object.keys(this.replicaFirst)[i];
-      let pos = this.replicaFirst[id];
-      // let area = this.radius; // this.initialDist;
-      let area = this.initialDist;
-      pos = {
-        x: pos.x,
-        y: pos.y + patternMinY - 2*area,
+    if(!this.replicaFirstPolygons) {
+      let ids = Object.keys(this.replicaFirstObj).filter(id => this.replicaFirstObj[id].isPolygonPoint);
+      if(ids.length == 0) {
+        return false;
       }
-      let d2 = Math.pow(pos.x-this.shapePos.x, 2) + Math.pow(pos.y-this.shapePos.y, 2);
-      if(d2 < area*area) {
+      // console.log("processing");
+
+      let currPoint = null;
+      let replicaFirstOrderedIDs = [];
+
+      for(let j = 0; j < ids.length; j++) {
+        for(let i = 0; i < ids.length; i++) {
+          let id = ids[i];
+
+          if(replicaFirstOrderedIDs.indexOf(id) != -1) {
+            continue;
+          }
+
+          if(currPoint == null) {
+            currPoint = {
+              x: this.replicaFirstObj[id].x,
+              y: this.replicaFirstObj[id].y,
+            };
+            // console.log("first id is", id, currPoint.x, currPoint.y);
+            replicaFirstOrderedIDs.push(id);
+            break;
+          }
+
+          let nextPoint = this.replicaFirstObj[id];
+          let d = Math.sqrt(Math.pow(nextPoint.x-currPoint.x, 2) + Math.pow(nextPoint.y-currPoint.y, 2));
+          if(d < this.initialDist*ADJACENT_DIST_FACTOR) {
+            currPoint.x = nextPoint.x;
+            currPoint.y = nextPoint.y;
+            replicaFirstOrderedIDs.push(id);
+            break;
+          }
+        }
+      }
+
+      let topPos = null;
+      let patternMinX = null;
+
+      for(let i = 0; i < ids.length; i++) {
+        let id = ids[i];
+        let pos = this.replicaFirstObj[id];
+        if(topPos==null || topPos.y > pos.y) {
+          topPos = {
+            x: pos.x,
+            y: pos.y,
+          }
+        }
+      }
+
+      topPos.x = 0;
+      // console.log("----");
+
+      this.replicaFirstPolygons = [];
+      let count = 5;
+      for(let i = 0; i < count; i++) {
+        let rotateAngle = i * 2*Math.PI/count;
+        //for(let i = 0; i < ids.length; i++) {
+          this.replicaFirstPolygons.push(replicaFirstOrderedIDs.map(id => {
+            let x = this.replicaFirstObj[id].x; // + topPos.x;
+            let y = this.replicaFirstObj[id].y; // + topPos.y;
+            let rotatedPos = this.rotatePoint(rotateAngle, {x: topPos.x, y: topPos.y}, {x: x, y: y});
+
+            // let dx = x; // - topPos.x;
+            // let dy = y; // - topPos.y;
+            // let currAngle = Math.atan(dy/dx);
+            // let d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+
+            // x = /*topPos.x */+ d * Math.cos(currAngle + rotateAngle);
+            // y = /*topPos.y */+ d * Math.sin(currAngle + rotateAngle);
+            return [rotatedPos.x, rotatedPos.y];
+          }).flat());
+        // }
+      }
+      polygons = this.replicaFirstPolygons;
+    }
+
+    for(let i = 0; i < this.replicaFirstPolygons.length; i++) {
+      if(this.isPointInPolygon(this.replicaFirstPolygons[i], this.shapePos.x, this.shapePos.y))
         return true;
-      }
     }
-
     return false;
   }
 
@@ -769,7 +915,7 @@ class GradientAndReplicatorRobot extends Kilobot {
         this.localize();
         this.gradientFormation();
 
-        if(this.isInsideShape(this.shapePos)) {
+        if(this.isInsideShape()) {
           // this.myGradient = NO_GRAD;
           this.switchToState(States.MoveWhileInside, "inside shape");
         }
@@ -805,15 +951,21 @@ class GradientAndReplicatorRobot extends Kilobot {
         */
 
 
-        if(!this.isInsideShape(this.shapePos)) {
+        if(!this.isInsideShape()) {
           this.switchToState(States.JoinedShape, "went out");
+          // this.wentOutConfidence = (this.wentOutConfidence||0) + 1;
+          // if(this.wentOutConfidence > 4) {
+          //   this.switchToState(States.JoinedShape, "went out");
+          // }
           return;
+        } else {
+          this.wentOutConfidence = 0;
         }
 
         {
           let nnIndex = this.getNearestNeighborIndex();
-          if(nnIndex != null && this.neighbors_grad[nnIndex] >= this.myGradient /*&& this.neighbors_grad[nnIndex] != 1*/) {
-            this.switchToState(States.JoinedShape, `my grad ${this.myGradient} >= closest neighbor ${this.neighbors_grad[nnIndex]}`);
+          if(nnIndex != null &&  this.myGradient <= this.neighbors_grad[nnIndex] /*&& this.neighbors_grad[nnIndex] != 1*/) {
+            this.switchToState(States.JoinedShape, `my grad ${this.myGradient} <= closest neighbor ${this.neighbors_grad[nnIndex]}`);
             return;
           }
         }
@@ -823,15 +975,23 @@ class GradientAndReplicatorRobot extends Kilobot {
         this.unmark();
         this.isStationary = STATIONARY;
         this.localize();
-        this.set_color(this.RGB(0, 0, 0));
+
+        // if(this.replicaID == 1) {
+        //   if(this.amPlygonEdge) {
+        //     this.set_color(this.RGB(0, 0, 0));
+        //   } else {
+        //     this.set_color(this.RGB(3, 3, 3));
+        //   }
+        // } else {
+        //   // this.set_color(this.RGB(0, 0, 0));
+        // }
 
         // if(!this.isSeed) {
         //   this.set_color(this.COLORS_INTENSE[this.myGradient % this.COLORS_INTENSE.length]);
         // }
 
         // if(this.isSeed)
-        if(this.replicaID == 1)
-          this.gradientFormation();
+        this.gradientFormation();
         break;
     }
   }
@@ -896,28 +1056,85 @@ class GradientAndReplicatorRobot extends Kilobot {
     this.neighbors_pos_confidence[index] = message.posConfidence;
     this.neighbors_replicaID[index] = message.replicaID;
 
-    // this.replicaMates[message.robotUID] = {x: message.shapePos.x, y: message.shapePos.y};
-    if(this.replicaID != NO_REPLICA && this.replicaID == message.replicaID) {
+    /*
+    if(
+      this.replicaID != NO_REPLICA
+      &&
+      this.replicaID == message.replicaID
+    ) {
       for(let i = 0; i < Object.keys(message.replicaMates).length; i++) {
         let id = Object.keys(message.replicaMates)[i];
         this.replicaMates[id] = message.replicaMates[id];
       }
     }
 
-    // memorize first replica
-    if(this.replicaID == NO_REPLICA && message.replicaID == 1) {
+    if(
+      this.replicaID == 1
+      &&
+      message.replicaID == 1
+    ) {
       for(let i = 0; i < Object.keys(message.replicaMates).length; i++) {
         let id = Object.keys(message.replicaMates)[i];
-        this.replicaFirst[id] = message.replicaMates[id];
+        this.replicaFirstObj[id] = message.replicaMates[id];
+      }
+    }
+    */
+
+    // memorize first replica
+    if(message.replicaID == 1) {
+      let ids = Object.keys(message.replicaFirstObj)
+      for(let i = 0; i < ids.length; i++) {
+        let id = ids[i];
+        if(message.replicaFirstObj[id].isPolygonPoint == false) {
+          delete(this.replicaFirstObj[id]);
+        } else {
+          if(this.replicaFirstObj[id]) {
+             this.replicaFirstObj[id].isPolygonPoint = message.replicaFirstObj[id].isPolygonPoint;
+             this.replicaFirstObj[id].x = message.replicaFirstObj[id].x;
+             this.replicaFirstObj[id].y = message.replicaFirstObj[id].y;
+          } else {
+            this.replicaFirstObj[id] = {
+              isPolygonPoint: message.replicaFirstObj[id].isPolygonPoint,
+              x: message.replicaFirstObj[id].x,
+              y: message.replicaFirstObj[id].y,
+            }
+          }
+        }
       }
     }
 
   }
 
   message_tx() {
-    if(this.replicaID != NO_REPLICA) {
-      // add my own pos to my replica mate poses:
-      this.replicaMates[this.kilo_uid] = this.shapePos;
+    if(
+      this.replicaID == 1
+      &&
+      (this.shapePos.x != NO_POS && this.shapePos.y != NO_POS)
+    ) {
+
+
+      let adjacentNeighborsCount = 0;
+      for(let i = 0; i < MAX_NEIGHBOURS; i++) {
+        if(this.neighbors_id[i] == VACANT) continue;
+        // if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
+
+        if(this.neighbors_replicaID[i] != 1) continue;
+        if(this.neighbors_dist[i] < this.initialDist*ADJACENT_DIST_FACTOR) {
+          adjacentNeighborsCount++;
+        }
+      }
+
+      this.amPlygonEdge = adjacentNeighborsCount < 6;
+
+      if(this.counter > 700) {
+        // announce
+        this.replicaFirstObj[this.kilo_uid] = {
+          isPolygonPoint: this.amPlygonEdge,
+          x: this.shapePos.x,
+          y: this.shapePos.y,
+        }
+      }
+
     }
 
     return {
@@ -932,7 +1149,7 @@ class GradientAndReplicatorRobot extends Kilobot {
       robotsIveEdgeFollowed: this.robotsIveEdgeFollowed,
       // lastRobotIveEdgeFollowed: this.lastRobotIveEdgeFollowed,
       replicaID: this.replicaID,
-      replicaMates: this.replicaMates,
+      replicaFirstObj: this.replicaFirstObj,
     };
   }
 }
@@ -958,7 +1175,7 @@ window['ExperimentReplicator'] = class {
   createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     this.NEIGHBOUR_DISTANCE = NEIGHBOUR_DISTANCE;
     const INITIAL_DIST = this.NEIGHBOUR_DISTANCE/11*3; // 3.6 * RADIUS
-    const GRADIENT_DIST = 1.5*INITIAL_DIST;
+    const GRADIENT_DIST = 1.3*INITIAL_DIST;
     this.RADIUS = RADIUS;
     this._ShapeScale = 1*this.RADIUS;
 
@@ -967,19 +1184,16 @@ window['ExperimentReplicator'] = class {
     // Note 3: no two characters should be adjacent (vertically or horizontally)
     // Note 4: INITIAL_DIST >= 2*RADIUS
     this.ShapeDesc = [
-      "         #         ",
-      "        # #        ",
-      "       # # #       ",
-      "     # # # # #     ",
-      "    # # # # # #    ",
-      "   # # # # # # #   ",
-      "    # # # # # #    ",
-      "     # # # # #     ",
-      "      # # # #      ",
-      "       # S #       ",
-      "        S S        ",
-      "         R         ",
-      "                   ",
+      "         # #       ",
+      "        # # #      ",
+      "       # # # #     ",
+      "      # # # # #    ",
+      "     # # # # # #   ",
+      "      # # # # #    ",
+      "       # # # #     ",
+      "        # S #      ",
+      "         S S       ",
+      "          R        ",
     ];
 
     this.Poses = [];
@@ -1028,23 +1242,12 @@ window['ExperimentReplicator'] = class {
         y: gPos.y * INITIAL_DIST*0.5 * +Math.sqrt(3),
       };
 
-      if(!PERFECT) {
-        pos.x += noise(0.2 * INITIAL_DIST);
-        pos.y += noise(0.2 * INITIAL_DIST);
-      }
+      // if(!PERFECT) {
+      //   pos.x += noise(0.2 * INITIAL_DIST);
+      //   pos.y += noise(0.2 * INITIAL_DIST);
+      // }
 
       return pos;
-    }
-
-    // const isInsideShape = (pos) => {
-    //   if(pos.x == NO_POS || pos.y == NO_POS) return false;
-    //   let i = Math.floor(+(pos.x-this.ShapePosOffset.x)/this._ShapeScale);
-    //   let j = Math.floor(-(pos.y-this.ShapePosOffset.y)/this._ShapeScale);
-    //   j = this.ShapeDesc.length - 1 - j;
-    //   return this.ShapeDesc[j] && this.ShapeDesc[j][i] == '#';
-    // }
-
-    const createNewRobot = (pos) => {
     }
 
     let bodyCounter = 0;
@@ -1072,7 +1275,6 @@ window['ExperimentReplicator'] = class {
           ticksBetweenMsgs: TICKS_BETWEEN_MSGS,
           radius: this.RADIUS,
 
-          // isInsideShape: isInsideShape,
           shapePos: isSeed ? {x: pos.x, y: pos.y} : {x: NO_POS, y: NO_POS},
           isGradientSeed: isSeed && isRoot,
           isSeed: isSeed,
@@ -1082,7 +1284,7 @@ window['ExperimentReplicator'] = class {
       );
     }
 
-    let assemblyCount = Math.floor(bodyCounter*1.5) - 5;
+    let assemblyCount = Math.floor(bodyCounter*3.0) - 20 - 9;
     for(let rowi = 0; assemblyCount > 0; rowi++) {
 
       let left = -(rowi+2);
@@ -1105,7 +1307,6 @@ window['ExperimentReplicator'] = class {
             ticksBetweenMsgs: TICKS_BETWEEN_MSGS,
             radius: this.RADIUS,
 
-            // isInsideShape: isInsideShape,
             shapePos: {x: NO_POS, y: NO_POS},
             isSeed: false,
             replicaID: NO_REPLICA, // not part of a replica yet
@@ -1124,6 +1325,7 @@ window['ExperimentReplicator'] = class {
     bodyIDs,
     setDisplayedData,
     zIndexOf,
+    V,
   ) {
     for(let i = 0; i < bodyIDs.length; i++) {
       let b = bodies[bodyIDs[i]];
@@ -1154,6 +1356,7 @@ window['ExperimentReplicator'] = class {
           state: b.robot.state,
           grad: b.robot.myGradient,
           counter: b.robot.counter,
+          amPlygonEdge: b.robot.amPlygonEdge,
           isSeed: b.robot.isSeed,
           hesitateData: b.robot.hesitateData,
           shapePos: b.robot.shapePos,
@@ -1163,7 +1366,7 @@ window['ExperimentReplicator'] = class {
           closestRobustNeighborsCandidates: convertIndexesToNeighbors(Array.from(b.robot.closestRobustNeighborsCandidates)),
           isStationary: b.robot.isStationary,
           replicaID: b.robot.replicaID,
-          replicaMates: b.robot.replicaMates,
+          replicaFirstObj: b.robot.replicaFirstObj,
           robot: b.robot,
           events: b.robot.events,
         });
@@ -1328,6 +1531,31 @@ window['ExperimentReplicator'] = class {
             + p2.get_y()*this.V.ZOOM,
           );
         });
+      });
+    }
+
+    if(true) {
+      let g = new PIXI.Graphics()
+      g.zIndex = zIndexOf('Shape');
+      g.alpha = 0.3;
+      // g.lastView = null;
+
+      platformGraphics.addChild(g);
+      pixiApp.ticker.add(() => {
+        // if(this.equalZooms(g.lastView, this.V)) return;
+        // g.lastView = this.copyView(this.V);
+
+        g.clear();
+
+        g.lineStyle(1, 0x88ff88, 1);
+        for(let i = 0; i < polygons.length; i++) {
+          if(i == 0) {
+            g.beginFill(0x88ff88, 0.9);
+          } else {
+            g.beginFill(0x0088ff, 0.5);
+          }
+          g.drawPolygon(polygons[i].map(n => n * V.ZOOM));
+        }
       });
     }
   }

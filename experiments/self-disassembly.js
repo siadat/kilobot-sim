@@ -266,7 +266,10 @@ class GradientAndDisassemblyRobot extends Kilobot {
   }
 
   set_colors_for_gradient(g) {
-    if(g == NO_GRAD) return;
+    if(g == NO_GRAD) {
+      this.set_color(this.RGB(3, 3, 3));
+      return;
+    }
 
     this.set_color(this.COLORS[g % this.COLORS.length]);
   }
@@ -427,64 +430,6 @@ class GradientAndDisassemblyRobot extends Kilobot {
       this.setGradient(grad + 1);
   }
 
-  getNearestNeighborIndex() {
-    let nnIndex = null;
-    for(let i = 0; i < MAX_NEIGHBOURS; i++) {
-      if(this.neighbors_id[i] == VACANT) continue;
-      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
-
-      // TODO: UNCOMMEN THIS to test limiting to stationary neighbors (this is used by doEdgeFollow)
-      if(this.neighbors_is_stationary[i] != STATIONARY) continue;
-
-      if(nnIndex == null) {
-        nnIndex = i;
-        continue;
-      }
-
-      if(this.neighbors_dist[i] < this.neighbors_dist[nnIndex]) {
-        nnIndex = i
-        continue;
-      }
-    }
-
-    return nnIndex;
-  }
-
-
-  getMostCompetitiveWaitingNeighborIndex() {
-    let bestIndex = null;
-    for(let i = 0; i < MAX_NEIGHBOURS; i++) {
-      if(this.neighbors_id[i] == VACANT) continue;
-      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
-
-      // TODO: why limit to this.gradientDist???
-      if(this.neighbors_dist[i] > this.gradientDist) continue;
-
-      if(this.neighbors_grad[i] == NO_GRAD)
-        continue;
-
-      // if(this.neighbors_state[i] != States.WaitToMove)
-      //   continue;
-
-      if(bestIndex == null) {
-        bestIndex = i;
-        continue;
-      }
-
-      if(this.neighbors_grad[i] > this.neighbors_grad[bestIndex]) {
-        bestIndex = i;
-        continue;
-      }
-
-      if(this.neighbors_grad[i] == this.neighbors_grad[bestIndex] && this.neighbors_id[i] > this.neighbors_id[bestIndex]) {
-        bestIndex = i;
-        continue;
-      }
-    }
-
-    return bestIndex;
-  }
-
   localizeSimpleExact(closestNeighborIndexes) {
     let x = [null];
     let y = [null];
@@ -594,71 +539,6 @@ class GradientAndDisassemblyRobot extends Kilobot {
     if(!this.isSeed) {
       this.set_colors_for_gradient(this.myGradient);
     }
-  }
-
-  doEdgeFollow() {
-    if(this.edgeFollowingStartedAt == null) {
-      this.edgeFollowingStartedAt = this.counter;
-    }
-    // this.edgeFollowingAge++;
-    let nnIndex = this.getNearestNeighborIndex();
-    if(nnIndex == null) return;
-
-    // let dist = this.robotsIveEdgeFollowed[this.neighbors_id[nnIndex]];
-    // if(!dist) {
-    //   this.robotsIveEdgeFollowed[this.neighbors_id[nnIndex]] = this.neighbors_dist[nnIndex];
-    // }
-
-    this.robotsIveEdgeFollowed[this.neighbors_id[nnIndex]] = true;
-    // this.lastRobotIveEdgeFollowed = this.neighbors_dist[nnIndex];
-
-    // if(this.robotsIveEdgeFollowed[this.robotsIveEdgeFollowed.length - 1] != this.neighbors_id[nnIndex])
-    //   this.robotsIveEdgeFollowed.push(this.neighbors_id[nnIndex]);
-
-    let tooClose = this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST;
-    let extremelyClose = this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST*0.65;
-    let gettingFarther = this.prevNearestNeighDist < this.neighbors_dist[nnIndex];
-    let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
-    this.prevNearestNeighDist = this.neighbors_dist[nnIndex];
-
-    if(noNewData) {
-      if(this.stats.motors_left != null) {
-        this.set_motors(this.stats.motors_left, this.stats.motors_right);
-      }
-      return;
-    }
-
-    if(extremelyClose) {
-      this.stats.action = 'left-get-farther';
-      this.stats.motors_left = this.kilo_turn_left;
-      this.stats.motors_right = 0;
-      this.set_motors(this.kilo_turn_left, 0);
-    } else if(tooClose) {
-      if(gettingFarther) {
-        this.stats.action = 'straight';
-        this.stats.motors_left = this.kilo_straight_left;
-        this.stats.motors_right = this.kilo_straight_right;
-        this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
-      } else {
-        this.stats.action = 'left-get-farther';
-        this.stats.motors_left = this.kilo_turn_left;
-        this.stats.motors_right = 0;
-        this.set_motors(this.kilo_turn_left, 0);
-      }
-    } else {
-      if(gettingFarther) {
-        this.stats.action = 'right-get-close';
-        this.stats.motors_left = 0;
-        this.stats.motors_right = this.kilo_turn_right;
-        this.set_motors(0, this.kilo_turn_right);
-      } else {
-        this.stats.action = 'straight';
-        this.stats.motors_left = this.kilo_straight_left;
-        this.stats.motors_right = this.kilo_straight_right;
-        this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
-      }
-    }
-
   }
 
   switchToState(newState, reason) {
