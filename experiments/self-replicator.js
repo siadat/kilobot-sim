@@ -792,22 +792,19 @@ class GradientAndReplicatorRobot extends Kilobot {
         }
       }
 
-      let topPos = null;
-      let patternMinX = null;
+      let centerPos = {x: null, y: null};
 
-      for(let i = 0; i < ids.length; i++) {
-        let id = ids[i];
+      let replicaFirstIDs = Object.keys(this.replicaFirstObj);
+      for(let i = 0; i < replicaFirstIDs.length; i++) {
+        let id = replicaFirstIDs[i];
         let pos = this.replicaFirstObj[id];
-        if(topPos==null || topPos.y > pos.y) {
-          topPos = {
-            x: pos.x,
-            y: pos.y,
-          }
+
+        if(pos.isCenter) {
+          centerPos.x = pos.x;
+          centerPos.y = pos.y;
+          break;
         }
       }
-
-      topPos.x = 0;
-      // console.log("----");
 
       this.replicaFirstPolygons = [];
       let count = 5;
@@ -815,17 +812,17 @@ class GradientAndReplicatorRobot extends Kilobot {
         let rotateAngle = i * 2*Math.PI/count;
         //for(let i = 0; i < ids.length; i++) {
           this.replicaFirstPolygons.push(replicaFirstOrderedIDs.map(id => {
-            let x = this.replicaFirstObj[id].x; // + topPos.x;
-            let y = this.replicaFirstObj[id].y; // + topPos.y;
-            let rotatedPos = this.rotatePoint(rotateAngle, {x: topPos.x, y: topPos.y}, {x: x, y: y});
+            let x = this.replicaFirstObj[id].x; // + centerPos.x;
+            let y = this.replicaFirstObj[id].y; // + centerPos.y;
+            let rotatedPos = this.rotatePoint(rotateAngle, {x: centerPos.x, y: centerPos.y}, {x: x, y: y});
 
-            // let dx = x; // - topPos.x;
-            // let dy = y; // - topPos.y;
+            // let dx = x; // - centerPos.x;
+            // let dy = y; // - centerPos.y;
             // let currAngle = Math.atan(dy/dx);
             // let d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
 
-            // x = /*topPos.x */+ d * Math.cos(currAngle + rotateAngle);
-            // y = /*topPos.y */+ d * Math.sin(currAngle + rotateAngle);
+            // x = /*centerPos.x */+ d * Math.cos(currAngle + rotateAngle);
+            // y = /*centerPos.y */+ d * Math.sin(currAngle + rotateAngle);
             return [rotatedPos.x, rotatedPos.y];
           }).flat());
         // }
@@ -1085,16 +1082,21 @@ class GradientAndReplicatorRobot extends Kilobot {
       let ids = Object.keys(message.replicaFirstObj)
       for(let i = 0; i < ids.length; i++) {
         let id = ids[i];
-        if(message.replicaFirstObj[id].isPolygonPoint == false) {
+        if(message.replicaFirstObj[id].isCenter == false && message.replicaFirstObj[id].isPolygonPoint == false) {
           delete(this.replicaFirstObj[id]);
-        } else {
+          continue;
+        }
+
+        {
           if(this.replicaFirstObj[id]) {
              this.replicaFirstObj[id].isPolygonPoint = message.replicaFirstObj[id].isPolygonPoint;
+             this.replicaFirstObj[id].isCenter = message.replicaFirstObj[id].isCenter;
              this.replicaFirstObj[id].x = message.replicaFirstObj[id].x;
              this.replicaFirstObj[id].y = message.replicaFirstObj[id].y;
           } else {
             this.replicaFirstObj[id] = {
               isPolygonPoint: message.replicaFirstObj[id].isPolygonPoint,
+              isCenter: message.replicaFirstObj[id].isCenter,
               x: message.replicaFirstObj[id].x,
               y: message.replicaFirstObj[id].y,
             }
@@ -1130,6 +1132,7 @@ class GradientAndReplicatorRobot extends Kilobot {
         // announce
         this.replicaFirstObj[this.kilo_uid] = {
           isPolygonPoint: this.amPlygonEdge,
+          isCenter: this.isCenter,
           x: this.shapePos.x,
           y: this.shapePos.y,
         }
@@ -1184,7 +1187,7 @@ window['ExperimentReplicator'] = class {
     // Note 3: no two characters should be adjacent (vertically or horizontally)
     // Note 4: INITIAL_DIST >= 2*RADIUS
     this.ShapeDesc = [
-      "         # #       ",
+      "         C #       ",
       "        # # #      ",
       "       # # # #     ",
       "      # # # # #    ",
@@ -1261,8 +1264,6 @@ window['ExperimentReplicator'] = class {
 
       let isSeed = (typ == 'seed' || typ == 'root');
       let isRoot = (typ == 'root');
-
-      // TODO: find 'center' using consensus!
       let isCenter = (typ == 'center');
 
       bodyCounter++;
