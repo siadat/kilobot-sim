@@ -926,7 +926,11 @@ export class Pitch {
         {
           if(this.selectedUID) {
             this.setDisplayedData('Last selected: ID', this.selectedUID)
-            // STRANGE: any of these two lines improves performance!
+            // STRANGE: any of these two lines improves performance of the Replicator experiment!
+            // Try clicking on a robot to set this.selectedUID.
+            // NOTE: on this comment it doesn't make any different! maybe because I restarted the computer.
+            // also, even before that restart it used to make no difference on Safari on Mac.
+            // The only observed difference was on Chrome on Mac on commit 2d2c062432768d19bc9f942d49529d6fbf943100 ("ok")
             this.setDisplayedData('Last selected: State', this.bodies[this.selectedUID].robot.state)
             this.setDisplayedData('Last selected: Robot', this.bodies[this.selectedUID].robot.toString())
           } else {
