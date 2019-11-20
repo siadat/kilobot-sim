@@ -807,7 +807,7 @@ class GradientAndReplicatorRobot extends Kilobot {
       }
 
       this.replicaFirstPolygons = [];
-      let count = 3;
+      let count = 5;
       for(let i = 0; i < count; i++) {
         let rotateAngle = i * 2*Math.PI/count;
         //for(let i = 0; i < ids.length; i++) {
@@ -1159,7 +1159,7 @@ class GradientAndReplicatorRobot extends Kilobot {
 
 // ----
 
-window['ExperimentReplicator'] = class {
+window['ExperimentReplicatorStarfish'] = class {
   constructor() {
     this.selectedUID = null;
     this.drawLocalizationError = true;
@@ -1187,18 +1187,16 @@ window['ExperimentReplicator'] = class {
     // Note 3: no two characters should be adjacent (vertically or horizontally)
     // Note 4: INITIAL_DIST >= 2*RADIUS
     this.ShapeDesc = [
-      "         # #         ",
-      "        # C #        ",
-      "       # # # #       ",
-      "        # # #        ",
-      "       # # # # # #   ",
-      "        # # # # # #  ",
-      "       # # # # # #   ",
-      "        # # #        ",
-      "       # # # #       ",
-      "        # S #        ",
-      "         S S         ",
-      "          R          ",
+      "         # #       ",
+      "        # C #      ",
+      "       # # # #     ",
+      "      # # # # #    ",
+      "     # # # # # #   ",
+      "      # # # # #    ",
+      "       # # # #     ",
+      "        # S #      ",
+      "         S S       ",
+      "          R        ",
     ];
 
     this.Poses = [];
