@@ -1541,6 +1541,17 @@ window['ExperimentReplicatorStarfish'] = class {
       g.alpha = 0.3;
       // g.lastView = null;
 
+      let colors = [
+        0xff8800,
+        0xff0088,
+
+        0x00ff88,
+        0x88ff00,
+
+        0x0088ff,
+        0x8800ff,
+      ];
+
       platformGraphics.addChild(g);
       pixiApp.ticker.add(() => {
         // if(this.equalZooms(g.lastView, this.V)) return;
@@ -1550,11 +1561,7 @@ window['ExperimentReplicatorStarfish'] = class {
 
         g.lineStyle(1, 0x88ff88, 1);
         for(let i = 0; i < polygons.length; i++) {
-          if(i == 0) {
-            g.beginFill(0x88ff88, 0.9);
-          } else {
-            g.beginFill(0x0088ff, 0.5);
-          }
+          g.beginFill(colors[i], 0.9);
           g.drawPolygon(polygons[i].map(n => n * V.ZOOM));
         }
       });

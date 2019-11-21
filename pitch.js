@@ -1398,7 +1398,7 @@ export class Pitch {
             );
           }
 
-          if(this.V.ZOOM > 20) {
+          if(false && this.V.ZOOM > 20) {
             const t = new PIXI.Text(`${b.robot._uid || '0'}`, {fontSize: 0.4 * this.V.ZOOM, align: 'center', fill: 0xaabbcc});
             t.anchor.set(0.5);
             t.position = {
