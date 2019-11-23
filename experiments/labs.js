@@ -705,12 +705,8 @@ class RobotPhototaxis extends Kilobot {
 
   loop() {
     switch(this.direction) {
-      case 0:
-        this.set_motors(0, this.kilo_turn_right);
-        break;
-      case 1:
-        this.set_motors(this.kilo_turn_left, 0);
-        break;
+      case 0: this.set_motors(0, this.kilo_turn_right); break;
+      case 1: this.set_motors(this.kilo_turn_left, 0); break;
     }
 
     if(this.kilo_ticks < this.last_updated + this.PERIOD)
