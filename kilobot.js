@@ -6,6 +6,7 @@ export class Kilobot {
     this._startedAt = new Date();
     this._internalTicker = 0;
     this._ambientlight = 0;
+    this._ambientlight_ready = 0|0;
     this._faultiness = 0;
   }
 
@@ -90,8 +91,7 @@ export class Kilobot {
     if(left == 0 && right == 0)
       return;
 
-    if(!this._phys.IsAwake())
-      this._phys.SetAwake(true);
+    // if(!this._phys.IsAwake()) this._phys.SetAwake(true);
 
     // Actual Kilobot measurements:
     //   16mm   radius
@@ -106,36 +106,52 @@ export class Kilobot {
     }
 
     let a = this._phys.GetAngle();
+    let newA = a;
     let p = this._phys.GetPosition();
-    let newPos = new this._Box2D.b2Vec2(0, 0);
+    // let v = this._phys.GetVelocity();
+    // let newPos = new this._Box2D.b2Vec2(0, 0);
+    let f = new this._Box2D.b2Vec2(0, 0);
 
     if(left == right
       && left == this.kilo_straight_left
       && left == this.kilo_straight_right) {
-      newPos.set_x(p.get_x() + forwardSpeed * Math.cos(a * Math.PI/180.0));
-      newPos.set_y(p.get_y() + forwardSpeed * Math.sin(a * Math.PI/180.0));
+      f.set_x(/*p.get_x() +*/ forwardSpeed * Math.cos(newA * Math.PI/180.0));
+      f.set_y(/*p.get_y() +*/ forwardSpeed * Math.sin(newA * Math.PI/180.0));
     } else {
       // TODO: support values other than 255 (eg 155)
       let phi = degreePerTick * (right-left)/255.0;
-      a += phi;
+      newA += phi;
 
       let temp_cos = 0;
       let temp_sin = 0;
       let legRadius = this._RADIUS*0.9;
       if(right > left) {
-        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * legRadius;
-        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 2.0/3.0) * legRadius;
+        temp_cos = Math.cos(newA *Math.PI/180.0 + Math.PI * 2.0/3.0) * legRadius;
+        temp_sin = Math.sin(newA *Math.PI/180.0 + Math.PI * 2.0/3.0) * legRadius;
       } else {
-        temp_cos = Math.cos(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * legRadius;
-        temp_sin = Math.sin(a *Math.PI/180.0 + Math.PI * 4.0/3.0) * legRadius;
+        temp_cos = Math.cos(newA *Math.PI/180.0 + Math.PI * 4.0/3.0) * legRadius;
+        temp_sin = Math.sin(newA *Math.PI/180.0 + Math.PI * 4.0/3.0) * legRadius;
       }
 
-      newPos.set_x(p.get_x() + temp_cos - temp_cos*Math.cos(phi *Math.PI/180.0) + temp_sin*Math.sin(phi *Math.PI/180.0));
-      newPos.set_y(p.get_y() + temp_sin - temp_cos*Math.sin(phi *Math.PI/180.0) - temp_sin*Math.cos(phi *Math.PI/180.0));
+      f.set_x(/*p.get_x() +*/ temp_cos - temp_cos*Math.cos(phi *Math.PI/180.0) + temp_sin*Math.sin(phi *Math.PI/180.0));
+      f.set_y(/*p.get_y() +*/ temp_sin - temp_cos*Math.sin(phi *Math.PI/180.0) - temp_sin*Math.cos(phi *Math.PI/180.0));
     }
 
-    this._phys.SetTransform(newPos, a);
-    this._Box2D.destroy(newPos);
+    if(true){
+      f.set_x(2 * f.get_x() * this._DAMPING * this._phys.GetMass());
+      f.set_y(2 * f.get_y() * this._DAMPING * this._phys.GetMass());
+      this._phys.ApplyLinearImpulse(f, p, true);
+    } else {
+      // *(1.0/60)
+      // *(1.0/60)
+      f.set_x(f.get_x() * 2.5e5);
+      f.set_y(f.get_y() * 2.5e5);
+      this._phys.ApplyForceToCenter(f, true);
+    }
+
+    this._phys.SetTransform(this._phys.GetPosition(), a + (newA-a));
+    // this._Box2D.destroy(newPos);
+    this._Box2D.destroy(f);
   }
 
   delay(ms) {

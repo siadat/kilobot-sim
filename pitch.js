@@ -1,8 +1,9 @@
 const RADIUS = 1; // best performance
 const NEIGHBOUR_DISTANCE = 11 * RADIUS;
+const DAMPING = 1000;
 
 const TICKS_BETWEEN_MSGS = 30/2;
-const TICKS_BETWEEN_AMB_LIGHT = 3;
+const TICKS_BETWEEN_AMB_LIGHT = 5;
 const LOOP_PER_SECOND = 30;
 
 let DRAW_SHADOW = !false;
@@ -31,6 +32,7 @@ export class Pitch {
     this.Box2D = Box2D;
 
     this.destroyFuncs = [];
+    this.selectedUID = 14;
 
     this.lightSources = [];
     this.connections = [];
@@ -88,21 +90,40 @@ export class Pitch {
     return zIndex;
   }
 
-  setDisplayedData(key, value) {
-    if(this.metaData[key] == value) {
-      return;
+  setDisplayedData(key, value, options) {
+    let maxHistory = 200;
+    if(value == null) {
+      delete(this.metaData[key]);
+    } else if(options && options.graph) {
+      if(!this.metaData[key]) {
+        this.metaData[key] = [];
+      }
+      this.metaData[key].push(value);
+      if(this.metaData[key].length > maxHistory) {
+        this.metaData[key] = this.metaData[key].slice(this.metaData[key].length - maxHistory, this.metaData[key].length);
+      }
+    } else {
+      if(this.metaData[key] == value) {
+        return;
+      } else {
+        this.metaData[key] = value;
+      }
     }
 
-    this.metaData[key] = value;
     let newText = Object
       .keys(this.metaData)
+      // .filter(key => !Array.isArray(this.metaData[key]))
       .sort()
-      .map(key => `${key}: ${this.metaData[key]}`)
+      .map(key => {
+        let v = this.metaData[key];
+        if(Array.isArray(this.metaData[key]) && this.metaData[key].length > 0) {
+          v = this.metaData[key][this.metaData[key].length - 1];
+        }
+        return `${key}: ${v}`
+      })
       .join('\n');
 
-    if(this.metaPixiText.text == newText) {
-      return;
-    }
+    // if(this.metaPixiText.text == newText) return;
 
     let textMetricsOld = new PIXI.TextMetrics.measureText(
       this.metaPixiText.text,
@@ -115,27 +136,91 @@ export class Pitch {
     );
 
     if(
+      textMetricsOld.width != textMetricsNew.width
+      ||
       textMetricsOld.lines.length != textMetricsNew.lines.length
       ||
-      this.metaPixiGraphics.lastDarkMode != this.darkMode
+      this.metaContainer.lastDarkMode != this.darkMode
     ) {
       let lineCount = textMetricsNew.lines.length;
-      this.metaPixiGraphics.clear();
+      this.metaContainer.clear();
       if(this.darkMode) {
-        this.metaPixiGraphics.beginFill(0x000000, 0.75);
+        this.metaContainer.beginFill(0x000000, 0.75);
         this.metaPixiText.style.fill = 0xcccccc;
       } else {
-        this.metaPixiGraphics.beginFill(0xffffff, 0.75);
+        this.metaContainer.beginFill(0xffffff, 0.75);
         this.metaPixiText.style.fill = 0x000000;
       }
-      this.metaPixiGraphics.drawRect(
+      this.metaContainer.drawRect(
         MetaOpts.margin, MetaOpts.margin,
         textMetricsNew.width + 2*MetaOpts.padding, MetaOpts.lineHeight*lineCount + 2*MetaOpts.padding,
       );
-      this.metaPixiGraphics.lastDarkMode = this.darkMode;
+      this.metaContainer.lastDarkMode = this.darkMode;
     }
 
     this.metaPixiText.text = newText;
+
+    this.metaGraphs = this.metaGraphs || {};
+
+    let top = textMetricsNew.height + 1*MetaOpts.margin + 2*MetaOpts.padding;
+    let h = 50;
+    let w = textMetricsNew.width + 2*MetaOpts.padding;
+
+    Object
+      .keys(this.metaData)
+      .filter(key => Array.isArray(this.metaData[key]))
+      .sort()
+      .forEach(key => {
+
+        if(!this.metaGraphs[key]) {
+          this.metaGraphs[key] = new PIXI.Graphics();;
+
+          let txt = new PIXI.Text(key, {
+            // fontFamily: 'Arial',
+            fontSize: MetaOpts.fontSize,
+            align: 'left',
+            lineHeight: MetaOpts.lineHeight,
+            fill: 0xb83c3a, // this.darkMode ? 0xffffff : 0x000000
+          });
+          txt.position = {
+            x: 0, // MetaOpts.margin + MetaOpts.padding,
+            y: 0, // MetaOpts.margin + MetaOpts.padding,
+          }
+
+          this.metaGraphs[key].addChild(txt);
+          this.metaContainer.addChild(this.metaGraphs[key]);
+        } else if(value == null) {
+          this.metaGraphs[key].removeChildren();
+          this.metaContainer.removeChild(this.metaGraphs[key]);
+          this.metaGraphs[key].destroy(true);
+          delete(this.metaGraphs[key]);
+        } else {
+          this.metaGraphs[key].clear();
+          // this.metaGraphs[key].removeChildren();
+
+          this.metaGraphs[key].position.x = MetaOpts.margin;
+          this.metaGraphs[key].position.y = MetaOpts.margin + top;
+
+          this.metaGraphs[key].lineStyle(0);
+          this.metaGraphs[key].beginFill(this.darkMode ? 0x000000 : 0xffffff, 0.5);
+          this.metaGraphs[key].drawRect(0, 0, w, h);
+
+          let thickness = w/maxHistory;
+          if(thickness < 1) thickness = 1;
+          this.metaGraphs[key].endFill();
+          this.metaGraphs[key].lineStyle(thickness, 0xb83c3a, 1.0);
+          let min = Math.min.apply(null, this.metaData[key]);
+          let max = Math.max.apply(null, this.metaData[key]);
+
+          for(let i = 0; i < this.metaData[key].length; i++) {
+            let x = w * (i + maxHistory-this.metaData[key].length)/maxHistory + thickness*0.5;
+            let v = this.metaData[key][i];
+            let y = h - h*(v-min)/(max-min);
+            this.metaGraphs[key].moveTo(x, h);
+            this.metaGraphs[key].lineTo(x, y);
+          }
+        }
+      });
   }
 
   destroy() {
@@ -254,6 +339,9 @@ export class Pitch {
 
           let clicked = this.pointerDownStart.x == ev.data.global.x && this.pointerDownStart.y == ev.data.global.y;
           if(clicked) {
+            if(this.selectedUID != null) {
+              this.bodies[this.selectedUID].robot._graphics_must_update  = true;
+            }
             this.selectedUID = null;
             this.experiment.clickedOutside && this.experiment.clickedOutside();
           }
@@ -348,8 +436,8 @@ export class Pitch {
 
       {
         // displayed data meta box:
-        this.metaPixiGraphics = new PIXI.Graphics()
-        this.metaPixiGraphics.zIndex = 2;
+        this.metaContainer = new PIXI.Graphics()
+        this.metaContainer.zIndex = 2;
 
         this.metaPixiText = new PIXI.Text('', {
           // fontFamily: 'Arial',
@@ -362,8 +450,8 @@ export class Pitch {
           x: MetaOpts.margin + MetaOpts.padding,
           y: MetaOpts.margin + MetaOpts.padding,
         }
-        this.metaPixiGraphics.addChild(this.metaPixiText);
-        this.pixiApp.stage.addChild(this.metaPixiGraphics);
+        this.metaContainer.addChild(this.metaPixiText);
+        this.pixiApp.stage.addChild(this.metaContainer);
 
         // this.pixiApp.ticker.add(() => {
         //   this.setDisplayedData('Renderer frames/second', `${Math.floor(1/this.deltaTime)}/s`);
@@ -373,7 +461,7 @@ export class Pitch {
         // this.graph = new PIXI.Graphics()
         // this.graph.zIndex = 2;
         // this.graph.position = {x: 0, y: 0};
-        // this.metaPixiGraphics.addChild(this.graph);
+        // this.metaContainer.addChild(this.graph);
       }
 
       {
@@ -719,6 +807,7 @@ export class Pitch {
         b.robot._Box2D = this.Box2D;
         b.robot._MathRandom = this.MathRandom;
         b.robot._RADIUS = RADIUS;
+        b.robot._DAMPING = DAMPING;
         // b.robot._err_message_sending = this.MathRandom();
         // b.robot._PERFECT = this.perfectStart;
         b.robot._LOOP_PER_SECOND = LOOP_PER_SECOND ;
@@ -932,17 +1021,46 @@ export class Pitch {
             // also, even before that restart it used to make no difference on Safari on Mac.
             // The only observed difference was on Chrome on Mac on commit 2d2c062432768d19bc9f942d49529d6fbf943100 ("ok")
             this.setDisplayedData('Last selected: State', this.bodies[this.selectedUID].robot.state)
-            this.setDisplayedData('Last selected: Robot', this.bodies[this.selectedUID].robot.toString())
+            if(this.bodies[this.selectedUID].robot._ambientlight_ready) {
+              this.setDisplayedData('Last selected: Ambientlight', this.bodies[this.selectedUID].robot._ambientlight, {graph: true})
+            }
+            // this.setDisplayedData('Last selected: Robot', this.bodies[this.selectedUID].robot.toString())
           } else {
             this.setDisplayedData('Last selected: ID', null);
             this.setDisplayedData('Last selected: State', null);
             this.setDisplayedData('Last selected: Robot', null);
+            this.setDisplayedData('Last selected: Ambientlight', null, {graph: true});
           }
         }
 
+        if(false){
+          for(let i = 0; i < this.bodyIDs.length; i++) {
+            let id = this.bodyIDs[i]
+            // if(id != 14) continue;
+            let b = this.bodies[id];
+            let v = b.body.GetLinearVelocity();
+            // console.log(id, v.Length(), v.get_x(), v.get_y());
+            if(v.Length() < 50) {
+              // if(id == 15) {
+              // console.log("ok", b.robot._uid, v.Length());
+              v.set_x(- (2.0/1) * DAMPING * b.body.GetMass() * v.get_x());
+              v.set_y(- (2.0/1) * DAMPING * b.body.GetMass() * v.get_y());
+              b.body.ApplyForceToCenter(v, true);
+              // b.body.ApplyLinearImpulse(v, b.body.GetWorldCenter(), true);
+              // b.body.SetLinearVelocity(v);
+            }
+            // let newV = new this.Box2D.b2Vec2(10, 10);
+            // b.body.SetLinearVelocity(newV);
+            // console.log(f.get_x(), f.get_y());
+            // let f = new this.Box2D.b2Vec2(-1000*v.get_x(), -1000*v.get_y());
+            // let f = new this.Box2D.b2Vec2(1000, 1000);
+            // b.body.ApplyForceToCenter(f, true);
+            // this.Box2D.destroy(f);
+          }
+        }
         this.physics.update();
 
-        if(this.experiment.runnerOptions.traversedPath && frameCount % 30 == 0) {
+        if(this.experiment.runnerOptions.traversedPath && frameCount % (this.experiment.runnerOptions.limitSpeed ? 10 : 30) == 0) {
           let max = this.experiment.runnerOptions.traversedPathLen;
 
           this.forEachBody(b => {
@@ -1051,7 +1169,8 @@ export class Pitch {
             continue;
           }
 
-          let v = 1024 * this.lightSources.length;
+          let mult = 10;
+          let v = mult * 1024 * this.lightSources.length;
 
           this.lightSources.forEach(ls => {
             let pos = {
@@ -1062,16 +1181,22 @@ export class Pitch {
             let dx = pos.x - ls.pos.x;
             let dy = pos.y - ls.pos.y;
             let d = Math.sqrt(dx*dx + dy*dy);
-            v -= d;
+            v -= mult * d;
           });
+
+          if(this.MathRandom() > 0.9) {
+            v += (this.MathRandom()-0.5) * 10;
+          }
 
           b.lastAmbientLightSetAt = frameCount;
 
           let newValue = v|0;
+
           if(newValue < 0|0)
             newValue = 0|0;
 
           b.robot._ambientlight = newValue|0;
+          b.robot._ambientlight_ready = 1|0;
         }
 
         if(true) {
@@ -1186,7 +1311,7 @@ export class Pitch {
               }
             }, 1);
           } else {
-            window.requestAnimationFrame(() => {
+            let fn = () => {
               for(let i = 0; i < this.tickBatchCount - 1; i++) {
                 tickFunc(++frameCount, false);
               }
@@ -1223,7 +1348,17 @@ export class Pitch {
               // if(BENCHMARKING) {
               //   console.log(`FPS: ${Math.floor(1/this.deltaTime)}/s`);
               // }
-            });
+            };
+            this.setDisplayedData('Frame', frameCount);
+            window.requestAnimationFrame(() => fn());
+            // if(frameCount < 300) {
+            //   this.tickBatchCount = 10;
+            //   window.requestAnimationFrame(() => fn());
+            // } else {
+            //   setTimeout(() => {
+            //     window.requestAnimationFrame(() => fn());
+            //   }, 100);
+            // }
           }
         }
       }
@@ -1251,7 +1386,11 @@ export class Pitch {
         b.g = g;
 
         g.on('pointerdown', (ev) => {
+          if(this.selectedUID != null) {
+            this.bodies[this.selectedUID].robot._graphics_must_update  = true;
+          }
           this.selectedUID = b.robot._uid;
+          b.robot._graphics_must_update = true;
         });
 
         // SIMPLIFIED GRAPHICS
@@ -1349,6 +1488,11 @@ export class Pitch {
             g.drawCircle(0, 0, glowRadius);
           }
 
+          if(this.selectedUID == b.robot._uid) {
+            g.beginFill(0xffff00, 0.5);
+            g.drawCircle(0, 0, 2 * b.circleRadius * this.V.ZOOM);
+          }
+
           /*
           if(toHex(b.robot.led)) != 0x000000) {
             g.filters = [
@@ -1370,11 +1514,11 @@ export class Pitch {
 
           // legs
           if(this.V.ZOOM * b.circleRadius > 10) {
-            g.beginFill(0x000000, 0.5);
+            g.beginFill(0x000000, 1);
             g.lineStyle(0);
             let r = b.circleRadius*this.V.ZOOM*0.15;
             let R = b.circleRadius*this.V.ZOOM - r;
-            [0, 2/3*Math.PI, 4/3*Math.PI].forEach(a => {
+            [/*0,*/ 2/3*Math.PI, 4/3*Math.PI].forEach(a => {
               g.drawCircle(R * Math.cos(a), R * Math.sin(a), r);
             });
           }
@@ -1440,6 +1584,17 @@ class Box2DPhysics {
       this.edgeShape({x: SIZE.w, y: SIZE.h}, {x: 0, y: SIZE.h});
       this.edgeShape({x: SIZE.w, y: SIZE.h}, {x: SIZE.w, y: 0});
     }
+
+    {
+      let boxShape = new this.Box2D.b2PolygonShape();
+      boxShape.SetAsBox(100, 100);
+      let bdef = new this.Box2D.b2BodyDef();
+      bdef.set_type(this.Box2D.b2_staticBody);
+      this.surfaceBody = this.world.CreateBody(bdef);
+
+      this.zero = new this.Box2D.b2Vec2(0, 0);
+      // this.Box2D.destroy(this.zero);
+    }
 	}
 
 	edgeShape(from, to) {
@@ -1465,8 +1620,8 @@ class Box2DPhysics {
 
 	circle(pos, angle, radius, id) {
 		let b2bodyDef = new this.Box2D.b2BodyDef();
-    b2bodyDef.set_linearDamping(20.0);
-		b2bodyDef.set_angularDamping(20.0);
+    b2bodyDef.set_linearDamping(DAMPING);
+		b2bodyDef.set_angularDamping(DAMPING);
     // if(BENCHMARKING) {
     //   b2bodyDef.set_type(this.Box2D.b2_staticBody);
     // } else {
@@ -1504,6 +1659,21 @@ class Box2DPhysics {
 
 		let body = this.world.CreateBody(b2bodyDef);
     body.CreateFixture(fixtureDef);
+
+    if(true) { // id != 2) {
+      let fj = new this.Box2D.b2FrictionJointDef();
+      fj.Initialize(body, this.surfaceBody, this.zero);
+      fj.set_localAnchorA(this.zero);
+      fj.set_localAnchorB(this.zero);
+
+      fj.set_maxForce(DAMPING * 0.5);
+      // fj.set_maxTorque(DAMPING * 0.5);
+
+      this.world.CreateJoint(fj);
+      this.Box2D.destroy(fj);
+    }
+
+
     // ---
     /*
     let filter2 = new this.Box2D.b2Filter();

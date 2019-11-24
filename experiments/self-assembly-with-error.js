@@ -610,7 +610,12 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
     let tooClose = this.neighbors_dist[nnIndex] < desiredDist;
     let extremelyClose = false; //this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST*0.65;
     let gettingFarther = this.prevNearestNeighDist < this.neighbors_dist[nnIndex];
-    let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
+
+    let edgeFollowingData = `id=${this.neighbors_id[nnIndex]}:dist=${this.neighbors_dist[nnIndex]}:seenAt=${this.neighbors_seen_at[nnIndex]}`;
+    let noNewData = this.lastEdgeFollowingData && edgeFollowingData == this.lastEdgeFollowingData;
+    this.lastEdgeFollowingData = edgeFollowingData;
+
+    // let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
     this.prevNearestNeighDist = this.neighbors_dist[nnIndex];
 
     if(noNewData) {
@@ -787,7 +792,7 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
         this.unmark();
         this.isStationary = STATIONARY;
         this.localize();
-        this.set_color(this.RGB(3, 1, 1));
+        // this.set_color(this.RGB(3, 1, 1));
 
         // if(!this.isSeed) {
         //   this.set_color(this.COLORS_INTENSE[this.myGradient % this.COLORS_INTENSE.length]);
@@ -881,7 +886,7 @@ window['ExperimentAssemblyWithError'] = class {
     this.selectedUID = null;
     this.drawLocalizationError = true;
     // this.COUNT = 4 + 140;
-    this.COUNT = 4 + 196/2 + 30;
+    this.COUNT = 4 + 196/2 + 30 + 10;
 
     this.runnerOptions = {
       limitSpeed: !true,
@@ -896,8 +901,8 @@ window['ExperimentAssemblyWithError'] = class {
 
   createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     this.NEIGHBOUR_DISTANCE = NEIGHBOUR_DISTANCE;
-    const INITIAL_DIST = this.NEIGHBOUR_DISTANCE/11*3;
-    const GRADIENT_DIST = 1.5*INITIAL_DIST;
+    const INITIAL_DIST = 3.1 * RADIUS; // this.NEIGHBOUR_DISTANCE/11*3;
+    const GRADIENT_DIST = 1.3*INITIAL_DIST;
     this.RADIUS = RADIUS;
     // this._ShapeScale = 1.25*this.RADIUS; // 1.5*this.RADIUS
     this._ShapeScale = 1.2*this.RADIUS; // 1.5*this.RADIUS
@@ -1000,9 +1005,9 @@ window['ExperimentAssemblyWithError'] = class {
     let PERFECT = false;
     let bodyCounter = 0;
     [
-      {isSeed: true, isRoot: true,  x: 0*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
+      {isSeed: true, isRoot: false, x: 0*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
       {isSeed: true, isRoot: false, x: 2*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
-      {isSeed: true, isRoot: false, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * +Math.sqrt(3)},
+      {isSeed: true, isRoot: true, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * +Math.sqrt(3)},
       {isSeed: true, isRoot: false, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * -Math.sqrt(3)},
     ].forEach(shapePos => {
       bodyCounter++;
@@ -1215,7 +1220,7 @@ window['ExperimentAssemblyWithError'] = class {
       });
     }
 
-    const DRAW_SHAPE_DESCRIPTION = !true;
+    const DRAW_SHAPE_DESCRIPTION = true;
     if(DRAW_SHAPE_DESCRIPTION) {
       // position vectors
       let g = new PIXI.Graphics()

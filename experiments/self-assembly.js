@@ -155,13 +155,13 @@ class GradientAndAssemblyRobot extends Kilobot {
     this.initialDist = opts.initialDist;
     this.HESITATE_DURATION = 2 * opts.ticksBetweenMsgs;
     this.NEIGHBOUR_EXPIRY = 2 * opts.ticksBetweenMsgs;
-    this.DESIRED_SHAPE_DIST = 3.2*opts.radius;
+    this.DESIRED_SHAPE_DIST = 3.0*opts.radius;
     this.NEARBY_MOVING_DISTANCE = 4*this.DESIRED_SHAPE_DIST;
 
     this.shapeDesc = opts.shapeDesc;
     this.isSeed = opts.isSeed;
     this.isGradientSeed = opts.isGradientSeed;
-    this.shapePos = opts.shapePos;
+    this.shapePos = opts.shapePos; 
 
     this.isStationary = STATIONARY;
     this.posConfidence = 0;
@@ -602,17 +602,24 @@ class GradientAndAssemblyRobot extends Kilobot {
     //   this.robotsIveEdgeFollowed.push(this.neighbors_id[nnIndex]);
 
     let desiredDist = this.DESIRED_SHAPE_DIST;
-    if(this.neighbors_grad[nnIndex] < 1) {
+    if(this.neighbors_grad[nnIndex] < 2) {
       desiredDist = this.DESIRED_SHAPE_DIST * 1.5;
     }
-    if(this.neighbors_grad[nnIndex] > 5 && this.neighbors_state[nnIndex] == States.JoinedShape) {
-      desiredDist = this.DESIRED_SHAPE_DIST * 0.9;
-    }
+    // if(this.neighbors_grad[nnIndex] > 5 && this.neighbors_state[nnIndex] == States.JoinedShape) {
+    //   desiredDist = this.DESIRED_SHAPE_DIST * 0.9;
+    // }
 
     let tooClose = this.neighbors_dist[nnIndex] < desiredDist;
     let gettingFarther = this.prevNearestNeighDist < this.neighbors_dist[nnIndex];
-    let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
+
+    let edgeFollowingData = `id=${this.neighbors_id[nnIndex]}:dist=${this.neighbors_dist[nnIndex]}:seenAt=${this.neighbors_seen_at[nnIndex]}`;
+    let noNewData = this.lastEdgeFollowingData && edgeFollowingData == this.lastEdgeFollowingData;
+    this.lastEdgeFollowingData = edgeFollowingData;
+
+    // let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
     this.prevNearestNeighDist = this.neighbors_dist[nnIndex];
+
+    // if(this.kilo_uid == 102) console.log(`HERE`, tooClose, gettingFarther, noNewData);
 
     if(noNewData) {
       if(this.stats.motors_left != null) {
@@ -729,7 +736,7 @@ class GradientAndAssemblyRobot extends Kilobot {
               this.switchToState(States.MoveWhileOutside, `equal grads, but my ID is larger than ${this.neighbors_id[hgnIndex]}`);
             }
           } else {
-            this.newEvent(`still waiting, because either ${this.neighbors_id[hgnIndex]} ruled!`);
+            this.newEvent(`still waiting, because id=${this.neighbors_id[hgnIndex]} ruled!`);
           }
         }
         break;
@@ -898,7 +905,7 @@ window['ExperimentAssembly'] = class {
 
   createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     this.NEIGHBOUR_DISTANCE = NEIGHBOUR_DISTANCE;
-    const INITIAL_DIST = this.NEIGHBOUR_DISTANCE/11*3;
+    const INITIAL_DIST = 3.0 * RADIUS; // this.NEIGHBOUR_DISTANCE/11*3;
     const GRADIENT_DIST = 1.3*INITIAL_DIST;
     this.RADIUS = RADIUS;
     // this._ShapeScale = 1.25*this.RADIUS; // 1.5*this.RADIUS
@@ -1031,9 +1038,9 @@ window['ExperimentAssembly'] = class {
     let PERFECT = false;
     let bodyCounter = 0;
     [
-      {isSeed: true, isRoot: true,  x: 0*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
+      {isSeed: true, isRoot: false, x: 0*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
       {isSeed: true, isRoot: false, x: 2*INITIAL_DIST/2, y: INITIAL_DIST/2 * 0},
-      {isSeed: true, isRoot: false, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * +Math.sqrt(3)},
+      {isSeed: true, isRoot: true, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * +Math.sqrt(3)},
       {isSeed: true, isRoot: false, x: 1*INITIAL_DIST/2, y: INITIAL_DIST/2 * -Math.sqrt(3)},
     ].forEach(shapePos => {
       bodyCounter++;
@@ -1234,7 +1241,7 @@ window['ExperimentAssembly'] = class {
           isSeed: b.robot.isSeed,
           hesitateData: b.robot.hesitateData,
           shapePos: b.robot.shapePos,
-          neighbors: convertIndexesToNeighbors(Array.from(b.robot.neighbors_id).map((id, i) => i)),
+          neighbors: convertIndexesToNeighbors(Array.from(b.robot.neighbors_id).map((id, index) => index)),
           // neighbors: b.robot.neighbors,
           closestRobustNeighbors: b.robot.getFirstRobustQuadrilateralIds && b.robot.getFirstRobustQuadrilateralIds(),
           closestRobustNeighborsCandidates: convertIndexesToNeighbors(Array.from(b.robot.closestRobustNeighborsCandidates)),

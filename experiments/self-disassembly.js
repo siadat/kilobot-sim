@@ -5,9 +5,11 @@ const VACANT = -1;
 const NO_GRAD = 10000;
 const NO_POS = 100000;
 
+const ADJACENT_DIST_FACTOR = 1.2;
+
 const STATIONARY = 1;
 const NOT_STATIONARY = 0;
-const CONSENSUS_FINAL = 50;
+const CONSENSUS_FINAL = 10;
 const POS_CONFIDENCE_FINAL = 10;
 
 const calculateDistancePerf = function(x1, x2, y1, y2) {
@@ -142,10 +144,10 @@ window.isTriangleRobustASMJS = (points_x, points_y) => {
 }
 
 const States = {
-  LocAndGrad       : 'LocAndGrad',
-  DoPhototaxis     : 'DoPhototaxis',
-  DoAntiphototaxis : 'Antiphototaxis',
-  JoinedShape      : 'JoinedShape',
+  LocAndGrad                        : 'LocAndGrad',
+  DoAntiphototaxis                  : 'Antiphototaxis',
+  DoAntiphototaxisCollisionAvoidance: 'DoAntiphototaxisCollisionAvoidance',
+  JoinedShape                       : 'JoinedShape',
 }
 
 class GradientAndDisassemblyRobot extends Kilobot {
@@ -157,6 +159,7 @@ class GradientAndDisassemblyRobot extends Kilobot {
     this.NEIGHBOUR_EXPIRY = 2 * opts.ticksBetweenMsgs;
     this.DESIRED_SHAPE_DIST = 3.1*opts.radius;
     this.NEARBY_MOVING_DISTANCE = 4*this.DESIRED_SHAPE_DIST;
+    this.radius = opts.radius;
 
     this.shapeDesc = opts.shapeDesc;
     this.isSeed = opts.isSeed;
@@ -234,14 +237,21 @@ class GradientAndDisassemblyRobot extends Kilobot {
     this.consensusCounter = 0;
 
     {
-      // for phototaxis
-      this.direction = 0;
-      this.last_value = 0;
-      this.last_updated = this.rand_soft();
-      this.PERIOD = 0;
+      // for phototaxis and antiphototaxis
+      this.phototaxisDirection = 0;
+      this.phototaxisLastValue = 0;
+      this.phototaxisLastUpdated = this.rand_soft();
+      this.phototaxisPeriod = 0;
     }
-    // this.posHistory = [];
-    // this.localizeCounter = 0;
+
+    {
+      // for collision avoidance
+      this.collisionAvoidanceDirection = 0;
+      this.collisionAvoidanceLastValue1 = null;
+      this.collisionAvoidanceLastValue2 = null;
+      this.collisionAvoidanceLastUpdated = this.rand_soft();
+      this.collisionAvoidancePeriod = 0;
+    }
 
     if(this.isGradientSeed) {
       this.set_color(this.RGB(0, 0, 0));
@@ -529,7 +539,6 @@ class GradientAndDisassemblyRobot extends Kilobot {
     return null;
   }
 
-
   setGradient(newValue) {
     if(this.myGradient == newValue) {
       return;
@@ -553,28 +562,118 @@ class GradientAndDisassemblyRobot extends Kilobot {
     }
   }
 
-  doPhototaxis(anti) {
-    switch(this.direction) {
+  doAntiphototaxis() {
+    let csrIndex = this.getClosestStationaryRobotIndex();
+    if(csrIndex != null) {
+      this.switchToState(States.DoAntiphototaxisCollisionAvoidance);
+      return;
+    }
+
+    this.doPhototaxisOrAntiPhototaxis(true);
+  }
+
+  doPhototaxisOrAntiPhototaxis(anti) {
+    switch(this.phototaxisDirection) {
       case 0: this.set_motors(0, this.kilo_turn_right); break;
       case 1: this.set_motors(this.kilo_turn_left, 0); break;
     }
 
-    if(this.kilo_ticks < this.last_updated + this.PERIOD)
+    if(this.kilo_ticks < this.phototaxisLastUpdated + 6 + this.phototaxisPeriod)
       return;
 
-    this.last_updated = this.kilo_ticks;
+    this.phototaxisLastUpdated = this.kilo_ticks;
     let value = this.get_ambientlight();
 
-    if(
-      (!anti && value < this.last_value)
-      ||
-      (anti && value > this.last_value)
-    ) {
-      this.direction = (this.direction + 1) % 2;
-      this.PERIOD = (this.PERIOD + 1) % 2;
+    if(value == this.phototaxisLastValue) {
+      console.log("same value");
+      return;
     }
 
-    this.last_value = value;
+    if(this.kilo_uid == 8)
+      console.log(value);
+
+    if(
+      (!anti && value < this.phototaxisLastValue)
+      ||
+      (anti && value > this.phototaxisLastValue)
+    ) {
+      this.phototaxisDirection = (this.phototaxisDirection + 1) % 2;
+      this.phototaxisPeriod = (this.phototaxisPeriod + 1) % 2;
+    }
+
+    this.phototaxisLastValue = value;
+  }
+
+  doCollisionAvoidance() {
+    let avoided = false;
+    if(this.kilo_ticks < this.collisionAvoidanceLastUpdated + this.collisionAvoidancePeriod) {
+      avoided = false;
+      return avoided;
+    }
+
+    this.collisionAvoidanceLastUpdated = this.kilo_ticks;
+
+    let csrIndex = this.getClosestStationaryRobotIndex();
+    if(csrIndex == null) {
+      avoided = true;
+      return avoided;
+    }
+
+    let value = this.neighbors_dist[csrIndex];
+
+    let isGettingFar = null;
+    let wasGettingClose = null;
+
+    if(value == this.collisionAvoidanceLastValue1) {
+      if(true || this.kilo_ticks % 2 == 0) {
+        switch(this.collisionAvoidanceDirection) {
+          case 0:
+            this.set_color(this.RGB(1, 2, 3));
+            this.set_motors(0, this.kilo_turn_right);
+            break;
+          case 1:
+            this.set_color(this.RGB(3, 2, 1));
+            this.set_motors(this.kilo_turn_left, 0);
+            break;
+          case 2:
+            this.set_color(this.RGB(3, 3, 3));
+            this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
+            break;
+        }
+      }
+      avoided = false;
+      return avoided;
+    }
+
+    if(this.collisionAvoidanceLastValue1 != null) {
+      isGettingFar = value < this.collisionAvoidanceLastValue1;
+    }
+
+    if(this.collisionAvoidanceLastValue1 != null && this.collisionAvoidanceLastValue2 != null) {
+      wasGettingClose = this.collisionAvoidanceLastValue1 > this.collisionAvoidanceLastValue2;
+    }
+
+    // console.log(isGettingFar, wasGettingClose, this.neighbors_id[csrIndex]);
+
+    if(this.collisionAvoidanceLastValue1 != null && this.collisionAvoidanceLastValue2 != null) {
+      if(isGettingFar && wasGettingClose) {
+        // go straight
+        this.collisionAvoidanceDirection = 2;
+        this.set_color(this.RGB(3, 3, 3));
+        this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
+        // this.set_color(this.RGB(1, 2, 3));
+      } else {
+        this.set_color(this.RGB(1, 2, 3));
+        this.set_motors(0, this.kilo_turn_right);
+        this.collisionAvoidanceDirection = 0;
+      }
+    }
+
+    this.collisionAvoidanceLastValue2 = this.collisionAvoidanceLastValue1;
+    this.collisionAvoidanceLastValue1 = value;
+
+    avoided = false;
+    return avoided;
   }
 
   doConsensus() {
@@ -600,6 +699,30 @@ class GradientAndDisassemblyRobot extends Kilobot {
       this.consensusCounter = grad + 1;
   }
 
+  getClosestStationaryRobotIndex() {
+    let bestIndex = null;
+    for(let i = 0; i < MAX_NEIGHBOURS; i++) {
+      if(this.neighbors_id[i] == VACANT) continue;
+      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
+
+      if(!this.neighbors_is_stationary[i]) continue;
+
+      if(this.neighbors_dist[i] > 2.5 * this.radius) continue;
+
+      if(bestIndex == null) {
+        bestIndex = i;
+        continue;
+      }
+
+      if(this.neighbors_dist[i] < this.neighbors_dist[bestIndex]) {
+        bestIndex = i;
+        continue;
+      }
+    }
+
+    return bestIndex;
+  }
+
   loop() {
     // this._cached_robust_quad = false;
     this.counter++;
@@ -610,21 +733,52 @@ class GradientAndDisassemblyRobot extends Kilobot {
         this.gradientFormation();
         this.localize();
         this.doConsensus();
-        if(this.consensusCounter > CONSENSUS_FINAL) {
-          if(this.isInsideShape(this.shapePos.x, this.shapePos.y)) {
-            this.switchToState(States.JoinedShape);
-          } else {
+        if(this.consensusCounter < CONSENSUS_FINAL) {
+          break;
+        }
+
+        if(this.isInsideShape(this.shapePos.x, this.shapePos.y)) {
+          this.switchToState(States.JoinedShape);
+          break;
+        }
+
+        this.switchToState(States.DoAntiphototaxis);
+        break;
+      case States.DoAntiphototaxisCollisionAvoidance:
+        {
+          this.isStationary = NOT_STATIONARY;
+          let avoided = this.doCollisionAvoidance();
+          if(avoided) {
             this.switchToState(States.DoAntiphototaxis);
           }
         }
         break;
-      case States.DoPhototaxis:
-        this.set_color(this.RGB(3, 0, 0));
-        this.doPhototaxis(false);
-        break;
       case States.DoAntiphototaxis:
         this.set_color(this.RGB(0, 3, 0));
-        this.doPhototaxis(true);
+
+        let adjacentNeighborsCount = 0;
+        for(let i = 0; i < MAX_NEIGHBOURS; i++) {
+          if(this.neighbors_id[i] == VACANT) continue;
+          if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
+
+          // if(this.neighbors_replicaID[i] != 1) continue;
+          if(this.neighbors_dist[i] < this.initialDist*ADJACENT_DIST_FACTOR) {
+            adjacentNeighborsCount++;
+          }
+        }
+
+        if(adjacentNeighborsCount <= 4) {
+          this.phototaxisConfidence = (this.phototaxisConfidence||0) + 1;
+        } else {
+          this.phototaxisConfidence = 0;
+        }
+
+        if(this.phototaxisConfidence > 100) {
+          this.isStationary = NOT_STATIONARY;
+          this.doAntiphototaxis();
+        } else {
+          this.isStationary = STATIONARY;
+        }
         break;
       case States.JoinedShape:
         this.doConsensus();
@@ -667,7 +821,7 @@ class GradientAndDisassemblyRobot extends Kilobot {
     }
 
     if(index == -1) {
-      console.error("did not found a place to add neighbor info");
+      // console.error("did not found a place to add neighbor info");
       return;
     }
 
@@ -717,12 +871,10 @@ class GradientAndDisassemblyRobot extends Kilobot {
 window['ExperimentDisassembly'] = class {
   constructor() {
     this.selectedUID = null;
-    this.drawLocalizationError = false;
-    // this.COUNT = 4 + 140;
-    this.COUNT = 4 + 196/2 + 30;
+    this.drawLocalizationError = !false;
 
     this.runnerOptions = {
-      limitSpeed: !true,
+      limitSpeed: true,
       traversedPath: false,
       darkMode: false,
     }
@@ -759,11 +911,11 @@ window['ExperimentDisassembly'] = class {
 
   createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
     this.NEIGHBOUR_DISTANCE = NEIGHBOUR_DISTANCE;
-    const INITIAL_DIST = this.NEIGHBOUR_DISTANCE/11*3;
+    const INITIAL_DIST = 3 * RADIUS; // this.NEIGHBOUR_DISTANCE/11*3;
     const GRADIENT_DIST = 1.5*INITIAL_DIST;
     this.RADIUS = RADIUS;
     // this._ShapeScale = 1.25*this.RADIUS; // 1.5*this.RADIUS
-    this._ShapeScale = 2.9; // * this.RADIUS;
+    this._ShapeScale = 0.9; // * this.RADIUS;
     let ShapeDescReadable = [
     // 012340123401234012340
       "                     ", // 0
@@ -862,15 +1014,15 @@ window['ExperimentDisassembly'] = class {
       };
 
       if(!PERFECT) {
-        pos.x += gradientNoise() * (0.2 * INITIAL_DIST);
-        pos.y += gradientNoise() * (0.2 * INITIAL_DIST);
+        // pos.x += gradientNoise() * (0.2 * INITIAL_DIST);
+        // pos.y += gradientNoise() * (0.2 * INITIAL_DIST);
       }
 
       return pos;
     }
 
-    let rowCount = 20;
-    let colCount = 20;
+    let rowCount = 4;
+    let colCount = 4;
 
     let rootPos = {
       x: -colCount/2 + 0,
@@ -913,7 +1065,7 @@ window['ExperimentDisassembly'] = class {
         let pos = gridPosToPhysPos({x: coli, y: rowi}, rowCounter);
         newRobotFunc(
           pos,
-          MathRandom() * 2*Math.PI,
+          MathRandom() * 2*Math.PI + Math.PI,
           new GradientAndDisassemblyRobot({
             gradientDist: GRADIENT_DIST,
             initialDist: INITIAL_DIST,
@@ -986,7 +1138,7 @@ window['ExperimentDisassembly'] = class {
       });
     }
 
-    if(false) {
+    if(!false) {
       let g = new PIXI.Graphics()
       g.zIndex = zIndexOf('Shape');
       g.alpha = 0.3;

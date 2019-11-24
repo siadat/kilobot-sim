@@ -695,33 +695,87 @@ window['ExperimentPhototaxis2'] = class {
 
 // phototaxis
 class RobotPhototaxis extends Kilobot {
+  constructor(anti) {
+    super();
+    this.anti = anti;
+    this.States = {
+      FindingGeneralDirection: 'FindingGeneralDirection',
+      Oscillating:             'Oscillating',
+    };
+  }
+
   setup() {
+    // this.state = this.States.FindingGeneralDirection;
+    this.state = this.States.Oscillating;
     this.direction = this.rand_soft() % 2;
-    this.last_value = 0;
+    this.last_value1 = null;
+    this.last_value2 = null;
     this.last_updated = this.rand_soft();
     this.PERIOD = 0;
-    this.set_color(this.RGB(3, 3, 3));
+    if(this.anti) {
+      this.set_color(this.RGB(0, 1, 2));
+    } else {
+      this.set_color(this.RGB(3, 2, 1));
+    }
   }
 
   loop() {
+
     switch(this.direction) {
       case 0: this.set_motors(0, this.kilo_turn_right); break;
       case 1: this.set_motors(this.kilo_turn_left, 0); break;
+      case 2: this.set_motors(this.kilo_straight_left, this.kilo_straight_right); break;
     }
 
-    if(this.kilo_ticks < this.last_updated + this.PERIOD)
-      return;
+    switch(this.state) {
+      case this.States.Oscillating:
+        if(this.kilo_ticks < this.last_updated + 5 + this.PERIOD)
+          return;
 
+        this.last_updated = this.kilo_ticks;
+        let value = this.get_ambientlight();
 
-    this.last_updated = this.kilo_ticks;
-    let value = this.get_ambientlight();
+        let wantToGetClose = !this.anti;
+        let wantToGetFar = this.anti;
+        let isGettingFar = value <= this.last_value1;
+        let isGettingClose = value >= this.last_value1;
+        let wasGettingFar = this.last_value1 <= this.last_value2;
+        let wasGettingClose = this.last_value1 >= this.last_value2;
 
-    if(value < this.last_value) {
-      this.direction = (this.direction + 1) % 2;
-      this.PERIOD = (this.PERIOD + 1) % 2;
+        let noChange = value == this.last_value1 && value == this.last_value2;
+
+        if(noChange) {
+          this.direction = this.kilo_uid % 2;
+        } else if(
+          this.last_value1 != null
+          &&
+          this.last_value2 != null
+          &&
+          (
+            (wantToGetClose && isGettingFar && wasGettingClose)
+            ||
+            (wantToGetFar && isGettingClose && wasGettingFar)
+          )
+        ) {
+          // console.log("WAAAAAAAAAAAAAAAAAT");
+          this.direction = (this.direction + 1) % 2;
+          this.PERIOD = (this.PERIOD + 1) % 3;
+        }
+
+        this.last_value2 = this.last_value1;
+        this.last_value1 = value;
+        break;
+      case this.States.FindingGeneralDirection:
+
+        // if(
+        //   (!this.anti)
+        //   ||
+        //   (this.anti)
+        // ) {
+        //   this.state = this.States.Oscillating;
+        // }
+        break;
     }
-
-    this.last_value = value;
   }
 }
 
@@ -756,7 +810,7 @@ window['ExperimentPhototaxis'] = class {
         console.log({
           uid: b.robot._uid,
           direction: b.robot.direction,
-          last_value: b.robot.last_value,
+          last_value1: b.robot.last_value1,
           events: b.robot.events,
         });
         ev.stopPropagation();
@@ -772,7 +826,7 @@ window['ExperimentPhototaxis'] = class {
     let width = 10;
     let height = 10;
 
-    newLightFunc({x: width*this.INITIAL_DIST, y: -height/10/2*this.INITIAL_DIST});
+    newLightFunc({x: 0, y: -height/10/2*this.INITIAL_DIST});
     // newLightFunc({x: -width*this.INITIAL_DIST, y: -height/10/2*this.INITIAL_DIST});
 
     // newLightFunc({x: width*this.INITIAL_DIST, y: -height/2*this.INITIAL_DIST});
@@ -786,7 +840,7 @@ window['ExperimentPhototaxis'] = class {
           y: i * this.INITIAL_DIST,
         },
           this.MathRandom() * 2*Math.PI,
-          new RobotPhototaxis(),
+          new RobotPhototaxis(this.MathRandom() > 0.5),
         );
       }
     }
@@ -1035,5 +1089,139 @@ window['ExperimentFollowTheLeader'] = class {
         new RobotFollowTheLeader(id, RADIUS),
       );
     }
+  }
+}
+
+// newton
+class RobotNewton extends Kilobot {
+  constructor(id, RADIUS, left, right) {
+    super();
+    this.id = id;
+    this.radius = RADIUS;
+    this.left = left || 0;
+    this.right = right || 0;
+  }
+
+  setup() {
+    if(this.left > 0 || this.right > 0) {
+      this.set_color(this.RGB(0, 0, 3));
+    }
+  }
+
+  message_rx(message, distance) {
+  }
+
+  loop() {
+    this.set_motors(this.left, this.right);
+  }
+
+  message_tx() {
+    return null;
+  }
+}
+
+window['ExperimentNewton'] = class {
+  constructor() {
+    this.runnerOptions = {
+      limitSpeed: true,
+      traversedPath: true,
+      darkMode: false,
+    }
+  }
+
+  setupGraphics(
+    PIXI,
+    Box2D,
+    pixiApp,
+    platformGraphics,
+    bodies,
+    bodyIDs,
+    setDisplayedData,
+    zIndexOf,
+  ) {
+    for(let i = 0; i < bodyIDs.length; i++) {
+      let b = bodies[bodyIDs[i]];
+      let g = b.g;
+
+      g.interactive = true;
+      g.buttonMode = true;
+      g.on('pointerdown', (ev) => {
+        console.log({
+          uid: b.robot._uid,
+          state: b.robot.state,
+          amLeader: b.robot.amLeader,
+          amTail: b.robot.amTail,
+        });
+        ev.stopPropagation();
+      });
+    }
+  }
+
+  createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+    this.MathRandom = new Math.seedrandom(1234);
+    this.INITIAL_DIST = 2*RADIUS;
+    let rowHeight = 4 * RADIUS;
+    let row = -2;
+    let id = 0;
+
+    row++;
+    id++;
+    newRobotFunc({
+      x: 0 * this.INITIAL_DIST,
+      y: row*rowHeight,
+    },
+      0,
+      new RobotNewton(id, RADIUS, 0, 255),
+    );
+
+    id++;
+    newRobotFunc({
+      x: 4 * this.INITIAL_DIST,
+      y: row*rowHeight,
+    },
+      0,
+      new RobotNewton(id, RADIUS, 255, 0),
+    );
+
+    id++
+    row++;
+    newRobotFunc({
+      x: 0 * this.INITIAL_DIST,
+      y: row*rowHeight,
+    },
+      0,
+      new RobotNewton(id, RADIUS, 255, 255),
+    );
+
+    row++;
+    for(let i = -1; i < 2; i++) {
+      id++;
+      newRobotFunc({
+        x: i * this.INITIAL_DIST,
+        y: row*rowHeight,
+      },
+        0,
+        new RobotNewton(id, RADIUS,
+          i == 0 ? 255 : 0,
+          i == 0 ? 255 : 0,
+        ),
+      );
+    }
+
+    row++;
+    for(let i = -1; i < 3; i++) {
+      id++;
+      newRobotFunc({
+        x: i * this.INITIAL_DIST,
+        y: row*rowHeight,
+      },
+        0,
+        new RobotNewton(id, RADIUS,
+          i == 0 ? 255 : 0,
+          i == 0 ? 255 : 0,
+        ),
+      );
+    }
+
   }
 }
