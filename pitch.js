@@ -116,14 +116,15 @@ export class Pitch {
 
     let newText = Object
       .keys(this.metaData)
-      // .filter(key => !Array.isArray(this.metaData[key]))
+      // .filter(k => !Array.isArray(this.metaData[k]))
       .sort()
-      .map(key => {
-        let v = this.metaData[key];
-        if(Array.isArray(this.metaData[key]) && this.metaData[key].length > 0) {
-          v = this.metaData[key][this.metaData[key].length - 1];
+      .map(k => {
+        let v = this.metaData[k];
+        if(Array.isArray(this.metaData[k]) && this.metaData[k].length > 0) {
+          let idx = this.metaData[k].length - 1;
+          v = this.metaData[k][idx];
         }
-        return `${key}: ${v}`
+        return `${k}: ${v}`
       })
       .join('\n');
 
@@ -172,14 +173,14 @@ export class Pitch {
 
     Object
       .keys(this.metaData)
-      .filter(key => Array.isArray(this.metaData[key]))
+      .filter(k => Array.isArray(this.metaData[k]))
       .sort()
-      .forEach(key => {
+      .forEach(k => {
+        let value = this.metaData[k];
+        if(!this.metaGraphs[k]) {
+          this.metaGraphs[k] = new PIXI.Graphics();;
 
-        if(!this.metaGraphs[key]) {
-          this.metaGraphs[key] = new PIXI.Graphics();;
-
-          let txt = new PIXI.Text(key, {
+          let txt = new PIXI.Text(k, {
             // fontFamily: 'Arial',
             fontSize: MetaOpts.fontSize,
             align: 'left',
@@ -191,42 +192,42 @@ export class Pitch {
             y: MetaOpts.padding, // MetaOpts.margin + MetaOpts.padding,
           }
 
-          this.metaGraphs[key].addChild(txt);
-          this.metaContainer.addChild(this.metaGraphs[key]);
+          this.metaGraphs[k].addChild(txt);
+          this.metaContainer.addChild(this.metaGraphs[k]);
         } else if(value == null) {
-          this.metaGraphs[key].removeChildren();
-          this.metaContainer.removeChild(this.metaGraphs[key]);
-          this.metaGraphs[key].destroy(true);
-          delete(this.metaGraphs[key]);
+          this.metaGraphs[k].removeChildren();
+          this.metaContainer.removeChild(this.metaGraphs[k]);
+          this.metaGraphs[k].destroy(true);
+          delete(this.metaGraphs[k]);
         } else {
-          this.metaGraphs[key].clear();
-          // this.metaGraphs[key].removeChildren();
+          this.metaGraphs[k].clear();
+          // this.metaGraphs[k].removeChildren();
 
-          this.metaGraphs[key].position.x = MetaOpts.margin;
-          this.metaGraphs[key].position.y = MetaOpts.margin + top;
+          this.metaGraphs[k].position.x = MetaOpts.margin;
+          this.metaGraphs[k].position.y = MetaOpts.margin + top;
 
-          this.metaGraphs[key].lineStyle(0);
-          this.metaGraphs[key].beginFill(this.darkMode ? 0x000000 : 0xffffff, 0.5);
-          this.metaGraphs[key].drawRect(0, 0, w, h);
+          this.metaGraphs[k].lineStyle(0);
+          this.metaGraphs[k].beginFill(this.darkMode ? 0x000000 : 0xffffff, 0.5);
+          this.metaGraphs[k].drawRect(0, 0, w, h);
 
           let thickness = w/maxHistory;
           if(thickness < 1) thickness = 1;
-          this.metaGraphs[key].endFill();
-          let min = Math.min.apply(null, this.metaData[key]);
-          let max = Math.max.apply(null, this.metaData[key]);
+          this.metaGraphs[k].endFill();
+          let min = Math.min.apply(null, this.metaData[k]);
+          let max = Math.max.apply(null, this.metaData[k]);
 
-          for(let i = 0; i < this.metaData[key].length; i++) {
-            let x = w * (i + maxHistory-this.metaData[key].length)/maxHistory + thickness*0.5;
-            let v = this.metaData[key][i];
+          for(let i = 0; i < this.metaData[k].length; i++) {
+            let x = w * (i + maxHistory-this.metaData[k].length)/maxHistory + thickness*0.5;
+            let v = this.metaData[k][i];
             let y = h - h*(v-min)/(max-min);
 
-            this.metaGraphs[key].lineStyle(thickness, graphColor, 1.0);
-            this.metaGraphs[key].moveTo(x, h);
-            this.metaGraphs[key].lineTo(x, y);
+            this.metaGraphs[k].lineStyle(thickness, graphColor, 1.0);
+            this.metaGraphs[k].moveTo(x, h);
+            this.metaGraphs[k].lineTo(x, y);
 
-            // this.metaGraphs[key].lineStyle(thickness, lightColor, 1.0);
-            // this.metaGraphs[key].moveTo(x, y);
-            // this.metaGraphs[key].lineTo(x, y-1);
+            // this.metaGraphs[k].lineStyle(thickness, lightColor, 1.0);
+            // this.metaGraphs[k].moveTo(x, y);
+            // this.metaGraphs[k].lineTo(x, y-1);
           }
         }
       });
@@ -877,6 +878,15 @@ export class Pitch {
         // b.robot._err_message_sending = this.MathRandom();
         // b.robot._PERFECT = this.perfectStart;
         b.robot._LOOP_PER_SECOND = LOOP_PER_SECOND ;
+        if(false && this.experiment.runnerOptions.traversedPath) {
+          let max = this.experiment.runnerOptions.traversedPathLen;
+          b.posHistoryCursor = -1;
+          b.posHistoryFilled = false;
+          b.posHistoryX = new Float64Array(max);
+          b.posHistoryY = new Float64Array(max);
+          b.posHistoryAngle = new Float64Array(max);
+          b.posHistoryColor = new Array(); // string
+        }
 
         this.bodies[b.robot._uid] = b;
         this.createBodyGraphic(b);
@@ -944,7 +954,7 @@ export class Pitch {
     for(let i = 0; i < this.bodyIDs.length; i++) {
       let b = this.bodies[this.bodyIDs[i]];
 
-      if(b.toStartAt == frameCount) {
+      if(b.toStartAt == this.frameCount) {
         b.robot.setup();
         b.robot._started = true;
       }
@@ -1002,15 +1012,15 @@ export class Pitch {
       */
     }
 
-    let messageTxCount = 0;
-    let messageRxCount = 0;
+    // let messageTxCount = 0;
+    // let messageRxCount = 0;
 
-    let aabb = new this.Box2D.b2AABB();
-    let lowerBound = new this.Box2D.b2Vec2(0, 0);
-    let upperBound = new this.Box2D.b2Vec2(0, 0);
+    this.aabb = new this.Box2D.b2AABB();
+    this.lowerBound = new this.Box2D.b2Vec2(0, 0);
+    this.upperBound = new this.Box2D.b2Vec2(0, 0);
 
-    let queryCallback = new this.Box2D.JSQueryCallback();
-    queryCallback.ReportFixture = function(fixturePtr) {
+    this.queryCallback = new this.Box2D.JSQueryCallback();
+    this.queryCallback.ReportFixture = function(fixturePtr) {
       let fixture = this.Box2D.wrapPointer(fixturePtr, this.Box2D.b2Fixture);
       let id = fixture.GetBody().GetUserData();
       if(id == BODY_ID_IGNORE) {
@@ -1043,7 +1053,7 @@ export class Pitch {
         return;
       }
 
-      messageRxCount++;
+      // messageRxCount++;
       receiverBody.robot.message_rx(message, distance);
 
       if(DRAW_CONNS_AND_BOUNDS) {
@@ -1055,394 +1065,424 @@ export class Pitch {
     };
 
     return new Promise((resolve, reject) => {
-      const tickFunc = (frameCount, recursive) => {
 
-        if(window._state_stop) {
-          resolve();
+      this.startDate = performance.now();
+      this.frameCount = -1;
+      this.tickFunc(true);
+    });
+
+    // this.Box2D.destroy(this.queryCallback);
+    // this.Box2D.destroy(this.lowerBound);
+    // this.Box2D.destroy(this.upperBound);
+    // this.Box2D.destroy(this.aabb);
+  }
+
+  tickFunc(recursive) {
+    this.frameCount++;
+    if(this.paused) {
+      // resolve();
+      return;
+    }
+
+    if(this.playUntil != null && this.frameCount == this.playUntil) {
+      this.paused = true;
+      return;
+    }
+
+    if(window._state_stop) {
+      // resolve();
+      return;
+    }
+
+    {
+      let virtualSeconds = Math.floor(this.frameCount/LOOP_PER_SECOND);
+      let ourSeconds = (performance.now() - this.startDate)/1000;
+      let s = this.tickBatchCount * (this.fps/LOOP_PER_SECOND);
+      if(this.speedX == null) {
+        this.speedX = s;
+      } else {
+        this.speedX += (s - this.speedX) * (1/120.0);
+      }
+      this.setDisplayedData('Duration', `${formatSeconds(virtualSeconds, true)}`);
+      if(DEV) {
+        this.setDisplayedData('Duration (render)', `${formatSeconds(ourSeconds, true)}`);
+      }
+      this.setDisplayedData('Simulation speed', `${this.speedX > 2 ? Math.round(this.speedX) : Math.round(this.speedX*10)/10}x`);
+    }
+
+    {
+      if(this.selectedUID) {
+        this.setDisplayedData('Selected: ID', this.selectedUID)
+        // STRANGE: any of these two lines improves performance of the Replicator experiment!
+        // Try clicking on a robot to set this.selectedUID.
+        // NOTE: on this comment it doesn't make any different! maybe because I restarted the computer.
+        // also, even before that restart it used to make no difference on Safari on Mac.
+        // The only observed difference was on Chrome on Mac on commit 2d2c062432768d19bc9f942d49529d6fbf943100 ("ok")
+        this.setDisplayedData('Selected: State', this.bodies[this.selectedUID].robot.state)
+        if(this.bodies[this.selectedUID].robot._ambientlight_ready) {
+          this.setDisplayedData('Selected: Ambientlight', this.bodies[this.selectedUID].robot._ambientlight, {graph: true})
+        }
+        // this.setDisplayedData('Selected: Robot', this.bodies[this.selectedUID].robot.toString())
+      } else {
+        this.setDisplayedData('Selected: ID', null);
+        this.setDisplayedData('Selected: State', null);
+        this.setDisplayedData('Selected: Robot', null);
+        this.setDisplayedData('Selected: Ambientlight', null, {graph: true});
+      }
+    }
+
+    if(false){
+      for(let i = 0; i < this.bodyIDs.length; i++) {
+        let id = this.bodyIDs[i]
+        // if(id != 14) continue;
+        let b = this.bodies[id];
+        let v = b.body.GetLinearVelocity();
+        // console.log(id, v.Length(), v.get_x(), v.get_y());
+        if(v.Length() < 50) {
+          // if(id == 15) {
+          // console.log("ok", b.robot._uid, v.Length());
+          v.set_x(- (2.0/1) * DAMPING * b.body.GetMass() * v.get_x());
+          v.set_y(- (2.0/1) * DAMPING * b.body.GetMass() * v.get_y());
+          b.body.ApplyForceToCenter(v, true);
+          // b.body.ApplyLinearImpulse(v, b.body.GetWorldCenter(), true);
+          // b.body.SetLinearVelocity(v);
+        }
+        // let newV = new this.Box2D.b2Vec2(10, 10);
+        // b.body.SetLinearVelocity(newV);
+        // console.log(f.get_x(), f.get_y());
+        // let f = new this.Box2D.b2Vec2(-1000*v.get_x(), -1000*v.get_y());
+        // let f = new this.Box2D.b2Vec2(1000, 1000);
+        // b.body.ApplyForceToCenter(f, true);
+        // this.Box2D.destroy(f);
+      }
+    }
+    this.physics.update();
+
+    if(this.experiment.runnerOptions.traversedPath && this.frameCount % (this.experiment.runnerOptions.limitSpeed ? 10 : 30) == 0) {
+      let max = this.experiment.runnerOptions.traversedPathLen;
+
+      this.forEachBody(b => {
+        if(true && b.posHistoryX == null) {
+          b.posHistoryCursor = -1;
+          b.posHistoryFilled = false;
+          b.posHistoryX = new Float64Array(max);
+          b.posHistoryY = new Float64Array(max);
+          b.posHistoryAngle = new Float64Array(max);
+          b.posHistoryColor = new Array(); // string
+        }
+
+        let pos = b.body.GetPosition();
+        let newPos = {
+          x: pos.get_x(),
+          y: pos.get_y(),
+          angle: b.body.GetAngle(),
+        };
+
+        /*
+        if(newPos.x == b.posHistoryX[b.posHistoryCursor]
+          && newPos.y == b.posHistoryY[b.posHistoryCursor]
+          // && newPos.angle == b.posHistoryAngle[b.posHistoryCursor]
+        ) {
           return;
         }
+        */
 
-        {
-          let virtualSeconds = Math.floor(frameCount/LOOP_PER_SECOND);
-          let ourSeconds = (performance.now() - this.startDate)/1000;
-          let s = this.tickBatchCount * (this.fps/LOOP_PER_SECOND);
-          if(this.speedX == null) {
-            this.speedX = s;
-          } else {
-            this.speedX += (s - this.speedX) * (1/120.0);
-          }
-          this.setDisplayedData('Duration', `${formatSeconds(virtualSeconds, true)}`);
-          if(DEV) {
-            this.setDisplayedData('Duration (render)', `${formatSeconds(ourSeconds, true)}`);
-          }
-          this.setDisplayedData('Simulation speed', `${this.speedX > 2 ? Math.round(this.speedX) : Math.round(this.speedX*10)/10}x`);
+        if(b.posHistoryCursor == max - 1) {
+          b.posHistoryFilled = true;
         }
 
-        {
-          if(this.selectedUID) {
-            this.setDisplayedData('Selected: ID', this.selectedUID)
-            // STRANGE: any of these two lines improves performance of the Replicator experiment!
-            // Try clicking on a robot to set this.selectedUID.
-            // NOTE: on this comment it doesn't make any different! maybe because I restarted the computer.
-            // also, even before that restart it used to make no difference on Safari on Mac.
-            // The only observed difference was on Chrome on Mac on commit 2d2c062432768d19bc9f942d49529d6fbf943100 ("ok")
-            this.setDisplayedData('Selected: State', this.bodies[this.selectedUID].robot.state)
-            if(this.bodies[this.selectedUID].robot._ambientlight_ready) {
-              this.setDisplayedData('Selected: Ambientlight', this.bodies[this.selectedUID].robot._ambientlight, {graph: true})
-            }
-            // this.setDisplayedData('Selected: Robot', this.bodies[this.selectedUID].robot.toString())
-          } else {
-            this.setDisplayedData('Selected: ID', null);
-            this.setDisplayedData('Selected: State', null);
-            this.setDisplayedData('Selected: Robot', null);
-            this.setDisplayedData('Selected: Ambientlight', null, {graph: true});
-          }
-        }
+        b.posHistoryCursor = (b.posHistoryCursor+1) % max;
 
-        if(false){
-          for(let i = 0; i < this.bodyIDs.length; i++) {
-            let id = this.bodyIDs[i]
-            // if(id != 14) continue;
-            let b = this.bodies[id];
-            let v = b.body.GetLinearVelocity();
-            // console.log(id, v.Length(), v.get_x(), v.get_y());
-            if(v.Length() < 50) {
-              // if(id == 15) {
-              // console.log("ok", b.robot._uid, v.Length());
-              v.set_x(- (2.0/1) * DAMPING * b.body.GetMass() * v.get_x());
-              v.set_y(- (2.0/1) * DAMPING * b.body.GetMass() * v.get_y());
-              b.body.ApplyForceToCenter(v, true);
-              // b.body.ApplyLinearImpulse(v, b.body.GetWorldCenter(), true);
-              // b.body.SetLinearVelocity(v);
-            }
-            // let newV = new this.Box2D.b2Vec2(10, 10);
-            // b.body.SetLinearVelocity(newV);
-            // console.log(f.get_x(), f.get_y());
-            // let f = new this.Box2D.b2Vec2(-1000*v.get_x(), -1000*v.get_y());
-            // let f = new this.Box2D.b2Vec2(1000, 1000);
-            // b.body.ApplyForceToCenter(f, true);
-            // this.Box2D.destroy(f);
-          }
-        }
-        this.physics.update();
+        b.posHistoryX[b.posHistoryCursor] = newPos.x;
+        b.posHistoryY[b.posHistoryCursor] = newPos.y;
+        b.posHistoryAngle[b.posHistoryCursor] = newPos.angle;
+        b.posHistoryColor[b.posHistoryCursor] = toHex(b.robot.led);
+      });
+    }
 
-        if(this.experiment.runnerOptions.traversedPath && frameCount % (this.experiment.runnerOptions.limitSpeed ? 10 : 30) == 0) {
-          let max = this.experiment.runnerOptions.traversedPathLen;
+    // ******
+    for(let i = 0; i < this.bodyIDs.length; i++) {
+      let r = this.bodies[this.bodyIDs[i]].robot;
+      if(r._started) {
+        r.loop();
+        r._internal_loop();
+        continue;
+      }
 
-          this.forEachBody(b => {
-            if(b.posHistoryX == null) {
-              b.posHistoryCursor = -1;
-              b.posHistoryFilled = false;
-              b.posHistoryX = new Float64Array(max);
-              b.posHistoryY = new Float64Array(max);
-              b.posHistoryAngle = new Float64Array(max);
-              b.posHistoryColor = new Array(); // string
-            }
+      if(this.MathRandom() < 0.75) {
+        r.setup();
+        r._started = true;
+      }
+    }
 
-            let pos = b.body.GetPosition();
-            let newPos = {
-              x: pos.get_x(),
-              y: pos.get_y(),
-              angle: b.body.GetAngle(),
-            };
+    // ******
+    this.connections = [];
+    // messageTxCount = 0;
+    // messageRxCount = 0;
 
-            /*
-            if(newPos.x == b.posHistoryX[b.posHistoryCursor]
-              && newPos.y == b.posHistoryY[b.posHistoryCursor]
-              // && newPos.angle == b.posHistoryAngle[b.posHistoryCursor]
-            ) {
-              return;
-            }
-            */
-
-            if(b.posHistoryCursor == max - 1) {
-              b.posHistoryFilled = true;
-            }
-
-            b.posHistoryCursor = (b.posHistoryCursor+1) % max;
-
-            b.posHistoryX[b.posHistoryCursor] = newPos.x;
-            b.posHistoryY[b.posHistoryCursor] = newPos.y;
-            b.posHistoryAngle[b.posHistoryCursor] = newPos.angle;
-            b.posHistoryColor[b.posHistoryCursor] = toHex(b.robot.led);
-          });
-        }
-
-        // ******
+    {
+      /*
+      if(this.frameCount % 2 == 0) {
         for(let i = 0; i < this.bodyIDs.length; i++) {
-          let r = this.bodies[this.bodyIDs[i]].robot;
-          if(r._started) {
-            r.loop();
-            r._internal_loop();
-            continue;
-          }
-
-          if(this.MathRandom() < 0.75) {
-            r.setup();
-            r._started = true;
-          }
-        }
-
-        // ******
-        this.connections = [];
-        messageTxCount = 0;
-        messageRxCount = 0;
-
-        {
-          /*
-          if(frameCount % 2 == 0) {
-            for(let i = 0; i < this.bodyIDs.length; i++) {
-              let body = this.bodies[this.bodyIDs[i]].body;
-              let f = body.GetFixtureList();
-              let fp = this.Box2D.getPointer(f);
-              while(fp) {
-                if(f.IsSensor()) {
-                  let fd = f.GetFilterData();
-                  fd.set_maskBits(CATS.NONE)
-                  f.SetFilterData(fd);
-                  break;
-                }
-                f = f.GetNext();
-                fp = this.Box2D.getPointer(f);
-              }
+          let body = this.bodies[this.bodyIDs[i]].body;
+          let f = body.GetFixtureList();
+          let fp = this.Box2D.getPointer(f);
+          while(fp) {
+            if(f.IsSensor()) {
+              let fd = f.GetFilterData();
+              fd.set_maskBits(CATS.NONE)
+              f.SetFilterData(fd);
+              break;
             }
-          }
-          */
-
-          /*
-          if(frameCount % 1 == 0) {
-            for(let i = 0; i < this.bodyIDs.length; i++) {
-              let body = this.bodies[this.bodyIDs[i]].body;
-              let f = body.GetFixtureList();
-              let fp = this.Box2D.getPointer(f);
-              while(fp) {
-                if(f.IsSensor()) {
-                  body.DestroyFixture(f);
-                  break;
-                }
-                f = f.GetNext();
-                fp = this.Box2D.getPointer(f);
-              }
-            }
-          }
-          */
-        }
-
-        // ---
-        if(this.lightSources.length > 0) {
-          for(let i = 0; i < this.bodyIDs.length; i++) {
-            let b = this.bodies[this.bodyIDs[i]];
-            if(frameCount < b.lastAmbientLightSetAt + TICKS_BETWEEN_AMB_LIGHT) {
-              continue;
-            }
-
-            let mult = 10;
-            let v = mult * 1024 * this.lightSources.length;
-
-            this.lightSources.forEach(ls => {
-              let pos = {
-                x: b.body.GetPosition().get_x(),
-                y: b.body.GetPosition().get_y(),
-              };
-
-              let dx = pos.x - ls.pos.x;
-              let dy = pos.y - ls.pos.y;
-              let d = Math.sqrt(dx*dx + dy*dy);
-              v -= mult * d;
-            });
-
-            if(this.MathRandom() > 0.9) {
-              v += (this.MathRandom()-0.5) * 10;
-            }
-
-            b.lastAmbientLightSetAt = frameCount;
-
-            let newValue = v|0;
-
-            if(newValue < 0|0)
-              newValue = 0|0;
-
-            b.robot._ambientlight = newValue|0;
-            b.robot._ambientlight_ready = 1|0;
-          }
-        }
-
-        if(true) {
-          for(let i = 0; i < this.bodyIDs.length; i++) {
-            let b = this.bodies[this.bodyIDs[i]];
-            if(frameCount < b.lastMessageSentAt + TICKS_BETWEEN_MSGS) {
-              continue;
-            }
-            // if(frameCount > 60 * 5) { continue; }
-
-            b.lastMessageSentAt = frameCount - Math.floor(this.MathRandom() * 2);
-
-            let broadcastingBody = b;
-
-            if(!broadcastingBody) {
-              console.error("deleted robot fetched");
-              continue;
-            }
-
-            if(!broadcastingBody.robot._started) {
-              continue;
-            }
-
-            messageTxCount++;
-            let message = broadcastingBody.robot.message_tx();
-            message = JSON.parse(JSON.stringify(message));
-            if(message == null) {
-              continue;
-            }
-            broadcastingBody.robot.message_tx_success();
-
-            {
-              /*
-            let f = broadcastingBody.body.GetFixtureList();
-            let fp = this.Box2D.getPointer(f);
-            let j = 0;
-            while(fp) {
-              j++;
-              if(f.IsSensor()) {
-                let fd = f.GetFilterData();
-                fd.set_maskBits(CATS.ROBOT)
-                f.SetFilterData(fd);
-                break;
-              }
-              f = f.GetNext();
-              fp = this.Box2D.getPointer(f);
-            }
-            */
-              /*
-              if(!this.filter2) {
-                console.log("should be called ONCE");
-              this.filter2 = new this.Box2D.b2Filter();
-              this.filter2.set_categoryBits(CATS.NEIGHBOR);
-              this.filter2.set_maskBits(CATS.ROBOT);
-              this.sensorCircleShape = new this.Box2D.b2CircleShape();
-              this.sensorCircleShape.set_m_radius(NEIGHBOUR_DISTANCE);
-              this.fixtureSensor = new this.Box2D.b2FixtureDef();
-              this.fixtureSensor.set_shape(this.sensorCircleShape);
-              this.fixtureSensor.set_isSensor(true);
-              this.fixtureSensor.set_filter(this.filter2);
-              }
-              broadcastingBody.body.CreateFixture(this.fixtureSensor);
-              // this.Box2D.destroy(filter2);
-              // this.Box2D.destroy(sensorCircleShape);
-              */
-            }
-
-            {
-              let pos_x = broadcastingBody.body.GetPosition().get_x();
-              let pos_y = broadcastingBody.body.GetPosition().get_y();
-
-              lowerBound.set_x(pos_x-NEIGHBOUR_DISTANCE);
-              lowerBound.set_y(pos_y-NEIGHBOUR_DISTANCE);
-
-              upperBound.set_x(pos_x+NEIGHBOUR_DISTANCE);
-              upperBound.set_y(pos_y+NEIGHBOUR_DISTANCE);
-
-              aabb.set_lowerBound(lowerBound);
-              aabb.set_upperBound(upperBound);
-
-              queryCallback.message = message;
-              queryCallback.broadcastingBody = broadcastingBody;
-              queryCallback.Box2D = this.Box2D;
-              this.physics.world.QueryAABB(queryCallback, aabb);
-            }
-          }
-        }
-
-        if(DEV) {
-          this.setDisplayedData('message_tx()', messageTxCount);
-          this.setDisplayedData('message_tx()/robot', Math.round(messageTxCount/this.bodyIDs.length * 100)/100);
-          this.setDisplayedData('message_rx()', messageRxCount);
-          this.setDisplayedData('message_rx()/robot', Math.round(messageRxCount/this.bodyIDs.length * 100)/100);
-        }
-
-        if(!recursive) {
-          return;
-        }
-
-        {
-          let time0 = performance.now();
-          if(false) {
-            tickFunc(++frameCount, false);
-
-            setTimeout(() => {
-              tickFunc(++frameCount, true);
-              let dt = (performance.now() - time0)/1000;
-              if(this.deltaTime == null) {
-                this.deltaTime = dt;
-              } else {
-                this.deltaTime += (dt - this.deltaTime) * 0.2;
-              }
-            }, 1);
-          } else {
-            let fn = () => {
-              for(let i = 0; i < this.tickBatchCount - 1; i++) {
-                tickFunc(++frameCount, false);
-              }
-              tickFunc(++frameCount, true);
-              let dt = (performance.now() - time0)/1000;
-              if(this.deltaTime == null) {
-                this.deltaTime = dt;
-              } else {
-                this.deltaTime += (dt - this.deltaTime) * 0.2;
-              }
-
-              if(this.deltaTime == 0 /* prevent divide by zero */ ) {
-                this.fps = 60;
-              } else {
-                this.fps = 1/this.deltaTime;
-              }
-
-              if(this.fps > 55) {
-                this.tickBatchCount += 0.2;
-              } else {
-                this.tickBatchCount -= 1;
-              }
-
-              if(this.tickBatchCount < 1) this.tickBatchCount = 1;
-              //if(this.tickBatchCount > 3) this.tickBatchCount = 3;
-
-              if(this.experiment.runnerOptions.limitSpeed)
-                this.tickBatchCount = 1;
-
-              if(DEV) {
-                this.setDisplayedData('Tick batch', Math.round(this.tickBatchCount));
-              }
-
-              // if(BENCHMARKING) {
-              //   console.log(`FPS: ${Math.floor(1/this.deltaTime)}/s`);
-              // }
-            };
-            this.setDisplayedData('Frame', frameCount);
-            window.requestAnimationFrame(() => fn());
-            // if(frameCount < 300) {
-            //   this.tickBatchCount = 10;
-            //   window.requestAnimationFrame(() => fn());
-            // } else {
-            //   setTimeout(() => {
-            //     window.requestAnimationFrame(() => fn());
-            //   }, 100);
-            // }
+            f = f.GetNext();
+            fp = this.Box2D.getPointer(f);
           }
         }
       }
+      */
 
-      this.startDate = performance.now();
-      tickFunc(0, true);
-    });
+      /*
+      if(this.frameCount % 1 == 0) {
+        for(let i = 0; i < this.bodyIDs.length; i++) {
+          let body = this.bodies[this.bodyIDs[i]].body;
+          let f = body.GetFixtureList();
+          let fp = this.Box2D.getPointer(f);
+          while(fp) {
+            if(f.IsSensor()) {
+              body.DestroyFixture(f);
+              break;
+            }
+            f = f.GetNext();
+            fp = this.Box2D.getPointer(f);
+          }
+        }
+      }
+      */
+    }
 
-    // this.Box2D.destroy(queryCallback);
-    // this.Box2D.destroy(lowerBound);
-    // this.Box2D.destroy(upperBound);
-    // this.Box2D.destroy(aabb);
+    // ---
+    if(this.lightSources.length > 0) {
+      for(let i = 0; i < this.bodyIDs.length; i++) {
+        let b = this.bodies[this.bodyIDs[i]];
+        if(this.frameCount < b.lastAmbientLightSetAt + TICKS_BETWEEN_AMB_LIGHT) {
+          continue;
+        }
+
+        let mult = 10;
+        let v = mult * 1024 * this.lightSources.length;
+
+        this.lightSources.forEach(ls => {
+          let pos = {
+            x: b.body.GetPosition().get_x(),
+            y: b.body.GetPosition().get_y(),
+          };
+
+          let dx = pos.x - ls.pos.x;
+          let dy = pos.y - ls.pos.y;
+          let d = Math.sqrt(dx*dx + dy*dy);
+          v -= mult * d;
+        });
+
+        if(this.MathRandom() > 0.9) {
+          v += (this.MathRandom()-0.5) * 5;
+        }
+
+        b.lastAmbientLightSetAt = this.frameCount;
+
+        let newValue = v|0;
+
+        if(newValue < 0|0)
+          newValue = 0|0;
+
+        b.robot._ambientlight = newValue|0;
+        b.robot._ambientlight_ready = 1|0;
+      }
+    }
+
+    if(true) {
+      for(let i = 0; i < this.bodyIDs.length; i++) {
+        let b = this.bodies[this.bodyIDs[i]];
+        if(this.frameCount < b.lastMessageSentAt + TICKS_BETWEEN_MSGS) {
+          continue;
+        }
+        // if(this.frameCount > 60 * 5) { continue; }
+
+        b.lastMessageSentAt = this.frameCount - Math.floor(this.MathRandom() * 2);
+
+        let broadcastingBody = b;
+
+        if(!broadcastingBody) {
+          console.error("deleted robot fetched");
+          continue;
+        }
+
+        if(!broadcastingBody.robot._started) {
+          continue;
+        }
+
+        // messageTxCount++;
+        let message = broadcastingBody.robot.message_tx();
+        message = JSON.parse(JSON.stringify(message));
+        if(message == null) {
+          continue;
+        }
+        broadcastingBody.robot.message_tx_success();
+
+        {
+          /*
+        let f = broadcastingBody.body.GetFixtureList();
+        let fp = this.Box2D.getPointer(f);
+        let j = 0;
+        while(fp) {
+          j++;
+          if(f.IsSensor()) {
+            let fd = f.GetFilterData();
+            fd.set_maskBits(CATS.ROBOT)
+            f.SetFilterData(fd);
+            break;
+          }
+          f = f.GetNext();
+          fp = this.Box2D.getPointer(f);
+        }
+        */
+          /*
+          if(!this.filter2) {
+            console.log("should be called ONCE");
+          this.filter2 = new this.Box2D.b2Filter();
+          this.filter2.set_categoryBits(CATS.NEIGHBOR);
+          this.filter2.set_maskBits(CATS.ROBOT);
+          this.sensorCircleShape = new this.Box2D.b2CircleShape();
+          this.sensorCircleShape.set_m_radius(NEIGHBOUR_DISTANCE);
+          this.fixtureSensor = new this.Box2D.b2FixtureDef();
+          this.fixtureSensor.set_shape(this.sensorCircleShape);
+          this.fixtureSensor.set_isSensor(true);
+          this.fixtureSensor.set_filter(this.filter2);
+          }
+          broadcastingBody.body.CreateFixture(this.fixtureSensor);
+          // this.Box2D.destroy(filter2);
+          // this.Box2D.destroy(sensorCircleShape);
+          */
+        }
+
+        {
+          let pos_x = broadcastingBody.body.GetPosition().get_x();
+          let pos_y = broadcastingBody.body.GetPosition().get_y();
+
+          this.lowerBound.set_x(pos_x-NEIGHBOUR_DISTANCE);
+          this.lowerBound.set_y(pos_y-NEIGHBOUR_DISTANCE);
+
+          this.upperBound.set_x(pos_x+NEIGHBOUR_DISTANCE);
+          this.upperBound.set_y(pos_y+NEIGHBOUR_DISTANCE);
+
+          this.aabb.set_lowerBound(this.lowerBound);
+          this.aabb.set_upperBound(this.upperBound);
+
+          this.queryCallback.message = message;
+          this.queryCallback.broadcastingBody = broadcastingBody;
+          this.queryCallback.Box2D = this.Box2D;
+          this.physics.world.QueryAABB(this.queryCallback, this.aabb);
+        }
+      }
+    }
+
+    if(DEV) {
+      // this.setDisplayedData('message_tx()', messageTxCount);
+      // this.setDisplayedData('message_tx()/robot', Math.round(messageTxCount/this.bodyIDs.length * 100)/100);
+      // this.setDisplayedData('message_rx()', messageRxCount);
+      // this.setDisplayedData('message_rx()/robot', Math.round(messageRxCount/this.bodyIDs.length * 100)/100);
+    }
+
+    if(!recursive) {
+      return;
+    }
+
+    {
+      let time0 = performance.now();
+      if(false) {
+        this.tickFunc(false);
+
+        setTimeout(() => {
+          this.tickFunc(true);
+          let dt = (performance.now() - time0)/1000;
+          if(this.deltaTime == null) {
+            this.deltaTime = dt;
+          } else {
+            this.deltaTime += (dt - this.deltaTime) * 0.2;
+          }
+        }, 1);
+      } else {
+        let fn = () => {
+          for(let i = 0; i < this.tickBatchCount - 1; i++) {
+            this.tickFunc(false);
+          }
+          this.tickFunc(true);
+          let dt = (performance.now() - time0)/1000;
+          if(this.deltaTime == null) {
+            this.deltaTime = dt;
+          } else {
+            this.deltaTime += (dt - this.deltaTime) * 0.2;
+          }
+
+          if(this.deltaTime == 0 /* prevent divide by zero */ ) {
+            this.fps = 60;
+          } else {
+            this.fps = 1/this.deltaTime;
+          }
+
+          if(this.fps > 55) {
+            this.tickBatchCount += 0.2;
+          } else {
+            this.tickBatchCount -= 1;
+          }
+
+          if(this.tickBatchCount < 1) this.tickBatchCount = 1;
+          //if(this.tickBatchCount > 3) this.tickBatchCount = 3;
+
+          if(this.experiment.runnerOptions.limitSpeed)
+            this.tickBatchCount = 1;
+
+          if(DEV) {
+            this.setDisplayedData('Tick batch', Math.round(this.tickBatchCount));
+          }
+
+          // if(BENCHMARKING) {
+          //   console.log(`FPS: ${Math.floor(1/this.deltaTime)}/s`);
+          // }
+        };
+        // this.setDisplayedData('Frame', this.frameCount);
+        window.requestAnimationFrame(() => fn());
+        // if(this.frameCount < 300) {
+        //   this.tickBatchCount = 10;
+        //   window.requestAnimationFrame(() => fn());
+        // } else {
+        //   setTimeout(() => {
+        //     window.requestAnimationFrame(() => fn());
+        //   }, 100);
+        // }
+      }
+    }
   }
 
   toggleLimitSpeed() {
     this.experiment.runnerOptions.limitSpeed = !this.experiment.runnerOptions.limitSpeed;
+  }
+
+  doTick(count) {
+    this.paused = false;
+    this.tickBatchCount = 1;
+    this.playUntil = this.frameCount+1 + (count || 1);
+    this.tickFunc(true);
+  }
+
+  togglePause() {
+    this.paused = !this.paused;
+    this.playUntil = null;
+
+    if(this.paused) {
+      this.tickBatchCount = 1;
+    } else {
+      this.tickFunc(true);
+    }
   }
 
   createBodyGraphic(b) {

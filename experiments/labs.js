@@ -691,6 +691,9 @@ class RobotPhototaxis extends Kilobot {
 
   loop() {
 
+    if(this.kilo_ticks % 3 == 0)
+      return;
+
     switch(this.direction) {
       case 0: this.set_motors(0, this.kilo_turn_right); break;
       case 1: this.set_motors(this.kilo_turn_left, 0); break;
@@ -754,7 +757,7 @@ window['ExperimentPhototaxis'] = class {
     this.runnerOptions = {
       limitSpeed: true,
       traversedPath: false,
-      selectedUID: 13,
+      selectedUID: 5,
       darkMode: false,
     }
   }
@@ -1097,6 +1100,7 @@ window['ExperimentNewton'] = class {
       limitSpeed: true,
       traversedPath: true,
       darkMode: false,
+      selectedUID: 2,
     }
   }
 
@@ -1119,9 +1123,6 @@ window['ExperimentNewton'] = class {
       g.on('pointerdown', (ev) => {
         console.log({
           uid: b.robot._uid,
-          state: b.robot.state,
-          amLeader: b.robot.amLeader,
-          amTail: b.robot.amTail,
         });
         ev.stopPropagation();
       });
@@ -1129,8 +1130,11 @@ window['ExperimentNewton'] = class {
   }
 
   createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
-    this.MathRandom = new Math.seedrandom(1234);
     this.INITIAL_DIST = 2*RADIUS;
+
+    newLightFunc({x: 0, y: -10 * this.INITIAL_DIST});
+
+    this.MathRandom = new Math.seedrandom(1234);
     let rowHeight = 4 * RADIUS;
     let row = -2;
     let id = 0;

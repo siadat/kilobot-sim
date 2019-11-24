@@ -138,8 +138,8 @@ export class Kilobot {
     }
 
     if(true){
-      f.set_x(2 * f.get_x() * this._DAMPING * this._phys.GetMass());
-      f.set_y(2 * f.get_y() * this._DAMPING * this._phys.GetMass());
+      f.set_x(1.75 * f.get_x() * this._DAMPING * this._phys.GetMass());
+      f.set_y(1.75 * f.get_y() * this._DAMPING * this._phys.GetMass());
       this._phys.ApplyLinearImpulse(f, p, true);
     } else {
       // *(1.0/60)
