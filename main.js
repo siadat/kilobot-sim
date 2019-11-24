@@ -42,6 +42,7 @@ Box2D({
     '_Robots',
     'LocalizationError',
     '_LightSources',
+    '_Selection',
   ]);
   window.experiment = new ExperimentClass();
   pitch.run(window.experiment);

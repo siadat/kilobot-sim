@@ -594,42 +594,12 @@ window['ExperimentGradientFormation'] = class {
   }
 }
 
-// phototaxis 2
-class RobotPhototaxis2 extends Kilobot {
-  setup() {
-    this.direction = this.rand_soft() % 2;
-    this.last_value = 0;
-    this.last_updated = this.rand_soft();
-    this.PERIOD = 0;
-    this.set_color(this.RGB(3, 3, 3));
-  }
-
-  loop() {
-    switch(this.direction) {
-      case 0: this.set_motors(0, this.kilo_turn_right); break;
-      case 1: this.set_motors(this.kilo_turn_left, 0); break;
-    }
-
-    if(this.kilo_ticks < this.last_updated + this.PERIOD)
-      return;
-
-    this.last_updated = this.kilo_ticks;
-    let value = this.get_ambientlight();
-
-    if(value < this.last_value) {
-      this.direction = (this.direction + 1) % 2;
-      this.PERIOD = (this.PERIOD + 1) % 2;
-    }
-
-    this.last_value = value;
-  }
-}
-
 window['ExperimentPhototaxis2'] = class {
   constructor() {
    this.runnerOptions = {
-      limitSpeed: true,
+      limitSpeed: false,
       traversedPath: false,
+      // selectedUID: 23,
       darkMode: false,
     }
   }
@@ -675,8 +645,8 @@ window['ExperimentPhototaxis2'] = class {
     // newLightFunc({x: +width*this.INITIAL_DIST, y: -height/10/2*this.INITIAL_DIST});
     // newLightFunc({x: -width*this.INITIAL_DIST, y: -height/10/2*this.INITIAL_DIST});
 
-    newLightFunc({x: width*this.INITIAL_DIST, y: -height/2*this.INITIAL_DIST});
-    newLightFunc({x: width*this.INITIAL_DIST, y: +height/2*this.INITIAL_DIST});
+    newLightFunc({x: 0, y: -height/2*this.INITIAL_DIST});
+    newLightFunc({x: 0, y: +height/2*this.INITIAL_DIST});
 
     for(let i = -Math.floor(height/2); i < +Math.floor(height/2); i++) {
       for(let j = -Math.floor(width/2); j < +Math.floor(width/2); j++) {
@@ -686,7 +656,7 @@ window['ExperimentPhototaxis2'] = class {
           y: i * this.INITIAL_DIST,
         },
           this.MathRandom() * 2*Math.PI,
-          new RobotPhototaxis2(),
+          new RobotPhototaxis(false),
         );
       }
     }
@@ -784,6 +754,7 @@ window['ExperimentPhototaxis'] = class {
     this.runnerOptions = {
       limitSpeed: true,
       traversedPath: false,
+      selectedUID: 13,
       darkMode: false,
     }
   }

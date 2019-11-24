@@ -5,6 +5,9 @@ const DAMPING = 1000;
 const TICKS_BETWEEN_MSGS = 30/2;
 const TICKS_BETWEEN_AMB_LIGHT = 5;
 const LOOP_PER_SECOND = 30;
+const lightColor = 0xffff00;
+const graphColor = 0xb83c3a;
+const selectedColor = 0xb83c3a;
 
 let DRAW_SHADOW = !false;
 let DRAW_CONNS_AND_BOUNDS = false;
@@ -32,7 +35,7 @@ export class Pitch {
     this.Box2D = Box2D;
 
     this.destroyFuncs = [];
-    this.selectedUID = 14;
+    this.selectedUID = null;
 
     this.lightSources = [];
     this.connections = [];
@@ -50,6 +53,7 @@ export class Pitch {
       '_TraversedPath',
       '_Robots',
       '_LightSources',
+      '_Selection',
     ];
 
     this.V = {
@@ -163,7 +167,7 @@ export class Pitch {
     this.metaGraphs = this.metaGraphs || {};
 
     let top = textMetricsNew.height + 1*MetaOpts.margin + 2*MetaOpts.padding;
-    let h = 50;
+    let h = 70;
     let w = textMetricsNew.width + 2*MetaOpts.padding;
 
     Object
@@ -180,11 +184,11 @@ export class Pitch {
             fontSize: MetaOpts.fontSize,
             align: 'left',
             lineHeight: MetaOpts.lineHeight,
-            fill: 0xb83c3a, // this.darkMode ? 0xffffff : 0x000000
+            fill: graphColor, // this.darkMode ? 0xffffff : 0x000000
           });
           txt.position = {
-            x: 0, // MetaOpts.margin + MetaOpts.padding,
-            y: 0, // MetaOpts.margin + MetaOpts.padding,
+            x: MetaOpts.padding, // MetaOpts.margin + MetaOpts.padding,
+            y: MetaOpts.padding, // MetaOpts.margin + MetaOpts.padding,
           }
 
           this.metaGraphs[key].addChild(txt);
@@ -208,7 +212,6 @@ export class Pitch {
           let thickness = w/maxHistory;
           if(thickness < 1) thickness = 1;
           this.metaGraphs[key].endFill();
-          this.metaGraphs[key].lineStyle(thickness, 0xb83c3a, 1.0);
           let min = Math.min.apply(null, this.metaData[key]);
           let max = Math.max.apply(null, this.metaData[key]);
 
@@ -216,8 +219,14 @@ export class Pitch {
             let x = w * (i + maxHistory-this.metaData[key].length)/maxHistory + thickness*0.5;
             let v = this.metaData[key][i];
             let y = h - h*(v-min)/(max-min);
+
+            this.metaGraphs[key].lineStyle(thickness, graphColor, 1.0);
             this.metaGraphs[key].moveTo(x, h);
             this.metaGraphs[key].lineTo(x, y);
+
+            // this.metaGraphs[key].lineStyle(thickness, lightColor, 1.0);
+            // this.metaGraphs[key].moveTo(x, y);
+            // this.metaGraphs[key].lineTo(x, y-1);
           }
         }
       });
@@ -581,7 +590,7 @@ export class Pitch {
           let r = 2 * RADIUS;
 
           // g.beginFill(0x0fBfF0, 1);
-          g.beginFill(0xffff00, 1);
+          g.beginFill(lightColor, 1);
           this.lightSources.forEach(ls => {
             // g.lineStyle(0);
             // g.drawCircle(
@@ -592,9 +601,9 @@ export class Pitch {
 
             for(let i = 0; i < count; i++) {
 
-              g.lineStyle(0.5*RADIUS*this.V.ZOOM, 0xffff00);
+              g.lineStyle(0.5*RADIUS*this.V.ZOOM, lightColor);
 
-              // if(i % 2 == 0) { g.lineStyle(0.5*RADIUS*this.V.ZOOM, 0xffff00); }
+              // if(i % 2 == 0) { g.lineStyle(0.5*RADIUS*this.V.ZOOM, lightColor); }
 
               g.moveTo(
                 (ls.pos.x-r*Math.cos(i/count * Math.PI)) * this.V.ZOOM,
@@ -639,6 +648,60 @@ export class Pitch {
 
             g.moveTo(i*s*this.V.ZOOM, -max * s * this.V.ZOOM);
             g.lineTo(i*s*this.V.ZOOM, +max * s * this.V.ZOOM);
+          }
+        });
+      }
+
+      {
+        let g = new PIXI.Graphics()
+        g.zIndex = this.zIndexOf('_Selection');
+        g.alpha = 0.9;
+
+        let counter = 0;
+
+        // this.metaContainer.addChild(g);
+        this.platformGraphics.addChild(g);
+        this.pixiApp.ticker.add(() => {
+          g.clear();
+
+          if(!this.selectedUID) {
+            return;
+          }
+          counter++;
+          let b = this.bodies[this.selectedUID];
+
+          let pos = b.position;
+          let angle = 0;
+          if(!b.position && b.getData) {
+            let data = b.getData();
+            pos = data.pos;
+            angle = data.angle;
+          }
+
+          // g.endFill();
+          // g.lineStyle((0.5 + Math.sin(10 * Math.PI * counter/360)*0.2) * this.V.ZOOM, selectedColor, 1);
+          // g.drawCircle(
+          //   /*this.V.PAN.x + */ pos.x * this.V.ZOOM,
+          //   /*this.V.PAN.y + */ pos.y * this.V.ZOOM,
+          //   (2 * b.circleRadius + 0) * this.V.ZOOM
+          // );
+
+          g.lineStyle(0.5 * this.V.ZOOM, selectedColor, 1);
+          // g.beginFill(selectedColor, 0.9);
+          for(let a = 0, count = 8; a < 2*Math.PI;) {
+            let r = (2 * b.circleRadius);
+            g.moveTo(
+              (pos.x + Math.cos(a) * r) * this.V.ZOOM,
+              (pos.y + Math.sin(a) * r) * this.V.ZOOM,
+            );
+
+            a += (2*Math.PI * 1/count) * 0.25;
+            g.lineTo(
+              (pos.x + Math.cos(a) * r) * this.V.ZOOM,
+              (pos.y + Math.sin(a) * r) * this.V.ZOOM,
+            );
+
+            a += (2*Math.PI * 1/count) * 0.25;
           }
         });
       }
@@ -781,10 +844,13 @@ export class Pitch {
       traversedPath: false,
       traversedPathLen: 20,
       darkMode: false,
+      selectedUID: null,
     }, this.experiment.runnerOptions);
 
     this.darkMode = this.experiment.runnerOptions.darkMode;
     this.pixiApp.renderer.backgroundColor = this.darkMode ? 0x111111 : 0xeeeeee;
+
+    this.selectedUID = this.experiment.runnerOptions.selectedUID;
 
     this.experiment.V = this.V;
     this.experiment.equalZooms = equalZooms;
@@ -1014,22 +1080,22 @@ export class Pitch {
 
         {
           if(this.selectedUID) {
-            this.setDisplayedData('Last selected: ID', this.selectedUID)
+            this.setDisplayedData('Selected: ID', this.selectedUID)
             // STRANGE: any of these two lines improves performance of the Replicator experiment!
             // Try clicking on a robot to set this.selectedUID.
             // NOTE: on this comment it doesn't make any different! maybe because I restarted the computer.
             // also, even before that restart it used to make no difference on Safari on Mac.
             // The only observed difference was on Chrome on Mac on commit 2d2c062432768d19bc9f942d49529d6fbf943100 ("ok")
-            this.setDisplayedData('Last selected: State', this.bodies[this.selectedUID].robot.state)
+            this.setDisplayedData('Selected: State', this.bodies[this.selectedUID].robot.state)
             if(this.bodies[this.selectedUID].robot._ambientlight_ready) {
-              this.setDisplayedData('Last selected: Ambientlight', this.bodies[this.selectedUID].robot._ambientlight, {graph: true})
+              this.setDisplayedData('Selected: Ambientlight', this.bodies[this.selectedUID].robot._ambientlight, {graph: true})
             }
-            // this.setDisplayedData('Last selected: Robot', this.bodies[this.selectedUID].robot.toString())
+            // this.setDisplayedData('Selected: Robot', this.bodies[this.selectedUID].robot.toString())
           } else {
-            this.setDisplayedData('Last selected: ID', null);
-            this.setDisplayedData('Last selected: State', null);
-            this.setDisplayedData('Last selected: Robot', null);
-            this.setDisplayedData('Last selected: Ambientlight', null, {graph: true});
+            this.setDisplayedData('Selected: ID', null);
+            this.setDisplayedData('Selected: State', null);
+            this.setDisplayedData('Selected: Robot', null);
+            this.setDisplayedData('Selected: Ambientlight', null, {graph: true});
           }
         }
 
@@ -1163,40 +1229,42 @@ export class Pitch {
         }
 
         // ---
-        for(let i = 0; i < this.bodyIDs.length; i++) {
-          let b = this.bodies[this.bodyIDs[i]];
-          if(frameCount < b.lastAmbientLightSetAt + TICKS_BETWEEN_AMB_LIGHT) {
-            continue;
+        if(this.lightSources.length > 0) {
+          for(let i = 0; i < this.bodyIDs.length; i++) {
+            let b = this.bodies[this.bodyIDs[i]];
+            if(frameCount < b.lastAmbientLightSetAt + TICKS_BETWEEN_AMB_LIGHT) {
+              continue;
+            }
+
+            let mult = 10;
+            let v = mult * 1024 * this.lightSources.length;
+
+            this.lightSources.forEach(ls => {
+              let pos = {
+                x: b.body.GetPosition().get_x(),
+                y: b.body.GetPosition().get_y(),
+              };
+
+              let dx = pos.x - ls.pos.x;
+              let dy = pos.y - ls.pos.y;
+              let d = Math.sqrt(dx*dx + dy*dy);
+              v -= mult * d;
+            });
+
+            if(this.MathRandom() > 0.9) {
+              v += (this.MathRandom()-0.5) * 10;
+            }
+
+            b.lastAmbientLightSetAt = frameCount;
+
+            let newValue = v|0;
+
+            if(newValue < 0|0)
+              newValue = 0|0;
+
+            b.robot._ambientlight = newValue|0;
+            b.robot._ambientlight_ready = 1|0;
           }
-
-          let mult = 10;
-          let v = mult * 1024 * this.lightSources.length;
-
-          this.lightSources.forEach(ls => {
-            let pos = {
-              x: b.body.GetPosition().get_x(),
-              y: b.body.GetPosition().get_y(),
-            };
-
-            let dx = pos.x - ls.pos.x;
-            let dy = pos.y - ls.pos.y;
-            let d = Math.sqrt(dx*dx + dy*dy);
-            v -= mult * d;
-          });
-
-          if(this.MathRandom() > 0.9) {
-            v += (this.MathRandom()-0.5) * 10;
-          }
-
-          b.lastAmbientLightSetAt = frameCount;
-
-          let newValue = v|0;
-
-          if(newValue < 0|0)
-            newValue = 0|0;
-
-          b.robot._ambientlight = newValue|0;
-          b.robot._ambientlight_ready = 1|0;
         }
 
         if(true) {
@@ -1461,6 +1529,12 @@ export class Pitch {
           g.clear();
           g.removeChildren();
 
+          // if(this.selectedUID == b.robot._uid) {
+          //   g.endFill();
+          //   g.lineStyle(10, selectedColor, 1);
+          //   g.drawCircle(0, 0, (2 * b.circleRadius + 0) * this.V.ZOOM);
+          // }
+
           let thickness = 0;
 
           if(this.darkMode) {
@@ -1486,11 +1560,6 @@ export class Pitch {
             g.beginFill(toHex(b.robot.led), 0.2);
             let glowRadius = b.circleRadius * this.V.ZOOM - thickness/2
             g.drawCircle(0, 0, glowRadius);
-          }
-
-          if(this.selectedUID == b.robot._uid) {
-            g.beginFill(0xffff00, 0.5);
-            g.drawCircle(0, 0, 2 * b.circleRadius * this.V.ZOOM);
           }
 
           /*
