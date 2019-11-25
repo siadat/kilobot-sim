@@ -668,15 +668,9 @@ class RobotPhototaxis extends Kilobot {
   constructor(anti) {
     super();
     this.anti = anti;
-    this.States = {
-      FindingGeneralDirection: 'FindingGeneralDirection',
-      Oscillating:             'Oscillating',
-    };
   }
 
   setup() {
-    // this.state = this.States.FindingGeneralDirection;
-    this.state = this.States.Oscillating;
     this.direction = this.rand_soft() % 2;
     this.last_value1 = null;
     this.last_value2 = null;
@@ -690,7 +684,6 @@ class RobotPhototaxis extends Kilobot {
   }
 
   loop() {
-
     if(this.kilo_ticks % 3 == 0)
       return;
 
@@ -700,55 +693,40 @@ class RobotPhototaxis extends Kilobot {
       case 2: this.set_motors(this.kilo_straight_left, this.kilo_straight_right); break;
     }
 
-    switch(this.state) {
-      case this.States.Oscillating:
-        if(this.kilo_ticks < this.last_updated + 5 + this.PERIOD)
-          return;
+    if(this.kilo_ticks < this.last_updated + 5 + this.PERIOD)
+      return;
 
-        this.last_updated = this.kilo_ticks;
-        let value = this.get_ambientlight();
+    this.last_updated = this.kilo_ticks;
+    let value = this.get_ambientlight();
 
-        let wantToGetClose = !this.anti;
-        let wantToGetFar = this.anti;
-        let isGettingFar = value <= this.last_value1;
-        let isGettingClose = value >= this.last_value1;
-        let wasGettingFar = this.last_value1 <= this.last_value2;
-        let wasGettingClose = this.last_value1 >= this.last_value2;
+    let wantToGetClose = !this.anti;
+    let wantToGetFar = this.anti;
+    let isGettingFar = value <= this.last_value1;
+    let isGettingClose = value >= this.last_value1;
+    let wasGettingFar = this.last_value1 <= this.last_value2;
+    let wasGettingClose = this.last_value1 >= this.last_value2;
 
-        let noChange = value == this.last_value1 && value == this.last_value2;
+    let noChange = value == this.last_value1 && value == this.last_value2;
 
-        if(noChange) {
-          this.direction = this.kilo_uid % 2;
-        } else if(
-          this.last_value1 != null
-          &&
-          this.last_value2 != null
-          &&
-          (
-            (wantToGetClose && isGettingFar && wasGettingClose)
-            ||
-            (wantToGetFar && isGettingClose && wasGettingFar)
-          )
-        ) {
-          // console.log("WAAAAAAAAAAAAAAAAAT");
-          this.direction = (this.direction + 1) % 2;
-          this.PERIOD = (this.PERIOD + 1) % 3;
-        }
-
-        this.last_value2 = this.last_value1;
-        this.last_value1 = value;
-        break;
-      case this.States.FindingGeneralDirection:
-
-        // if(
-        //   (!this.anti)
-        //   ||
-        //   (this.anti)
-        // ) {
-        //   this.state = this.States.Oscillating;
-        // }
-        break;
+    if(noChange) {
+      this.direction = this.kilo_uid % 2;
+    } else if(
+      this.last_value1 != null
+      &&
+      this.last_value2 != null
+      &&
+      (
+        (wantToGetClose && isGettingFar && wasGettingClose)
+        ||
+        (wantToGetFar && isGettingClose && wasGettingFar)
+      )
+    ) {
+      this.direction = (this.direction + 1) % 2;
+      this.PERIOD = (this.PERIOD + 1) % 3;
     }
+
+    this.last_value2 = this.last_value1;
+    this.last_value1 = value;
   }
 }
 
