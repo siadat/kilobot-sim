@@ -981,7 +981,7 @@ class GradientAndReplicatorRobot extends Kilobot {
         this.localize();
 
         if(this.replicaID == 1) {
-          if(this.amPlygonEdge) {
+          if(this.amPolygonPoint) {
             this.set_color(this.RGB(0, 0, 0));
           } else {
             this.set_color(this.RGB(3, 3, 3));
@@ -1133,12 +1133,12 @@ class GradientAndReplicatorRobot extends Kilobot {
         }
       }
 
-      this.amPlygonEdge = adjacentNeighborsCount < 6;
+      this.amPolygonPoint = adjacentNeighborsCount < 6;
 
       if(this.counter > 700) {
         // announce
         this.replicaFirstObj[this.kilo_uid] = {
-          isPolygonPoint: this.amPlygonEdge,
+          isPolygonPoint: this.amPolygonPoint,
           isCenter: this.isCenter,
           x: this.shapePos.x,
           y: this.shapePos.y,
@@ -1364,7 +1364,7 @@ window['ExperimentReplicatorStarfish'] = class {
           state: b.robot.state,
           grad: b.robot.myGradient,
           counter: b.robot.counter,
-          amPlygonEdge: b.robot.amPlygonEdge,
+          amPolygonPoint: b.robot.amPolygonPoint,
           isSeed: b.robot.isSeed,
           hesitateData: b.robot.hesitateData,
           shapePos: b.robot.shapePos,
