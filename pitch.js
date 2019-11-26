@@ -650,7 +650,7 @@ export class Pitch {
           g.endFill();
 
           let s = 1;
-          let max = 30; 
+          let max = 30;
           for(let i = -max; i <= max; i++) {
             if(i % 5 == 0) {
               g.lineStyle(0.5*0.2*this.V.ZOOM, 0x000000);
@@ -1682,7 +1682,7 @@ if(this.bodies[this.selectedUID].robot.abilityAttract) {
             );
           }
 
-          if(false && this.V.ZOOM > 20) {
+          if(this.V.ZOOM > 20) {
             const t = new PIXI.Text(`${b.robot._uid || '0'}`, {fontSize: 0.4 * this.V.ZOOM, align: 'center', fill: 0xaabbcc});
             t.anchor.set(0.5);
             t.position = {

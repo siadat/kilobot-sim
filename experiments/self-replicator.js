@@ -11,6 +11,8 @@ const STATIONARY = 1;
 const NOT_STATIONARY = 0;
 let polygonsDrawn = [];
 
+const REPLICA_COUNT = 2;
+
 const calculateDistancePerf = function(x1, x2, y1, y2) {
   return Math.sqrt(
     (x1 - x2) ** 2 + (y1 - y2) ** 2
@@ -621,9 +623,13 @@ class GradientAndReplicatorRobot extends Kilobot {
     // }
 
     let tooClose = this.neighbors_dist[nnIndex] < desiredDist;
-    let extremelyClose = false; // this.neighbors_dist[nnIndex] < desiredDist*0.65;
     let gettingFarther = this.prevNearestNeighDist < this.neighbors_dist[nnIndex];
-    let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
+
+    let edgeFollowingData = `id=${this.neighbors_id[nnIndex]}:dist=${this.neighbors_dist[nnIndex]}:seenAt=${this.neighbors_seen_at[nnIndex]}`;
+    let noNewData = this.lastEdgeFollowingData && edgeFollowingData == this.lastEdgeFollowingData;
+    this.lastEdgeFollowingData = edgeFollowingData;
+
+    // let noNewData = this.prevNearestNeighDist == this.neighbors_dist[nnIndex];
     this.prevNearestNeighDist = this.neighbors_dist[nnIndex];
 
     if(noNewData) {
@@ -633,12 +639,7 @@ class GradientAndReplicatorRobot extends Kilobot {
       return;
     }
 
-    if(extremelyClose) {
-      this.stats.action = 'left-get-farther';
-      this.stats.motors_left = this.kilo_turn_left;
-      this.stats.motors_right = 0;
-      this.set_motors(this.kilo_turn_left, 0);
-    } else if(tooClose) {
+    if(tooClose) {
       if(gettingFarther) {
         this.stats.action = 'straight';
         this.stats.motors_left = this.kilo_straight_left;
@@ -740,12 +741,38 @@ class GradientAndReplicatorRobot extends Kilobot {
       if(ids.length == 0) {
         return false;
       }
-      // console.log("processing");
 
-      let currPoint = null;
-      let replicaFirstOrderedIDs = [];
 
-      for(let j = 0; j < ids.length; j++) {
+      let centerPos = {x: null, y: null};
+      let leftMostID = null;
+
+      let replicaFirstIDs = Object.keys(this.replicaFirstObj);
+      for(let i = 0; i < replicaFirstIDs.length; i++) {
+        let id = replicaFirstIDs[i];
+        let pos = this.replicaFirstObj[id];
+
+        if(leftMostID == null || pos.x < this.replicaFirstObj[leftMostID].x) {
+          leftMostID = id;
+        }
+
+        if(pos.isCenter) {
+          centerPos.x = pos.x;
+          centerPos.y = pos.y;
+        }
+      }
+
+      let cursor = {
+        x: this.replicaFirstObj[leftMostID].x,
+        y: this.replicaFirstObj[leftMostID].y,
+      };
+      let lastCursor = {
+        x: cursor.x,
+        y: cursor.y + 1,
+      };
+      let replicaFirstOrderedIDs = [leftMostID];
+
+      for(let j = 0; j < ids.length-1; j++) {
+        let bestID = null;
         for(let i = 0; i < ids.length; i++) {
           let id = ids[i];
 
@@ -753,45 +780,43 @@ class GradientAndReplicatorRobot extends Kilobot {
             continue;
           }
 
-          if(currPoint == null) {
-            currPoint = {
-              x: this.replicaFirstObj[id].x,
-              y: this.replicaFirstObj[id].y,
-            };
-            // console.log("first id is", id, currPoint.x, currPoint.y);
-            replicaFirstOrderedIDs.push(id);
-            break;
-          }
-
-          let nextPoint = this.replicaFirstObj[id];
-          let d = Math.sqrt(Math.pow(nextPoint.x-currPoint.x, 2) + Math.pow(nextPoint.y-currPoint.y, 2));
+          let candidate = this.replicaFirstObj[id];
+          let d = Math.sqrt(Math.pow(candidate.x-cursor.x, 2) + Math.pow(candidate.y-cursor.y, 2));
           if(d < this.initialDist*ADJACENT_DIST_FACTOR) {
-            currPoint.x = nextPoint.x;
-            currPoint.y = nextPoint.y;
-            replicaFirstOrderedIDs.push(id);
-            break;
+            if(bestID == null) {
+              bestID = id;
+              continue;
+            }
+
+            let p1 = AbilityFuncs.subtract(lastCursor, cursor); 
+            let p2 = AbilityFuncs.subtract(candidate, cursor); 
+            let candidateAngle = AbilityFuncs.clockwiseAngle(p1, p2);
+
+            p1 = AbilityFuncs.subtract(lastCursor, cursor);
+            p2 = AbilityFuncs.subtract(this.replicaFirstObj[bestID], cursor);
+            let bestAngle = AbilityFuncs.clockwiseAngle(p1, p2);
+
+            if(candidateAngle < 0) candidateAngle += 2*Math.PI
+            if(bestAngle < 0) bestAngle += 2*Math.PI
+
+            if(candidateAngle > bestAngle) {
+              bestID = id;
+            }
           }
         }
-      }
 
-      let centerPos = {x: null, y: null};
-
-      let replicaFirstIDs = Object.keys(this.replicaFirstObj);
-      for(let i = 0; i < replicaFirstIDs.length; i++) {
-        let id = replicaFirstIDs[i];
-        let pos = this.replicaFirstObj[id];
-
-        if(pos.isCenter) {
-          centerPos.x = pos.x;
-          centerPos.y = pos.y;
-          break;
-        }
+        lastCursor = {
+          x: cursor.x,
+          y: cursor.y,
+        };
+        cursor.x = this.replicaFirstObj[bestID].x;
+        cursor.y = this.replicaFirstObj[bestID].y;
+        replicaFirstOrderedIDs.push(bestID);
       }
 
       this.replicaFirstPolygons = [];
-      let count = 3;
-      for(let i = 0; i < count; i++) {
-        let rotateAngle = i * 2*Math.PI/count;
+      for(let i = 0; i < REPLICA_COUNT; i++) {
+        let rotateAngle = i * 2*Math.PI/REPLICA_COUNT;
         //for(let i = 0; i < ids.length; i++) {
           this.replicaFirstPolygons.push(replicaFirstOrderedIDs.map(id => {
             let x = this.replicaFirstObj[id].x; // + centerPos.x;
@@ -1169,17 +1194,17 @@ window['ExperimentReplicator'] = class {
     // Note 3: no two characters should be adjacent (vertically or horizontally)
     // Note 4: INITIAL_DIST >= 2*RADIUS
     this.ShapeDesc = [
+      "          C          ",
       "         # #         ",
-      "        # C #        ",
+      "        # # #        ",
       "       # # # #       ",
       "        # # #        ",
       "       # # # # # #   ",
       "      # # # # # # #  ",
       "       # # # # # #   ",
+      "        # # #   # #  ",
+      "         # #     #   ",
       "        # # #        ",
-      "         # #        ",
-      "        # # #        ",
-      "         # #        ",
       "       # # # #       ",
       "        # S #        ",
       "         S S         ",
@@ -1272,7 +1297,7 @@ window['ExperimentReplicator'] = class {
       );
     }
 
-    let assemblyCount = Math.floor(bodyCounter*3.0) - 20 - 9;
+    let assemblyCount = Math.floor(bodyCounter*(REPLICA_COUNT-1));
     for(let rowi = 0; assemblyCount > 0; rowi++) {
 
       let left = -(rowi+2);
@@ -1546,7 +1571,7 @@ window['ExperimentReplicator'] = class {
 
         g.clear();
 
-        g.lineStyle(1, 0x88ff88, 1);
+        g.lineStyle(0);
         for(let i = 0; i < polygonsDrawn.length; i++) {
           g.beginFill(colors[i], 0.9);
           g.drawPolygon(polygonsDrawn[i].map(n => n * V.ZOOM));

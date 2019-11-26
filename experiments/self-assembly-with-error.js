@@ -608,7 +608,6 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
     // }
 
     let tooClose = this.neighbors_dist[nnIndex] < desiredDist;
-    let extremelyClose = false; //this.neighbors_dist[nnIndex] < this.DESIRED_SHAPE_DIST*0.65;
     let gettingFarther = this.prevNearestNeighDist < this.neighbors_dist[nnIndex];
 
     let edgeFollowingData = `id=${this.neighbors_id[nnIndex]}:dist=${this.neighbors_dist[nnIndex]}:seenAt=${this.neighbors_seen_at[nnIndex]}`;
@@ -625,12 +624,7 @@ class GradientAndAssemblyWithErrorRobot extends Kilobot {
       return;
     }
 
-    if(extremelyClose) {
-      this.stats.action = 'left-get-farther';
-      this.stats.motors_left = this.kilo_turn_left;
-      this.stats.motors_right = 0;
-      this.set_motors(this.kilo_turn_left, 0);
-    } else if(tooClose) {
+    if(tooClose) {
       if(gettingFarther) {
         this.stats.action = 'straight';
         this.stats.motors_left = this.kilo_straight_left;

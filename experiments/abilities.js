@@ -256,4 +256,29 @@ class AbilityFuncs {
 
     return inside;
   }
+
+  static clockwiseAngle(p1, p2) {
+    let dot = p1.x*p2.x + p1.y*p2.y;
+    let det = p1.x*p2.y - p1.y*p2.x;
+    return Math.atan2(det, dot);
+  }
+
+  static subtract(v1, v2) {
+    return {
+      x: v1.x - v2.x,
+      y: v1.y - v2.y,
+    }
+  }
+
+  static angleOfThreePoints(p1, p2, p3) {
+    // p1 is the vertex
+    let p12 = Math.sqrt(Math.pow(p1.x-p2.x, 2) + Math.pow(p1.y-p2.y, 2));
+    let p13 = Math.sqrt(Math.pow(p1.x-p3.x, 2) + Math.pow(p1.y-p3.y, 2));
+    let p23 = Math.sqrt(Math.pow(p2.x-p3.x, 2) + Math.pow(p2.y-p3.y, 2));
+    return Math.acos(
+      (Math.pow(p12, 2) + Math.pow(p13, 2) - Math.pow(p23, 2))
+      /
+      (2 * p12 * p13)
+    );
+  }
 }
