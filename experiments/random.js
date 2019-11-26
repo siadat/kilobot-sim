@@ -31,16 +31,17 @@ window['ExperimentRandom'] = class {
     this.runnerOptions = {
       limitSpeed: true,
       traversedPath: true,
-      traversedPathLen: 1000,
+      traversedPathLen: 100,
       darkMode: false,
     }
   }
 
   createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
-    for(let i = 0; i < 1; i++) {
-      let angle = Math.PI/2;
+    let MathRandom = new Math.seedrandom(0);
+    for(let i = 0, count = 5; i < count; i++) {
+      let angle = MathRandom() * 2*Math.PI/2;
       let pos = {
-        x: i * 10*RADIUS,
+        x: i * RADIUS*2 - count*RADIUS*0.5,
         y: 0,
       }
       newRobotFunc(pos, angle, new RobotRandom());

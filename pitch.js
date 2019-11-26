@@ -17,7 +17,7 @@ let BENCHMARKING = true;
 const DEV = false;
 let SIZE = {
   w: window.innerWidth,
-  h: window.innerHeight-10,
+  h: window.innerHeight,
 }
 
 const ContinueQuery = true;
@@ -56,10 +56,14 @@ export class Pitch {
       '_Selection',
     ];
 
+    localStorage.setItem('V.ZOOM', Math.max(SIZE.w, SIZE.h) / (80 * 2*RADIUS));
+    localStorage.setItem('V.PAN.x', SIZE.w * 0.5);
+    localStorage.setItem('V.PAN.y', SIZE.h * 0.5);
+
     this.V = {
       PAN: {
-        x: (1*localStorage.getItem('V.PAN.x')) || SIZE.w/2.0,
-        y: (1*localStorage.getItem('V.PAN.y')) || SIZE.h/2.0,
+        x: (1*localStorage.getItem('V.PAN.x')) || SIZE.w*0.5,
+        y: (1*localStorage.getItem('V.PAN.y')) || SIZE.h*0.5,
       },
       ZOOM: (1*localStorage.getItem('V.ZOOM')) || 20.0,
     };
@@ -95,12 +99,21 @@ export class Pitch {
   }
 
   setDisplayedData(key, value, options) {
-    if(key == "Version")
-      console.log(key, value);
+    options = Object.assign({
+      graph: false,
+    }, options)
+
     let maxHistory = 2*70;
     if(value == null) {
       delete(this.metaData[key]);
-    } else if(options && options.graph) {
+
+      if(this.metaGraphs[key]) {
+        this.metaGraphs[key].removeChildren();
+        this.metaContainer.removeChild(this.metaGraphs[key]);
+        this.metaGraphs[key].destroy(true);
+        delete(this.metaGraphs[key]);
+      }
+    } else if(options.graph) {
       if(!this.metaData[key]) {
         this.metaData[key] = [];
       }
@@ -1145,7 +1158,7 @@ export class Pitch {
         // NOTE: on this comment it doesn't make any different! maybe because I restarted the computer.
         // also, even before that restart it used to make no difference on Safari on Mac.
         // The only observed difference was on Chrome on Mac on commit 2d2c062432768d19bc9f942d49529d6fbf943100 ("ok")
-        this.setDisplayedData('[Selected] State', this.bodies[this.selectedUID].robot.state)
+        // this.setDisplayedData('[Selected] State', this.bodies[this.selectedUID].robot.state)
         // this.setDisplayedData('[Selected] Closest Dist', this.bodies[this.selectedUID].robot.closestDist || 0, {graph: true})
         if(false && this.bodies[this.selectedUID].robot.abilityAttract) {
           this.setDisplayedData('[Selected] Last Value 1', this.bodies[this.selectedUID].robot.abilityAttract.last_value1 || 0, {graph: true})
@@ -1164,8 +1177,8 @@ export class Pitch {
         // this.setDisplayedData('[Selected] Robot', this.bodies[this.selectedUID].robot.toString())
       } else {
         this.setDisplayedData('[Selected] ID', null);
-        this.setDisplayedData('[Selected] State', null);
-        this.setDisplayedData('[Selected] Robot', null);
+        // this.setDisplayedData('[Selected] State', null);
+        // this.setDisplayedData('[Selected] Robot', null);
         this.setDisplayedData('[Selected] Ambient Light', null, {graph: true});
       }
     }
@@ -1690,7 +1703,7 @@ export class Pitch {
             );
           }
 
-          if(this.V.ZOOM > 20) {
+          if(false && this.V.ZOOM > 20) {
             const t = new PIXI.Text(`${b.robot._uid || '0'}`, {fontSize: 0.4 * this.V.ZOOM, align: 'center', fill: 0xaabbcc});
             t.anchor.set(0.5);
             t.position = {
@@ -1726,11 +1739,16 @@ class Box2DPhysics {
     window.world = this.world;
 
     if(false /* edge/wall */) {
-      this.edgeShape({x: 0, y: 0}, {x: SIZE.w, y: 0});
-      this.edgeShape({x: 0, y: 0}, {x: 0,      y: SIZE.h});
+      let left   = -SIZE.w * 0.5;
+      let right  = +SIZE.w * 0.5;
+      let top    = -SIZE.h * 0.5;
+      let bottom = +SIZE.h * 0.5;
 
-      this.edgeShape({x: SIZE.w, y: SIZE.h}, {x: 0, y: SIZE.h});
-      this.edgeShape({x: SIZE.w, y: SIZE.h}, {x: SIZE.w, y: 0});
+      this.edgeShape({x: left, y: top}, {x: right, y: top});
+      this.edgeShape({x: left, y: top}, {x: left, y: bottom});
+
+      this.edgeShape({x: right, y: bottom}, {x: right, y: top});
+      this.edgeShape({x: right, y: bottom}, {x: left, y: bottom});
     }
 
     {
