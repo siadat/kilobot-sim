@@ -584,9 +584,16 @@ class GradientAndReplicatorRobot extends Kilobot {
     }
 
     this.myGradient = newValue;
-    // if(this.state != States.JoinedShape && !this.isSeed && !this.isCenter) {
-      this.set_colors_for_gradient(this.myGradient);
-    // }
+    if(
+      this.state == States.JoinedShape
+      ||
+      this.isSeed
+      ||
+      this.isCenter
+    ) {
+      return;
+    }
+    this.set_colors_for_gradient(this.myGradient);
   }
 
   doEdgeFollow() {
@@ -973,15 +980,15 @@ class GradientAndReplicatorRobot extends Kilobot {
         this.isStationary = STATIONARY;
         this.localize();
 
-        // if(this.replicaID == 1) {
-        //   if(this.amPlygonEdge) {
-        //     this.set_color(this.RGB(0, 0, 0));
-        //   } else {
-        //     this.set_color(this.RGB(3, 3, 3));
-        //   }
-        // } else {
-        //   // this.set_color(this.RGB(0, 0, 0));
-        // }
+        if(this.replicaID == 1) {
+          if(this.amPlygonEdge) {
+            this.set_color(this.RGB(0, 0, 0));
+          } else {
+            this.set_color(this.RGB(3, 3, 3));
+          }
+        } else {
+          // this.set_color(this.RGB(0, 0, 0));
+        }
 
         // if(!this.isSeed) {
         //   this.set_color(this.COLORS_INTENSE[this.myGradient % this.COLORS_INTENSE.length]);

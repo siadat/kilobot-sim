@@ -254,9 +254,10 @@ class GradientAndDisassemblyRobot extends Kilobot {
       // this.collisionAvoidancePeriod = 0;
     }
 
-    if(this.isGradientSeed) {
-      this.set_color(this.RGB(3, 0, 0));
-    } else if(this.isSeed) {
+    // if(this.isGradientSeed) {
+    //   this.set_color(this.RGB(3, 0, 0));
+    // }
+    if(this.isSeed) {
       this.set_color(this.RGB(3, 3, 3));
     } else {
       this.set_color(this.RGB(0, 0, 0));
@@ -546,9 +547,9 @@ class GradientAndDisassemblyRobot extends Kilobot {
     }
 
     this.myGradient = newValue;
-    if(!this.isSeed && !this.isGradientSeed) {
-      this.set_colors_for_gradient(this.myGradient);
-    }
+    // if(!this.isSeed && !this.isGradientSeed) {
+    //   this.set_colors_for_gradient(this.myGradient);
+    // }
   }
 
   switchToState(newState, reason) {
