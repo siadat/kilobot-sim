@@ -1071,6 +1071,10 @@ export class Pitch {
         return;
       }
 
+      if(this.MathRandom() > 0.95) {
+        distance += (this.MathRandom()-0.5) * 0.1 * distance;
+      }
+
       // messageRxCount++;
       receiverBody.robot.message_rx(message, distance);
 
