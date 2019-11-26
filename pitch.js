@@ -95,7 +95,9 @@ export class Pitch {
   }
 
   setDisplayedData(key, value, options) {
-    let maxHistory = 200;
+    if(key == "Version")
+      console.log(key, value);
+    let maxHistory = 2*70;
     if(value == null) {
       delete(this.metaData[key]);
     } else if(options && options.graph) {
@@ -123,6 +125,7 @@ export class Pitch {
         if(Array.isArray(this.metaData[k]) && this.metaData[k].length > 0) {
           let idx = this.metaData[k].length - 1;
           v = this.metaData[k][idx];
+          v = Math.round(v * 100)/100.0;
         }
         return `${k}: ${v}`
       })
@@ -175,7 +178,7 @@ export class Pitch {
       .keys(this.metaData)
       .filter(k => Array.isArray(this.metaData[k]))
       .sort()
-      .forEach(k => {
+      .forEach((k, idx) => {
         let value = this.metaData[k];
         if(!this.metaGraphs[k]) {
           this.metaGraphs[k] = new PIXI.Graphics();;
@@ -185,7 +188,7 @@ export class Pitch {
             fontSize: MetaOpts.fontSize,
             align: 'left',
             lineHeight: MetaOpts.lineHeight,
-            fill: graphColor, // this.darkMode ? 0xffffff : 0x000000
+            fill: 0x888888, // this.darkMode ? 0xffffff : 0x000000
           });
           txt.position = {
             x: MetaOpts.padding, // MetaOpts.margin + MetaOpts.padding,
@@ -204,7 +207,7 @@ export class Pitch {
           // this.metaGraphs[k].removeChildren();
 
           this.metaGraphs[k].position.x = MetaOpts.margin;
-          this.metaGraphs[k].position.y = MetaOpts.margin + top;
+          this.metaGraphs[k].position.y = MetaOpts.margin + top + idx * (h + MetaOpts.padding);
 
           this.metaGraphs[k].lineStyle(0);
           this.metaGraphs[k].beginFill(this.darkMode ? 0x000000 : 0xffffff, 0.5);
@@ -216,18 +219,32 @@ export class Pitch {
           let min = Math.min.apply(null, this.metaData[k]);
           let max = Math.max.apply(null, this.metaData[k]);
 
+          let lastV = null;
           for(let i = 0; i < this.metaData[k].length; i++) {
             let x = w * (i + maxHistory-this.metaData[k].length)/maxHistory + thickness*0.5;
             let v = this.metaData[k][i];
             let y = h - h*(v-min)/(max-min);
 
-            this.metaGraphs[k].lineStyle(thickness, graphColor, 1.0);
+            this.metaGraphs[k].lineStyle(thickness, graphColor, 1);
             this.metaGraphs[k].moveTo(x, h);
             this.metaGraphs[k].lineTo(x, y);
 
             // this.metaGraphs[k].lineStyle(thickness, lightColor, 1.0);
             // this.metaGraphs[k].moveTo(x, y);
             // this.metaGraphs[k].lineTo(x, y-1);
+
+            if(lastV != null) {
+              if(v > lastV) {
+                this.metaGraphs[k].lineStyle(thickness, 0x33ff66, 0.5);
+                this.metaGraphs[k].moveTo(x, h+10);
+                this.metaGraphs[k].lineTo(x, 0-10);
+              } else if(v < lastV) {
+                this.metaGraphs[k].lineStyle(thickness, 0xff6633, 0.5);
+                this.metaGraphs[k].moveTo(x, h+10);
+                this.metaGraphs[k].lineTo(x, 0-10);
+              }
+            }
+            lastV = v;
           }
         }
       });
@@ -972,6 +989,7 @@ export class Pitch {
     this.setDisplayedData('Count', `${this.bodyIDs.length} ${this.bodyIDs.length == 1 ? 'robot' : 'robots'}`);
     this.setDisplayedData('Random seed', `${this.randomSeed}`);
     this.setDisplayedData('Version', `${VERSION.substr(0, 8)}`);
+    console.log(VERSION);
 
     {
       /*
@@ -1078,7 +1096,6 @@ export class Pitch {
   }
 
   tickFunc(recursive) {
-    this.frameCount++;
     if(this.paused) {
       // resolve();
       return;
@@ -1093,6 +1110,8 @@ export class Pitch {
       // resolve();
       return;
     }
+
+    this.frameCount++;
 
     {
       let virtualSeconds = Math.floor(this.frameCount/LOOP_PER_SECOND);
@@ -1119,6 +1138,18 @@ export class Pitch {
         // also, even before that restart it used to make no difference on Safari on Mac.
         // The only observed difference was on Chrome on Mac on commit 2d2c062432768d19bc9f942d49529d6fbf943100 ("ok")
         this.setDisplayedData('Selected: State', this.bodies[this.selectedUID].robot.state)
+        this.setDisplayedData('Selected: Closest Dist', this.bodies[this.selectedUID].robot.closestDist || 0, {graph: true})
+if(this.bodies[this.selectedUID].robot.abilityAttract) {
+        this.setDisplayedData('Selected: Last Value 1', this.bodies[this.selectedUID].robot.abilityAttract.last_value1 || 0, {graph: true})
+        this.setDisplayedData('Selected: Last Value 2', this.bodies[this.selectedUID].robot.abilityAttract.last_value2 || 0, {graph: true})
+        this.setDisplayedData('Selected: Last Value 2-1',
+          ( this.bodies[this.selectedUID].robot.abilityAttract.last_value2 || 0)
+          -
+          (this.bodies[this.selectedUID].robot.abilityAttract.last_value1 || 0)
+        , {graph: true})
+  // this.setDisplayedData('Selected: Did Something', this.bodies[this.selectedUID].robot.abilityAttract.didSomething, {graph: true})
+        this.setDisplayedData('Selected: Direction', this.bodies[this.selectedUID].robot.abilityAttract.direction, {graph: true})
+}
         if(this.bodies[this.selectedUID].robot._ambientlight_ready) {
           this.setDisplayedData('Selected: Ambientlight', this.bodies[this.selectedUID].robot._ambientlight, {graph: true})
         }
@@ -1775,7 +1806,7 @@ class Box2DPhysics {
       fj.set_localAnchorA(this.zero);
       fj.set_localAnchorB(this.zero);
 
-      fj.set_maxForce(DAMPING * 0.5);
+      fj.set_maxForce(DAMPING * 0.4);
       // fj.set_maxTorque(DAMPING * 0.5);
 
       this.world.CreateJoint(fj);

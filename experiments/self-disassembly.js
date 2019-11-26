@@ -238,23 +238,24 @@ class GradientAndDisassemblyRobot extends Kilobot {
 
     {
       // for phototaxis and antiphototaxis
-      this.phototaxisDirection = 0;
-      this.phototaxisLastValue = 0;
-      this.phototaxisLastUpdated = this.rand_soft();
-      this.phototaxisPeriod = 0;
+      this.abilityPhototaxis = new AbilityPhototaxis();
+      this.abilityPhototaxis.setup(this);
     }
 
     {
       // for collision avoidance
-      this.collisionAvoidanceDirection = 0;
-      this.collisionAvoidanceLastValue1 = null;
-      this.collisionAvoidanceLastValue2 = null;
-      this.collisionAvoidanceLastUpdated = this.rand_soft();
-      this.collisionAvoidancePeriod = 0;
+      this.abilityAvoid = new AbilityAttractAndAvoid();
+      this.abilityAvoid.setup(this);
+
+      // this.collisionAvoidanceDirection = 0;
+      // this.collisionAvoidanceLastValue1 = null;
+      // this.collisionAvoidanceLastValue2 = null;
+      // this.collisionAvoidanceLastUpdated = this.rand_soft();
+      // this.collisionAvoidancePeriod = 0;
     }
 
     if(this.isGradientSeed) {
-      this.set_color(this.RGB(0, 0, 0));
+      this.set_color(this.RGB(3, 0, 0));
     } else if(this.isSeed) {
       this.set_color(this.RGB(3, 3, 3));
     } else {
@@ -545,7 +546,7 @@ class GradientAndDisassemblyRobot extends Kilobot {
     }
 
     this.myGradient = newValue;
-    if(!this.isSeed) {
+    if(!this.isSeed && !this.isGradientSeed) {
       this.set_colors_for_gradient(this.myGradient);
     }
   }
@@ -560,120 +561,6 @@ class GradientAndDisassemblyRobot extends Kilobot {
       // this._graphics_must_update = true;
       this.state = newState;
     }
-  }
-
-  doAntiphototaxis() {
-    let csrIndex = this.getClosestStationaryRobotIndex();
-    if(csrIndex != null) {
-      this.switchToState(States.DoAntiphototaxisCollisionAvoidance);
-      return;
-    }
-
-    this.doPhototaxisOrAntiPhototaxis(true);
-  }
-
-  doPhototaxisOrAntiPhototaxis(anti) {
-    switch(this.phototaxisDirection) {
-      case 0: this.set_motors(0, this.kilo_turn_right); break;
-      case 1: this.set_motors(this.kilo_turn_left, 0); break;
-    }
-
-    if(this.kilo_ticks < this.phototaxisLastUpdated + 6 + this.phototaxisPeriod)
-      return;
-
-    this.phototaxisLastUpdated = this.kilo_ticks;
-    let value = this.get_ambientlight();
-
-    if(value == this.phototaxisLastValue) {
-      console.log("same value");
-      return;
-    }
-
-    if(this.kilo_uid == 8)
-      console.log(value);
-
-    if(
-      (!anti && value < this.phototaxisLastValue)
-      ||
-      (anti && value > this.phototaxisLastValue)
-    ) {
-      this.phototaxisDirection = (this.phototaxisDirection + 1) % 2;
-      this.phototaxisPeriod = (this.phototaxisPeriod + 1) % 2;
-    }
-
-    this.phototaxisLastValue = value;
-  }
-
-  doCollisionAvoidance() {
-    let avoided = false;
-    if(this.kilo_ticks < this.collisionAvoidanceLastUpdated + this.collisionAvoidancePeriod) {
-      avoided = false;
-      return avoided;
-    }
-
-    this.collisionAvoidanceLastUpdated = this.kilo_ticks;
-
-    let csrIndex = this.getClosestStationaryRobotIndex();
-    if(csrIndex == null) {
-      avoided = true;
-      return avoided;
-    }
-
-    let value = this.neighbors_dist[csrIndex];
-
-    let isGettingFar = null;
-    let wasGettingClose = null;
-
-    if(value == this.collisionAvoidanceLastValue1) {
-      if(true || this.kilo_ticks % 2 == 0) {
-        switch(this.collisionAvoidanceDirection) {
-          case 0:
-            this.set_color(this.RGB(1, 2, 3));
-            this.set_motors(0, this.kilo_turn_right);
-            break;
-          case 1:
-            this.set_color(this.RGB(3, 2, 1));
-            this.set_motors(this.kilo_turn_left, 0);
-            break;
-          case 2:
-            this.set_color(this.RGB(3, 3, 3));
-            this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
-            break;
-        }
-      }
-      avoided = false;
-      return avoided;
-    }
-
-    if(this.collisionAvoidanceLastValue1 != null) {
-      isGettingFar = value < this.collisionAvoidanceLastValue1;
-    }
-
-    if(this.collisionAvoidanceLastValue1 != null && this.collisionAvoidanceLastValue2 != null) {
-      wasGettingClose = this.collisionAvoidanceLastValue1 > this.collisionAvoidanceLastValue2;
-    }
-
-    // console.log(isGettingFar, wasGettingClose, this.neighbors_id[csrIndex]);
-
-    if(this.collisionAvoidanceLastValue1 != null && this.collisionAvoidanceLastValue2 != null) {
-      if(isGettingFar && wasGettingClose) {
-        // go straight
-        this.collisionAvoidanceDirection = 2;
-        this.set_color(this.RGB(3, 3, 3));
-        this.set_motors(this.kilo_straight_left, this.kilo_straight_right);
-        // this.set_color(this.RGB(1, 2, 3));
-      } else {
-        this.set_color(this.RGB(1, 2, 3));
-        this.set_motors(0, this.kilo_turn_right);
-        this.collisionAvoidanceDirection = 0;
-      }
-    }
-
-    this.collisionAvoidanceLastValue2 = this.collisionAvoidanceLastValue1;
-    this.collisionAvoidanceLastValue1 = value;
-
-    avoided = false;
-    return avoided;
   }
 
   doConsensus() {
@@ -742,43 +629,48 @@ class GradientAndDisassemblyRobot extends Kilobot {
           break;
         }
 
+        // this.switchToState(States.DoAntiphototaxisCollisionAvoidance);
         this.switchToState(States.DoAntiphototaxis);
         break;
       case States.DoAntiphototaxisCollisionAvoidance:
+        this.set_color(this.RGB(3, 0, 0));
+        this.isStationary = NOT_STATIONARY;
+
         {
-          this.isStationary = NOT_STATIONARY;
-          let avoided = this.doCollisionAvoidance();
-          if(avoided) {
+          let csrIndex = this.getClosestStationaryRobotIndex();
+          if(csrIndex == null) {
             this.switchToState(States.DoAntiphototaxis);
+            break;
+          }
+
+          this.closestDist = this.neighbors_dist[csrIndex];
+
+          if(this.isOkayToMove()) {
+            this.isStationary = NOT_STATIONARY;
+            this.abilityAvoid.doAvoid(this, this.closestDist); // doCollisionAvoidance();
+          } else {
+            this.isStationary = STATIONARY;
           }
         }
         break;
       case States.DoAntiphototaxis:
-        this.set_color(this.RGB(0, 3, 0));
+        this.set_color(this.RGB(3, 3, 0));
 
-        let adjacentNeighborsCount = 0;
-        for(let i = 0; i < MAX_NEIGHBOURS; i++) {
-          if(this.neighbors_id[i] == VACANT) continue;
-          if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
+        {
+          let csrIndex = this.getClosestStationaryRobotIndex();
+          if(csrIndex != null) {
+            this.switchToState(States.DoAntiphototaxisCollisionAvoidance);
+            break;
+          }
 
-          // if(this.neighbors_replicaID[i] != 1) continue;
-          if(this.neighbors_dist[i] < this.initialDist*ADJACENT_DIST_FACTOR) {
-            adjacentNeighborsCount++;
+          if(this.isOkayToMove()) {
+            this.isStationary = NOT_STATIONARY;
+            this.abilityPhototaxis.doAntiphototaxis(this);
+          } else {
+            this.isStationary = STATIONARY;
           }
         }
 
-        if(adjacentNeighborsCount <= 4) {
-          this.phototaxisConfidence = (this.phototaxisConfidence||0) + 1;
-        } else {
-          this.phototaxisConfidence = 0;
-        }
-
-        if(this.phototaxisConfidence > 100) {
-          this.isStationary = NOT_STATIONARY;
-          this.doAntiphototaxis();
-        } else {
-          this.isStationary = STATIONARY;
-        }
         break;
       case States.JoinedShape:
         this.doConsensus();
@@ -787,6 +679,27 @@ class GradientAndDisassemblyRobot extends Kilobot {
         this.set_color(this.RGB(0, 0, 3));
         break;
     }
+  }
+
+  isOkayToMove() {
+    let adjacentNeighborsCount = 0;
+    for(let i = 0; i < MAX_NEIGHBOURS; i++) {
+      if(this.neighbors_id[i] == VACANT) continue;
+      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
+
+      // if(this.neighbors_replicaID[i] != 1) continue;
+      if(this.neighbors_dist[i] < this.initialDist*ADJACENT_DIST_FACTOR) {
+        adjacentNeighborsCount++;
+      }
+    }
+
+    if(adjacentNeighborsCount <= 4) {
+      this.phototaxisConfidence = (this.phototaxisConfidence||0) + 1;
+    } else {
+      this.phototaxisConfidence = 0;
+    }
+
+    return this.phototaxisConfidence > 100;
   }
 
   hesitate(what) {
@@ -871,12 +784,13 @@ class GradientAndDisassemblyRobot extends Kilobot {
 window['ExperimentDisassembly'] = class {
   constructor() {
     this.selectedUID = null;
-    this.drawLocalizationError = !false;
+    this.drawLocalizationError = false;
 
     this.runnerOptions = {
-      limitSpeed: true,
+      limitSpeed: false,
       traversedPath: false,
       darkMode: false,
+      selectedUID: this.selectedUID,
     }
   }
 
@@ -914,8 +828,8 @@ window['ExperimentDisassembly'] = class {
     const INITIAL_DIST = 3 * RADIUS; // this.NEIGHBOUR_DISTANCE/11*3;
     const GRADIENT_DIST = 1.5*INITIAL_DIST;
     this.RADIUS = RADIUS;
-    // this._ShapeScale = 1.25*this.RADIUS; // 1.5*this.RADIUS
-    this._ShapeScale = 0.9; // * this.RADIUS;
+    this._ShapeScale = 2.3*this.RADIUS; // 1.5*this.RADIUS
+    // this._ShapeScale = 0.9; // * this.RADIUS;
     let ShapeDescReadable = [
     // 012340123401234012340
       "                     ", // 0
@@ -1021,30 +935,30 @@ window['ExperimentDisassembly'] = class {
       return pos;
     }
 
-    let rowCount = 4;
-    let colCount = 4;
+    let rowCount = 16;
+    let colCount = 16;
 
     let rootPos = {
-      x: -colCount/2 + 0,
-      y: -rowCount/2 + 0,
+      x: -1,
+      y: -1,
     };
 
     let seedPoses = [
       {
-        x: -colCount/2 + 0,
-        y: -rowCount/2 + 0,
+        x: rootPos.x + 0,
+        y: rootPos.y + 0,
       },
       {
-        x: -colCount/2,
-        y: -rowCount/2 + 2,
+        x: rootPos.x + 0,
+        y: rootPos.y + 2,
       },
       {
-        x: -colCount/2 + 0,
-        y: -rowCount/2 + 1,
+        x: rootPos.x + 0,
+        y: rootPos.y + 1,
       },
       {
-        x: -colCount/2 + 1,
-        y: -rowCount/2 + 1,
+        x: rootPos.x - 1,
+        y: rootPos.y + 1,
       },
     ];
 
@@ -1052,6 +966,7 @@ window['ExperimentDisassembly'] = class {
     for(let rowi = -rowCount/2; rowi < +rowCount/2; rowi++) {
       rowCounter++;
       for(let coli = -colCount/2; coli < +colCount/2; coli++) {
+
 
         let isRoot = rowi == rootPos.y && coli == rootPos.x;
         let isSeed = false;

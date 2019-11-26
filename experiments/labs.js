@@ -671,11 +671,9 @@ class RobotPhototaxis extends Kilobot {
   }
 
   setup() {
-    this.direction = this.rand_soft() % 2;
-    this.last_value1 = null;
-    this.last_value2 = null;
-    this.last_updated = this.rand_soft();
-    this.PERIOD = 0;
+    // AbilityPhototaxis is defined in experiments/abilities.js
+    this.abilityPhototaxis = new AbilityPhototaxis();
+    this.abilityPhototaxis.setup(this);
     if(this.anti) {
       this.set_color(this.RGB(0, 1, 2));
     } else {
@@ -684,49 +682,10 @@ class RobotPhototaxis extends Kilobot {
   }
 
   loop() {
-    if(this.kilo_ticks % 3 == 0)
-      return;
-
-    switch(this.direction) {
-      case 0: this.set_motors(0, this.kilo_turn_right); break;
-      case 1: this.set_motors(this.kilo_turn_left, 0); break;
-      case 2: this.set_motors(this.kilo_straight_left, this.kilo_straight_right); break;
+    switch(this.anti) {
+      case true: this.abilityPhototaxis.doAntiphototaxis(this); break;
+      case false: this.abilityPhototaxis.doPhototaxis(this); break;
     }
-
-    if(this.kilo_ticks < this.last_updated + 5 + this.PERIOD)
-      return;
-
-    this.last_updated = this.kilo_ticks;
-    let value = this.get_ambientlight();
-
-    let wantToGetClose = !this.anti;
-    let wantToGetFar = this.anti;
-    let isGettingFar = value <= this.last_value1;
-    let isGettingClose = value >= this.last_value1;
-    let wasGettingFar = this.last_value1 <= this.last_value2;
-    let wasGettingClose = this.last_value1 >= this.last_value2;
-
-    let noChange = value == this.last_value1 && value == this.last_value2;
-
-    if(noChange) {
-      this.direction = this.kilo_uid % 2;
-    } else if(
-      this.last_value1 != null
-      &&
-      this.last_value2 != null
-      &&
-      (
-        (wantToGetClose && isGettingFar && wasGettingClose)
-        ||
-        (wantToGetFar && isGettingClose && wasGettingFar)
-      )
-    ) {
-      this.direction = (this.direction + 1) % 2;
-      this.PERIOD = (this.PERIOD + 1) % 3;
-    }
-
-    this.last_value2 = this.last_value1;
-    this.last_value1 = value;
   }
 }
 
@@ -796,6 +755,214 @@ window['ExperimentPhototaxis'] = class {
         );
       }
     }
+  }
+}
+
+class RobotTestAttractAndAvoid extends Kilobot {
+  constructor(state) {
+    super();
+    this.state = state;
+
+    {
+      this.MAX_NEIGHBOURS = 60;
+      this.VACANT = -1;
+      this.NO_GRAD = 10000;
+      this.NO_POS = 100000;
+      this.STATIONARY = 1;
+      this.NOT_STATIONARY = 0;
+
+      // ints:
+      this.neighbors_id = new Int32Array(this.MAX_NEIGHBOURS);
+      this.neighbors_grad = new Int32Array(this.MAX_NEIGHBOURS);
+      this.neighbors_seen_at = new Int32Array(this.MAX_NEIGHBOURS);
+      this.neighbors_pos_confidence = new Int32Array(this.MAX_NEIGHBOURS);
+      this.neighbors_consensus_counter = new Int32Array(this.MAX_NEIGHBOURS);
+
+      // floats:
+      this.neighbors_dist = new Float64Array(this.MAX_NEIGHBOURS);
+      this.neighbors_pos_x = new Float64Array(this.MAX_NEIGHBOURS);
+      this.neighbors_pos_y = new Float64Array(this.MAX_NEIGHBOURS);
+
+      // boolean:
+      this.neighbors_is_seed = new Int32Array(this.MAX_NEIGHBOURS);
+      this.neighbors_is_stationary = new Int32Array(this.MAX_NEIGHBOURS);
+
+      // other:
+      this.neighbors_state = new Array(); // string, TODO: change to int
+      this.neighbors_robotsIveEdgeFollowed = new Array();
+
+      for(let i = 0; i < this.MAX_NEIGHBOURS; i++) {
+        this.neighbors_id[i] = this.VACANT;
+        this.neighbors_grad[i] = this.NO_GRAD;
+        this.neighbors_pos_x[i] = this.NO_POS;
+        this.neighbors_pos_y[i] = this.NO_POS;
+        this.neighbors_is_stationary[i] = this.STATIONARY;
+      }
+    }
+
+  }
+
+  setup() {
+    // AbilityPhototaxis is defined in experiments/abilities.js
+    this.abilityAttract = new AbilityAttractAndAvoid();
+    this.abilityAttract.setup(this);
+  }
+
+  loop() {
+    if(this.kilo_ticks < 60)
+      return;
+
+    switch(this.state) {
+      case "avoid":
+
+        this.set_color(this.RGB(0, 1, 2));
+
+        let csrIndex = this.getClosestStationaryRobotIndex();
+        if(csrIndex != null) {
+          this.abilityAttract.doAvoid(this, this.closestDist);
+          this.closestDist = this.neighbors_dist[csrIndex];
+          // this.last_value1 = this.abilityAttract.last_value1;
+          // this.last_value2 = this.abilityAttract.last_value2;
+          // this.didSomething = this.abilityAttract.didSomething;
+
+          // console.log(this.closestDist);
+          if(this.closestDist > 4) {
+            this.state = "stationary";
+          }
+        }
+
+        break;
+      case "attract":
+        this.set_color(this.RGB(3, 2, 1));
+        this.abilityAttract.doAttract(this);
+        break;
+      case "stationary":
+        this.set_color(this.RGB(0, 0, 0));
+        break;
+    }
+  }
+
+  getClosestStationaryRobotIndex() {
+    let bestIndex = null;
+    for(let i = 0; i < this.MAX_NEIGHBOURS; i++) {
+      if(this.neighbors_id[i] == this.VACANT) continue;
+      if(this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) continue;
+
+      if(!this.neighbors_is_stationary[i]) continue;
+
+      if(this.neighbors_dist[i] > 2.5 * this.radius) continue;
+
+      if(bestIndex == null) {
+        bestIndex = i;
+        continue;
+      }
+
+      if(this.neighbors_dist[i] < this.neighbors_dist[bestIndex]) {
+        bestIndex = i;
+        continue;
+      }
+    }
+
+    return bestIndex;
+  }
+
+  message_rx(message, distance) {
+
+    let index = -1;
+    let existing = false;
+    for(let i = 0; i < this.MAX_NEIGHBOURS; i++) {
+      if(this.neighbors_id[i] == message.robotUID) {
+        index = i;
+        existing = true;
+        break;
+      }
+
+      if(index == -1) { // do it only once
+        if(this.neighbors_id[i] == this.VACANT || this.counter >= this.neighbors_seen_at[i] + this.NEIGHBOUR_EXPIRY) {
+          index = i;
+        }
+      }
+    }
+
+    if(index == -1) {
+      // console.error("did not found a place to add neighbor info");
+      return;
+    }
+
+    this.neighbors_id[index] = message.robotUID;
+    this.neighbors_grad[index] = message.grad;
+    this.neighbors_state[index] = message.state;
+    this.neighbors_seen_at[index] = this.counter;
+    this.neighbors_dist[index] = distance;
+  }
+
+  message_tx() {
+    return {
+      robotUID: this.kilo_uid,
+      state: this.state,
+    };
+  }
+}
+
+window['ExperimentAbilities'] = class {
+  constructor() {
+    this.runnerOptions = {
+      limitSpeed: true,
+      traversedPath: false,
+      selectedUID: 3,
+      darkMode: false,
+    }
+  }
+
+  setupGraphics(
+    PIXI,
+    Box2D,
+    pixiApp,
+    platformGraphics,
+    bodies,
+    bodyIDs,
+    setDisplayedData,
+    zIndexOf,
+  ) {
+    for(let i = 0; i < bodyIDs.length; i++) {
+      let b = bodies[bodyIDs[i]];
+      let g = b.g;
+
+      g.interactive = true;
+      g.buttonMode = true;
+      g.on('pointerdown', (ev) => {
+        this.selectedUID = b.robot._uid;
+
+        console.log({
+          uid: b.robot._uid,
+          direction: b.robot.direction,
+          last_value1: b.robot.last_value1,
+          events: b.robot.events,
+        });
+        ev.stopPropagation();
+      });
+    }
+  }
+
+  createRobots(newRobotFunc, newLightFunc, RADIUS, NEIGHBOUR_DISTANCE, TICKS_BETWEEN_MSGS) {
+    this.MathRandom = new Math.seedrandom(1234);
+    this.INITIAL_DIST = 2.5*RADIUS;
+
+    // newLightFunc({x: 0, y: -height/10/2*this.INITIAL_DIST});
+
+    for(let j = 0; j < 4; j ++)
+      for(let i = 0; i < 5; i ++) {
+        let state = "stationary";
+        if(i == 2 && j == 0)
+          state = "avoid";
+        newRobotFunc({
+          x: i * this.INITIAL_DIST,
+          y: j * this.INITIAL_DIST,
+        },
+          this.MathRandom() * 2*Math.PI,
+          new RobotTestAttractAndAvoid(state),
+        );
+      }
   }
 }
 
