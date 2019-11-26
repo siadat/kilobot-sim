@@ -689,7 +689,7 @@ class RobotPhototaxis extends Kilobot {
   }
 }
 
-window['ExperimentPhototaxis'] = class {
+window['ExperimentPhototaxisAndAntiphototaxis'] = class {
   constructor() {
     this.runnerOptions = {
       limitSpeed: true,

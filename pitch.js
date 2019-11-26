@@ -118,7 +118,7 @@ export class Pitch {
 
     let newText = Object
       .keys(this.metaData)
-      // .filter(k => !Array.isArray(this.metaData[k]))
+      .filter(k => !Array.isArray(this.metaData[k]))
       .sort()
       .map(k => {
         let v = this.metaData[k];
@@ -143,8 +143,12 @@ export class Pitch {
       this.metaPixiText.style,
     );
 
+    let width = textMetricsNew.width;
+    if(width < 130)
+      width = 130;
+
     if(
-      textMetricsOld.width != textMetricsNew.width
+      textMetricsOld.width != width
       ||
       textMetricsOld.lines.length != textMetricsNew.lines.length
       ||
@@ -161,7 +165,7 @@ export class Pitch {
       }
       this.metaContainer.drawRect(
         MetaOpts.margin, MetaOpts.margin,
-        textMetricsNew.width + 2*MetaOpts.padding, MetaOpts.lineHeight*lineCount + 2*MetaOpts.padding,
+        width + 2*MetaOpts.padding, MetaOpts.lineHeight*lineCount + 2*MetaOpts.padding,
       );
       this.metaContainer.lastDarkMode = this.darkMode;
     }
@@ -172,7 +176,7 @@ export class Pitch {
 
     let top = textMetricsNew.height + 1*MetaOpts.margin + 2*MetaOpts.padding;
     let h = 70;
-    let w = textMetricsNew.width + 2*MetaOpts.padding;
+    let w = width + 2*MetaOpts.padding;
 
     Object
       .keys(this.metaData)
@@ -188,7 +192,7 @@ export class Pitch {
             fontSize: MetaOpts.fontSize,
             align: 'left',
             lineHeight: MetaOpts.lineHeight,
-            fill: 0x888888, // this.darkMode ? 0xffffff : 0x000000
+            fill: this.darkMode ? 0xffffff : 0x000000
           });
           txt.position = {
             x: MetaOpts.padding, // MetaOpts.margin + MetaOpts.padding,
@@ -1135,34 +1139,34 @@ export class Pitch {
 
     {
       if(this.selectedUID) {
-        this.setDisplayedData('Selected: ID', this.selectedUID)
+        this.setDisplayedData('[Selected] ID', this.selectedUID)
         // STRANGE: any of these two lines improves performance of the Replicator experiment!
         // Try clicking on a robot to set this.selectedUID.
         // NOTE: on this comment it doesn't make any different! maybe because I restarted the computer.
         // also, even before that restart it used to make no difference on Safari on Mac.
         // The only observed difference was on Chrome on Mac on commit 2d2c062432768d19bc9f942d49529d6fbf943100 ("ok")
-        this.setDisplayedData('Selected: State', this.bodies[this.selectedUID].robot.state)
-        this.setDisplayedData('Selected: Closest Dist', this.bodies[this.selectedUID].robot.closestDist || 0, {graph: true})
-if(this.bodies[this.selectedUID].robot.abilityAttract) {
-        this.setDisplayedData('Selected: Last Value 1', this.bodies[this.selectedUID].robot.abilityAttract.last_value1 || 0, {graph: true})
-        this.setDisplayedData('Selected: Last Value 2', this.bodies[this.selectedUID].robot.abilityAttract.last_value2 || 0, {graph: true})
-        this.setDisplayedData('Selected: Last Value 2-1',
-          ( this.bodies[this.selectedUID].robot.abilityAttract.last_value2 || 0)
-          -
-          (this.bodies[this.selectedUID].robot.abilityAttract.last_value1 || 0)
-        , {graph: true})
-  // this.setDisplayedData('Selected: Did Something', this.bodies[this.selectedUID].robot.abilityAttract.didSomething, {graph: true})
-        this.setDisplayedData('Selected: Direction', this.bodies[this.selectedUID].robot.abilityAttract.direction, {graph: true})
-}
-        if(this.bodies[this.selectedUID].robot._ambientlight_ready) {
-          this.setDisplayedData('Selected: Ambientlight', this.bodies[this.selectedUID].robot._ambientlight, {graph: true})
+        this.setDisplayedData('[Selected] State', this.bodies[this.selectedUID].robot.state)
+        // this.setDisplayedData('[Selected] Closest Dist', this.bodies[this.selectedUID].robot.closestDist || 0, {graph: true})
+        if(false && this.bodies[this.selectedUID].robot.abilityAttract) {
+          this.setDisplayedData('[Selected] Last Value 1', this.bodies[this.selectedUID].robot.abilityAttract.last_value1 || 0, {graph: true})
+          this.setDisplayedData('[Selected] Last Value 2', this.bodies[this.selectedUID].robot.abilityAttract.last_value2 || 0, {graph: true})
+          this.setDisplayedData('[Selected] Last Value 2-1',
+            ( this.bodies[this.selectedUID].robot.abilityAttract.last_value2 || 0)
+            -
+            (this.bodies[this.selectedUID].robot.abilityAttract.last_value1 || 0)
+          , {graph: true})
+          // this.setDisplayedData('[Selected] Did Something', this.bodies[this.selectedUID].robot.abilityAttract.didSomething, {graph: true})
+          this.setDisplayedData('[Selected] Direction', this.bodies[this.selectedUID].robot.abilityAttract.direction, {graph: true})
         }
-        // this.setDisplayedData('Selected: Robot', this.bodies[this.selectedUID].robot.toString())
+        if(this.bodies[this.selectedUID].robot._ambientlight_ready) {
+          this.setDisplayedData('[Selected] Ambient Light', this.bodies[this.selectedUID].robot._ambientlight, {graph: true})
+        }
+        // this.setDisplayedData('[Selected] Robot', this.bodies[this.selectedUID].robot.toString())
       } else {
-        this.setDisplayedData('Selected: ID', null);
-        this.setDisplayedData('Selected: State', null);
-        this.setDisplayedData('Selected: Robot', null);
-        this.setDisplayedData('Selected: Ambientlight', null, {graph: true});
+        this.setDisplayedData('[Selected] ID', null);
+        this.setDisplayedData('[Selected] State', null);
+        this.setDisplayedData('[Selected] Robot', null);
+        this.setDisplayedData('[Selected] Ambient Light', null, {graph: true});
       }
     }
 
