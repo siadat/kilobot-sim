@@ -678,31 +678,6 @@ class GradientAndReplicatorRobot extends Kilobot {
     }
   }
 
-  // node_modules/pixi.js/dist/pixi.js: Polygon.prototype.contains
-  isPointInPolygon(polygonPoints, x, y) {
-    let inside = false;
-
-    // use some raycasting to test hits
-    // https://github.com/substack/point-in-polygon/blob/master/index.js
-    let length = polygonPoints.length / 2;
-
-    for (let i = 0, j = length - 1; i < length; j = i++)
-    {
-      let xi = polygonPoints[i * 2];
-      let yi = polygonPoints[(i * 2) + 1];
-      let xj = polygonPoints[j * 2];
-      let yj = polygonPoints[(j * 2) + 1];
-      let intersect = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * ((y - yi) / (yj - yi))) + xi);
-
-      if (intersect)
-      {
-        inside = !inside;
-      }
-    }
-
-    return inside;
-  }
-
   rotatePoint(angle, origin, pos) {
 
     const translate = function translate (m, x, y) {
@@ -838,7 +813,7 @@ class GradientAndReplicatorRobot extends Kilobot {
     }
 
     for(let i = 0; i < this.replicaFirstPolygons.length; i++) {
-      if(this.isPointInPolygon(this.replicaFirstPolygons[i], this.shapePos.x, this.shapePos.y))
+      if(AbilityFuncs.isPointInPolygon(this.replicaFirstPolygons[i], this.shapePos.x, this.shapePos.y))
         return true;
     }
     return false;
@@ -1199,9 +1174,12 @@ window['ExperimentReplicator'] = class {
       "       # # # #       ",
       "        # # #        ",
       "       # # # # # #   ",
-      "        # # # # # #  ",
+      "      # # # # # # #  ",
       "       # # # # # #   ",
       "        # # #        ",
+      "         # #        ",
+      "        # # #        ",
+      "         # #        ",
       "       # # # #       ",
       "        # S #        ",
       "         S S         ",
