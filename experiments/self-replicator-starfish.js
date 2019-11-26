@@ -9,7 +9,7 @@ const ADJACENT_DIST_FACTOR = 1.4;
 
 const STATIONARY = 1;
 const NOT_STATIONARY = 0;
-let polygons = [];
+let polygonsDrawn = [];
 
 const calculateDistancePerf = function(x1, x2, y1, y2) {
   return Math.sqrt(
@@ -834,7 +834,7 @@ class GradientAndReplicatorRobot extends Kilobot {
           }).flat());
         // }
       }
-      polygons = this.replicaFirstPolygons;
+      polygonsDrawn = this.replicaFirstPolygons;
     }
 
     for(let i = 0; i < this.replicaFirstPolygons.length; i++) {
@@ -1567,9 +1567,9 @@ window['ExperimentReplicatorStarfish'] = class {
         g.clear();
 
         g.lineStyle(1, 0x88ff88, 1);
-        for(let i = 0; i < polygons.length; i++) {
+        for(let i = 0; i < polygonsDrawn.length; i++) {
           g.beginFill(colors[i], 0.9);
-          g.drawPolygon(polygons[i].map(n => n * V.ZOOM));
+          g.drawPolygon(polygonsDrawn[i].map(n => n * V.ZOOM));
         }
       });
     }
