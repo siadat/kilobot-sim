@@ -1280,13 +1280,13 @@ window['ExperimentReplicatorStarfish'] = class {
 
       let left = -(rowi+2);
       // let right = Math.pow(rowi, 1.1) + 2;
-      let right = rowi+2;
+      let right = Math.pow(rowi, 1.1)+2;
 
       for(let coli = left; coli < right && assemblyCount > 0; coli+=2) {
         assemblyCount--;
         let pos = {
-          x: coli + 1,
-          y: rowi + 1,
+          x: coli+1,
+          y: rowi+1,
         };
         bodyCounter++;
         newRobotFunc(
