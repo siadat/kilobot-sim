@@ -1,5 +1,5 @@
 SHELL := /bin/bash # reason: make "source" work (reason: avoid putting it in my ~/.bashrc)
-homepageDir = /home/sina/go/src/github.com/siadat/siadat.github.io
+homepageDir = /home/sina/go/src/github.com/siadat/siadat.github.io/kilobots
 
 dev: update_version
 	npx webpack -w --config webpack.dev.js
@@ -16,15 +16,15 @@ build:
 deploy: update_version
 	npx webpack --config webpack.prod.js
 
-	mkdir -p $(homepageDir)/kilobot/dist
-	cp dist/bundle.min.js $(homepageDir)/kilobot/dist
+	mkdir -p $(homepageDir)/dist
+	cp dist/bundle.min.js $(homepageDir)/dist
 
-	cp index.html $(homepageDir)/kilobot/
-	cp main.js $(homepageDir)/kilobot/
-	cp normalize.css $(homepageDir)/kilobot/
-	cp homepage.css $(homepageDir)/kilobot/
-	cp -r vendor $(homepageDir)/kilobot/
-	cp -r experiments $(homepageDir)/kilobot/
+	cp index.html $(homepageDir)/
+	cp main.js $(homepageDir)/
+	cp normalize.css $(homepageDir)/
+	cp homepage.css $(homepageDir)/
+	cp -r vendor $(homepageDir)/
+	cp -r experiments $(homepageDir)/
 
 update_version:
 	echo "// Build stuff" > version.js

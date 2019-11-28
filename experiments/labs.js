@@ -156,7 +156,7 @@ window['ExperimentLab1.3'] = class {
 }
 
 // ---
-class RobotLab7 extends Kilobot {
+class RobotSync extends Kilobot {
   setup() {
     this.PERIOD = 60;
     this.RESET_TIME_ADJUSTMENT_DIVIDER = 120;
@@ -251,7 +251,7 @@ class RobotLab7 extends Kilobot {
 	}
 }
 
-window['ExperimentLab7'] = class {
+window['ExperimentSync'] = class {
   constructor() {
     this.runnerOptions = {
       limitSpeed: true,
@@ -299,7 +299,7 @@ window['ExperimentLab7'] = class {
           y: i * this.INITIAL_DIST + (this.gradientNoise()-0.5)*RADIUS*1,
         },
           this.MathRandom() * 2*Math.PI,
-          new RobotLab7(),
+          new RobotSync(),
         );
       }
     }
@@ -976,9 +976,11 @@ class RobotFollowTheLeader extends Kilobot {
       Wait: 'Wait',
     };
     this.RADIUS = RADIUS;
+    // this.abilityAttract = new AbilityAttractAndAvoid();
   }
 
   setup() {
+    // this.abilityAttract.setup(this);
     if(this.id == 1) {
       this.amLeader = true;
       this.amTail = false;
@@ -1089,6 +1091,9 @@ class RobotFollowTheLeader extends Kilobot {
   }
 
   getCloserToFrontRobot() {
+    // this.abilityAttract.doAttract(this, this.frontRobotDist);
+    // return;
+
     switch(this.direction) {
       case 0: this.set_motors(0, this.kilo_turn_right); break;
       case 1: this.set_motors(this.kilo_turn_left, 0); break;
