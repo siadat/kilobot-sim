@@ -56,7 +56,7 @@ export class Pitch {
       '_Selection',
     ];
 
-    localStorage.setItem('V.ZOOM', Math.max(SIZE.w, SIZE.h) / (80 * 2*RADIUS));
+    localStorage.setItem('V.ZOOM', 1 * Math.max(SIZE.w, SIZE.h) / (80 * 2*RADIUS));
     localStorage.setItem('V.PAN.x', SIZE.w * 0.5);
     localStorage.setItem('V.PAN.y', SIZE.h * 0.5);
 
@@ -1353,6 +1353,11 @@ export class Pitch {
 
     if(true) {
       for(let i = 0; i < this.bodyIDs.length; i++) {
+
+        // NOTE: a robot can receive 2 messages without its loop func being called between them.
+        // This might happen in the real robots as well, but it probably happens here more often.
+        // When writing robot code, make sure you do not assume that loop() is called between message_rx calls.
+
         let b = this.bodies[this.bodyIDs[i]];
         if(this.frameCount < b.lastMessageSentAt + TICKS_BETWEEN_MSGS) {
           continue;
