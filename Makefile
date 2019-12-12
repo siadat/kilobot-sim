@@ -24,7 +24,7 @@ deploy: update_version
 	cp normalize.css $(homepageDir)/
 	cp homepage.css $(homepageDir)/
 	cp -r vendor $(homepageDir)/
-	cp -r experiments $(homepageDir)/
+	cp -r experiments/*.js $(homepageDir)/experiments/
 
 update_version:
 	echo "// Build stuff" > version.js
