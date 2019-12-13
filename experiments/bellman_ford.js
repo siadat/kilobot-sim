@@ -52,7 +52,7 @@ class Robot extends Kilobot {
 
     this.updateColors();
 
-    if(this.isSender && (this.kilo_ticks + this.offset) % 240 == 0) {
+    if(this.isSender && (this.kilo_ticks + this.offset) % 200 == 0) {
       let ids = Object.keys(this.routingTable).filter(id => id != this.kilo_uid);
       let idx = Math.floor(this.kilo_ticks/240) % ids.length;
       let packetDestID = ids[idx];
@@ -72,8 +72,12 @@ class Robot extends Kilobot {
   updateColors() {
     if(this.isSender || this.isEndpoint) {
       this.setColor(this.COLORS[this.kilo_uid % this.COLORS.length]);
-    } else if(this.userPackets.length >= 1) {
+    } else if(this.userPackets.length == 1) {
       this.setColor(this.COLORS[this.userPackets[0].dest % this.COLORS.length]);
+    } else if(this.userPackets.length > 1) {
+      this.setColor(this.RGB(3, 3, 3));
+      // let idx = Math.floor(this.userPackets.length * this.rand_soft()/256);
+      // this.setColor(this.COLORS[this.userPackets[idx].dest % this.COLORS.length]);
     } else if(Object.keys(this.routingTable).length > 0) {
 
       if(this.lastColorUpdatedAt == null) { // || this.kilo_ticks > this.lastColorUpdatedAt + 240) {
