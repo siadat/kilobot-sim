@@ -1,8 +1,8 @@
 {
 class Robot extends Kilobot {
-  constructor(defunct, isEndpoint, isSender, sendData, INITIAL_DIST) {
+  constructor(defunct, isEndpoint, linkDist) {
     super();
-    this.abilityBellmanFordRouting = new AbilityBellmanFordRouting(this, defunct, isEndpoint, isSender, sendData, INITIAL_DIST);
+    this.abilityBellmanFordRouting = new AbilityBellmanFordRouting(this, defunct, isEndpoint, linkDist);
   }
 
   setup() {
@@ -15,6 +15,8 @@ class Robot extends Kilobot {
     // }
 
     this.abilityBellmanFordRouting.loop();
+    this.abilityBellmanFordRouting.sendSomething();
+    this.abilityBellmanFordRouting.updateColors();
 
     if(this.abilityBellmanFordRouting.defunct) {
       if(this.kilo_ticks % 50 == 0 && this.rand_soft() > 252) {
@@ -30,6 +32,7 @@ class Robot extends Kilobot {
 
   message_rx(message, distance) {
     this.abilityBellmanFordRouting.message_rx(message, distance);
+    this.abilityBellmanFordRouting.updateColors();
   }
 
   message_tx() {
@@ -124,8 +127,6 @@ window['ExperimentBellmanFord2'] = class {
     for(let i = 0; i < 3; i++) {
       let idx = Math.floor(this.MathRandom() * functioningRobots.length);
       functioningRobots[idx].isEndpoint = true;
-      functioningRobots[idx].isSender = true; // i == 0 || i == 20-1;
-      // functioningRobots[idx].sendData = i;
     }
 
     robotSpecs.forEach(s => {
@@ -136,7 +137,7 @@ window['ExperimentBellmanFord2'] = class {
         y: s.pos.y + (AbilityFuncs.gradientNoise(this.MathRandom)-0.5)*RADIUS*0.5,
       },
         this.MathRandom() * 2*Math.PI,
-        new Robot(s.defunct, s.isEndpoint, s.isSender, s.sendData, this.INITIAL_DIST),
+        new Robot(s.defunct, s.isEndpoint, this.INITIAL_DIST * 1.5),
         // new RobotGradientFormation(s.isEndpoint, this.INITIAL_DIST), // s.defunct, s.isEndpoint),
       );
     });

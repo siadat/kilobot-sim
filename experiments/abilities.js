@@ -232,13 +232,12 @@ class AbilityAttractAndAvoid {
 }
 
 class AbilityBellmanFordRouting {
-  constructor(robot, defunct, isEndpoint, isSender, sendData, INITIAL_DIST) {
+  constructor(robot, defunct, isEndpoint, linkDist) {
 
     this.robot = robot;
     this.defunct = defunct;
     this.isEndpoint = isEndpoint;
-    this.linkDist = INITIAL_DIST * 1.2;
-    this.isSender = isSender;
+    this.linkDist = linkDist
 
     this.COLORS = [
       this.robot.RGB(3, 0, 0), // red
@@ -267,7 +266,7 @@ class AbilityBellmanFordRouting {
     // if(this.defunct) {
     //   this.robot.set_color(this.robot.RGB(0, 0, 0));
     // } else {
-    //   // if(this.isEndpoint || this.isSender) {
+    //   // if(this.isEndpoint) {
     //   //   this.robot.set_color(this.robot.RGB(3, 0, 0));
     //   // } else {
     //   //   this.robot.set_color(this.robot.RGB(0, 0, 0));
@@ -284,8 +283,6 @@ class AbilityBellmanFordRouting {
 
   loop() {
     this.expireRoutes();
-    this.updateColors();
-    this.sendSomething();
   }
 
   expireRoutes() {
@@ -311,6 +308,7 @@ class AbilityBellmanFordRouting {
     // }
     return msg;
   }
+
   message_rx(message, distance) {
     if(this.defunct) return;
 
@@ -325,9 +323,11 @@ class AbilityBellmanFordRouting {
       let currBestExpireAt = this.routingTable[destID] && this.routingTable[destID].expireAt;
 
       if(
-        (currBestCost == null || this.robot.kilo_ticks > currBestExpireAt)
+        (currBestCost == null)
         ||
-        destCost + distance <= currBestCost
+        (destCost + distance <= currBestCost)
+        ||
+        (this.robot.kilo_ticks > currBestExpireAt)
       ) {
         this.routingTable[destID] = {
           cost: destCost + distance,
@@ -354,23 +354,26 @@ class AbilityBellmanFordRouting {
       this.userPackets.push({
         data: p.data,
         dest: p.dest, // copy dest
+        src: p.src,
         link: this.routingTable[p.dest].link, // choose link
         // history: p.history // copy dest
       });
     }
-    this.updateColors();
   }
 
   sendSomething() {
-    if(this.isSender && (this.robot.kilo_ticks + this.offset) % 200 == 0) {
+    if(!this.isEndpoint) return;
+
+    if((this.robot.kilo_ticks + this.offset) % 200 == 0) {
       let ids = Object.keys(this.routingTable).filter(id => id != this.robot.kilo_uid);
       let idx = Math.floor(this.robot.kilo_ticks/240) % ids.length;
       let packetDestID = ids[idx];
 
       if(this.routingTable[packetDestID]) {
         this.userPackets.push({
-          data: 1, // this.sendData,
+          data: 1,
           dest: packetDestID,
+          src: this.robot.kilo_uid,
           link: this.routingTable[packetDestID].link,
           // history: [this.robot.kilo_uid],
         });
@@ -381,7 +384,7 @@ class AbilityBellmanFordRouting {
   updateColors() {
     if(this.defunct) {
       this.robot.set_color(this.robot.RGB(0, 0, 0));
-    } else if(this.isSender || this.isEndpoint) {
+    } else if(this.isEndpoint) {
       this.setColor(this.COLORS[this.robot.kilo_uid % this.COLORS.length]);
     } else if(this.userPackets.length == 1) {
       this.setColor(this.COLORS[this.userPackets[0].dest % this.COLORS.length]);
