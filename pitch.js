@@ -57,7 +57,7 @@ export class Pitch {
     ];
 
     if(true) {
-      localStorage.setItem('V.ZOOM', 1 * Math.max(SIZE.w, SIZE.h) / (50 * 2*RADIUS));
+      localStorage.setItem('V.ZOOM', 1 * Math.max(SIZE.w, SIZE.h) / (60 * 2*RADIUS));
       localStorage.setItem('V.PAN.x', SIZE.w * 0.5);
       localStorage.setItem('V.PAN.y', SIZE.h * 0.5);
     }
