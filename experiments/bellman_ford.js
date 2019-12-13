@@ -27,6 +27,7 @@ class Robot extends Kilobot {
       // add self
       this.routingTable[this.kilo_uid] = {
         cost: 0,
+        expireAt: Infinity,
         link: null,
       };
     }
@@ -48,7 +49,21 @@ class Robot extends Kilobot {
   }
 
   loop() {
-    if(this.defunct) return;
+    /*
+    if(this.defunct) {
+      if(this.kilo_ticks % 10 == 0 && this.rand_soft() > 252) {
+        // back to work
+        this.defunct = false;
+      }
+      return;
+    } else {
+      if(!this.isEndpoint)
+        if(this.kilo_ticks % 100 == 0 && this.rand_soft() > 252) {
+          // back to work
+          this.defunct = true;
+        }
+    }
+    */
 
     this.updateColors();
 
@@ -70,7 +85,9 @@ class Robot extends Kilobot {
   }
 
   updateColors() {
-    if(this.isSender || this.isEndpoint) {
+    if(this.defunct) {
+      this.set_color(this.RGB(0, 0, 0));
+    } else if(this.isSender || this.isEndpoint) {
       this.setColor(this.COLORS[this.kilo_uid % this.COLORS.length]);
     } else if(this.userPackets.length == 1) {
       this.setColor(this.COLORS[this.userPackets[0].dest % this.COLORS.length]);
@@ -103,10 +120,16 @@ class Robot extends Kilobot {
       let destCost = message.vector[i].cost;
 
       let currBestCost = this.routingTable[destID] && this.routingTable[destID].cost;
+      let currBestExpireAt = this.routingTable[destID] && this.routingTable[destID].expireAt;
 
-      if(currBestCost == null || destCost + distance < currBestCost) {
+      if(
+        (currBestCost == null || this.kilo_ticks > currBestExpireAt)
+        ||
+        destCost + distance <= currBestCost
+      ) {
         this.routingTable[destID] = {
           cost: destCost + distance,
+          expireAt: this.kilo_ticks + 60,
           link: message.id,
         }
       }
@@ -223,8 +246,7 @@ window['ExperimentBellmanFord'] = class {
       for(let j = minJ; j < maxJ; j++) {
         let defunct = false;
 
-        if(this.MathRandom() > 0.55)
-          defunct = true;
+        if(this.MathRandom() > 0.55) defunct = true;
 
         // if(AbilityFuncs.gradientNoise(this.MathRandom) > 0.5)
         //   defunct = true;
