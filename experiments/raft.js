@@ -181,7 +181,7 @@ class Robot extends Kilobot {
           && p.data.raftVote == this.kilo_uid
         ) {
           this.raftVotes[p.src] = true;
-          console.log(this.kilo_uid, "votes", Object.keys(this.raftVotes).length);
+          // console.log(this.kilo_uid, "votes", Object.keys(this.raftVotes).length);
         }
 
         // vote (only once in this term)
@@ -252,7 +252,7 @@ class Robot extends Kilobot {
   }
 
   becomeFreshLeader() {
-    console.log(this.kilo_uid, "becoming leader", this.raftTerm);
+    // console.log(this.kilo_uid, "becoming leader", this.raftTerm);
     this.raftState = this.raftStates.Leader;
     this.raftLeaderTick = 0;
     // this.raftLeaderID = null;
@@ -268,7 +268,7 @@ class Robot extends Kilobot {
     let maxHops = Math.max.apply(null, Object.keys(this.routingTable).map(id => this.routingTable[id].cost));
     this.resetTimeout(2 * maxHops);
 
-    console.log(this.kilo_uid, "becoming candidate", this.raftTerm);
+    // console.log(this.kilo_uid, "becoming candidate", this.raftTerm);
 
     {
       let ids = Object.keys(this.routingTable).filter(id => id != this.kilo_uid);
@@ -288,7 +288,7 @@ class Robot extends Kilobot {
   }
 
   becomeFreshFollower(term) {
-    console.log(this.kilo_uid, "becoming follower");
+    // console.log(this.kilo_uid, "becoming follower");
     this.raftTerm = term; 
     this.raftVote = null;
     this.raftState = this.raftStates.Follower; 
