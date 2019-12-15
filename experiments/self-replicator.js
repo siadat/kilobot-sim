@@ -208,6 +208,13 @@ class GradientAndReplicatorRobot extends Kilobot {
       this.neighbors_state = new Array(); // string, TODO: change to int
       this.neighbors_robotsIveEdgeFollowed = new Array();
 
+      // this.replicaFirst_id = new Int32Array(MAX_FIRST_REPLICA);
+      // this.replicaFirst_isPolygonPoint = new Int32Array(MAX_FIRST_REPLICA);
+      // this.replicaFirst_isPolygonPointVersion = new Int32Array(MAX_FIRST_REPLICA);
+      // this.replicaFirst_isCenter = new Int32Array(MAX_FIRST_REPLICA);
+      // this.replicaFirst_x = new Float64Array(MAX_FIRST_REPLICA);
+      // this.replicaFirst_y = new Float64Array(MAX_FIRST_REPLICA);
+
       for(let i = 0; i < MAX_NEIGHBOURS; i++) {
         this.neighbors_id[i] = VACANT;
         this.neighbors_grad[i] = NO_GRAD;
@@ -1090,22 +1097,26 @@ class GradientAndReplicatorRobot extends Kilobot {
     let ids = Object.keys(message.replicaFirstObj);
     for(let i = 0; i < ids.length; i++) {
       let id = ids[i];
-      if(!this.replicaFirstObj[id]) {
-        this.replicaFirstObj[id] = {}
+      let itemFR = this.replicaFirstObj[id];
+      let msgFR = message.replicaFirstObj[id];
+
+      if(!itemFR) {
+        this.replicaFirstObj[id] = {};
+        itemFR = this.replicaFirstObj[id];
       }
 
       if(
-        this.replicaFirstObj[id].isPolygonPointVersion == null
+        itemFR.isPolygonPointVersion == null
         ||
-        this.replicaFirstObj[id].isPolygonPointVersion < message.replicaFirstObj[id].isPolygonPointVersion
+        itemFR.isPolygonPointVersion < msgFR.isPolygonPointVersion
       ) {
-        this.replicaFirstObj[id].isPolygonPoint = message.replicaFirstObj[id].isPolygonPoint;
-        this.replicaFirstObj[id].isPolygonPointVersion = message.replicaFirstObj[id].isPolygonPointVersion;
+        itemFR.isPolygonPoint = msgFR.isPolygonPoint;
+        itemFR.isPolygonPointVersion = msgFR.isPolygonPointVersion;
       }
 
-      this.replicaFirstObj[id].isCenter = message.replicaFirstObj[id].isCenter;
-      this.replicaFirstObj[id].x = message.replicaFirstObj[id].x;
-      this.replicaFirstObj[id].y = message.replicaFirstObj[id].y;
+      itemFR.isCenter = msgFR.isCenter;
+      itemFR.x = msgFR.x;
+      itemFR.y = msgFR.y;
     }
   }
 
