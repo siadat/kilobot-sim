@@ -4,6 +4,14 @@ homepageDir = /home/sina/go/src/github.com/siadat/siadat.github.io/kilobots
 dev: update_version
 	npx webpack -w --config webpack.dev.js
 
+update-pixi:
+	cp \
+		node_modules/pixi.js/dist/pixi.js \
+		node_modules/pixi.js/dist/pixi.js.map \
+		node_modules/pixi.js/dist/pixi.min.js \
+		node_modules/pixi.js/dist/pixi.min.js.map \
+		vendor/
+
 all:
 	ag -o --js 'window..(Experiment\w+)' | tee | grep -Po 'Experiment\w+' | sort | uniq
 
