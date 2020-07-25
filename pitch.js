@@ -15,9 +15,13 @@ let BENCHMARKING = true;
 
 
 const DEV = false;
-let SIZE = {
-  w: window.innerWidth,
-  h: window.innerHeight,
+const SIZE = () => {
+  let s = {
+    w: window.innerWidth,
+    h: window.innerHeight,
+  };
+  console.log("SIZE func", s);
+  return s;
 }
 
 const ContinueQuery = true;
@@ -57,15 +61,15 @@ export class Pitch {
     ];
 
     if(true) {
-      localStorage.setItem('V.ZOOM', 1 * Math.max(SIZE.w, SIZE.h) / (60 * 2*RADIUS));
-      localStorage.setItem('V.PAN.x', SIZE.w * 0.5);
-      localStorage.setItem('V.PAN.y', SIZE.h * 0.5);
+      localStorage.setItem('V.ZOOM', 1 * Math.max(SIZE().w, SIZE().h) / (60 * 2*RADIUS));
+      localStorage.setItem('V.PAN.x', SIZE().w * 0.5);
+      localStorage.setItem('V.PAN.y', SIZE().h * 0.5);
     }
 
     this.V = {
       PAN: {
-        x: (1*localStorage.getItem('V.PAN.x')) || SIZE.w*0.5,
-        y: (1*localStorage.getItem('V.PAN.y')) || SIZE.h*0.5,
+        x: (1*localStorage.getItem('V.PAN.x')) || SIZE().w*0.5,
+        y: (1*localStorage.getItem('V.PAN.y')) || SIZE().h*0.5,
       },
       ZOOM: (1*localStorage.getItem('V.ZOOM')) || 20.0,
     };
@@ -286,8 +290,8 @@ export class Pitch {
       this.pixiApp = new PIXI.Application({
         backgroundColor: 0xffffff,
         autoStart: true,
-        width: SIZE.w,
-        height: SIZE.h,
+        width: SIZE().w,
+        height: SIZE().h,
         antialias: !false,
       });
       this.pixiApp.sortableChildren = true;
@@ -301,8 +305,8 @@ export class Pitch {
         if(nextZoom > 40) nextZoom = 40;
 
         let centerWithoutZoom = {
-          // x: (this.V.PAN.x-SIZE.w/2)/this.V.ZOOM,
-          // y: (this.V.PAN.y-SIZE.h/2)/this.V.ZOOM,
+          // x: (this.V.PAN.x-SIZE().w/2)/this.V.ZOOM,
+          // y: (this.V.PAN.y-SIZE().h/2)/this.V.ZOOM,
           x: (this.V.PAN.x - screenCenter.x)/this.V.ZOOM,
           y: (this.V.PAN.y - screenCenter.y)/this.V.ZOOM,
         }
@@ -327,8 +331,8 @@ export class Pitch {
 
         /*
         let centerWithoutZoom = {
-          // x: (this.V.PAN.x-SIZE.w/2)/this.V.ZOOM,
-          // y: (this.V.PAN.y-SIZE.h/2)/this.V.ZOOM,
+          // x: (this.V.PAN.x-SIZE().w/2)/this.V.ZOOM,
+          // y: (this.V.PAN.y-SIZE().h/2)/this.V.ZOOM,
           x: (this.V.PAN.x - ev.clientX)/this.V.ZOOM,
           y: (this.V.PAN.y - ev.clientY)/this.V.ZOOM,
         }
@@ -350,7 +354,7 @@ export class Pitch {
         this.clickArea = new PIXI.Container();
         this.clickArea.interactive = true;
         this.clickArea.cursor = 'grab';
-        this.clickArea.hitArea = new PIXI.Rectangle(0, 0, SIZE.w, SIZE.h);
+        this.clickArea.hitArea = new PIXI.Rectangle(0, 0, SIZE().w, SIZE().h);
         this.pixiApp.stage.addChild(this.clickArea);
 
         this.touches = {};
@@ -475,7 +479,7 @@ export class Pitch {
         this.platformGraphics.sortableChildren = true;
 
         // this.platformGraphics.interactive = true;
-        // this.platformGraphics.hitArea = new PIXI.Rectangle(0, 0, SIZE.w, SIZE.h);
+        // this.platformGraphics.hitArea = new PIXI.Rectangle(0, 0, SIZE().w, SIZE().h);
 
         this.pixiApp.stage.addChild(this.platformGraphics);
       }
@@ -1746,10 +1750,10 @@ class Box2DPhysics {
     window.world = this.world;
 
     if(false /* edge/wall */) {
-      let left   = -SIZE.w * 0.5;
-      let right  = +SIZE.w * 0.5;
-      let top    = -SIZE.h * 0.5;
-      let bottom = +SIZE.h * 0.5;
+      let left   = -SIZE().w * 0.5;
+      let right  = +SIZE().w * 0.5;
+      let top    = -SIZE().h * 0.5;
+      let bottom = +SIZE().h * 0.5;
 
       this.edgeShape({x: left, y: top}, {x: right, y: top});
       this.edgeShape({x: left, y: top}, {x: left, y: bottom});

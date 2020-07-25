@@ -1,3 +1,3 @@
 // Build stuff
-export const VERSION = '602a36f524a40acc3e0d537ed97590028585d7ba';
-export const BUILTAT = '2020-05-30-at-13-22-52';
+export const VERSION = '339aa7dc8913ca519173b7daf8a3d4eaf08ca374';
+export const BUILTAT = '2020-06-01-at-18-32-59';
